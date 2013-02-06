@@ -1,6 +1,8 @@
 package xiangqi.ai;
 
 public class Piece {
+    public static final int typesCount = 7;
+
     public static final int GENERAL = 0, G = 0;
     public static final int ADVISOR = 1, A = 1;
     public static final int ELEPHANT = 2, E = 2;
