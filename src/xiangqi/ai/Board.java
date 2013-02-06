@@ -4,50 +4,61 @@ import java.util.Stack;
 
 public class Board {
     public static final int W = 9, H = 10;
-    public static final int EMPTY = -1;
+
+    protected int[][] board;
+    protected int[] pieces;
 
     protected Stack<Integer> history = new Stack<Integer>();
 
-    protected int turn;
-    protected int[][] board;
-    protected int[][][] pieces = new int[2][Piece.typesCount][6];
-
     public Board(int[][] board, int turn) {
         this.board = board;
-        this.turn = turn;
         initPieces();
     }
 
     public Board() {
-        turn = 0;
         board = new int[][] {
-            { 4,  3,  2,  1,  0,  1,  2,  3,  4},
-            {-1, -1, -1, -1, -1, -1, -1, -1, -1},
-            {-1,  5, -1, -1, -1, -1, -1,  5, -1},
-            { 6, -1,  6, -1,  6, -1,  6, -1,  6},
-            {-1, -1, -1, -1, -1, -1, -1, -1, -1},
+            { 5,  4,  3,  2,  1,  2,  3,  4,  5},
+            { 0,  0,  0,  0,  0,  0,  0,  0,  0},
+            { 0,  6,  0,  0,  0,  0,  0,  6,  0},
+            { 7,  0,  7,  0,  7,  0,  7,  0,  7},
+            { 0,  0,  0,  0,  0,  0,  0,  0,  0},
 
-            {-1, -1, -1, -1, -1, -1, -1, -1, -1},
-            {22, -1, 22, -1, 22, -1, 22, -1, 22},
-            {-1, 21, -1, -1, -1, -1, -1, 21, -1},
-            {-1, -1, -1, -1, -1, -1, -1, -1, -1},
-            {20, 19, 18, 17, 16, 17, 18, 19, 20}
+            { 0,  0,  0,  0,  0,  0,  0,  0,  0},
+            {23,  0, 23,  0, 23,  0, 23,  0, 23},
+            { 0, 22,  0,  0,  0,  0,  0, 22,  0},
+            { 0,  0,  0,  0,  0,  0,  0,  0,  0},
+            {21, 20, 19, 18, 17, 18, 19, 20, 21}
         };
         initPieces();
     }
 
     protected void initPieces() {
+        pieces = new int[32];
+        int count = 0;
+
         for (int i = 0; i < H; ++i)
             for (int j = 0; j < W; ++j) {
-                if (board[i][j] == EMPTY)
-                    continue;
-                int d1 = board[i][j] & 0xf0, d2 = board[i][j] & 0x0f;
-                ++pieces[d1][d2][0];
-                pieces[d1][d2][pieces[d1][d2][0]] = ((i << 8) | j);
+                if (board[i][j] != 0) {
+                    board[i][j] |= (count << 8);
+                    pieces[count] = (i << 12) | (j << 8) | (board[i][j] & 0xff);
+                    ++count;
+                }
             }
     }
 
-    public void pass() {
-        turn = 1 - turn;
+    public void move(int move) {
+        int src_i = move >> 12, src_j = (move >> 8) & 0xf,
+            dst_i = (move >> 4) & 0xf, dst_j = move & 0xf;
+
+        int src = board[src_i][src_j], dst = board[dst_i][dst_j];
+        if (dst != 0)
+            pieces[dst >> 8] = 0;
+
+        board[dst_i][dst_j] = src;
+        board[src_i][src_j] = 0;
+
+        pieces[src >> 8] = (dst_i << 12) | (dst_j << 8) | (src & 0xff);
+
+        history.push((dst << 16) | move);
     }
 }
