@@ -61,4 +61,19 @@ public class Board {
 
         history.push((dst << 16) | move);
     }
+
+    public void unmove() {
+        int last = history.pop();
+        int capture = last >> 16, move = last & 0xffff;
+
+        int src_i = move >> 12, src_j = (move >> 8) & 0xf,
+            dst_i = (move >> 4) & 0xf, dst_j = move & 0xf;
+        int dst = board[dst_i][dst_j];
+        board[src_i][src_j] = dst;
+        pieces[dst >> 8] = (src_i << 12) | (src_j << 8) | (dst & 0xff);
+
+        board[dst_i][dst_j] = capture;
+        if (capture != 0)
+            pieces[capture >> 8] = (dst_i << 12) | (dst_j << 8) | (capture & 0xff);
+    }
 }
