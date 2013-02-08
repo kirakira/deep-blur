@@ -111,17 +111,66 @@ public class Board {
     }
 
     public void print() {
+        System.out.print("\t ");
+        for (int j = 0; j < W; ++j)
+            System.out.print(j + "   ");
+        System.out.println();
+        System.out.println();
+
         for (int i = 0; i < H; ++i) {
+            if (i == 5) {
+                for (int k = 0; k < 8; ++k)
+                    System.out.print(' ');
+                for (int k = 0; k < 34; ++k)
+                    System.out.print('=');
+                System.out.println();
+            }
+            System.out.print(i + "\t");
             for (int j = 0; j < W; ++j) {
                 if (board[i][j] == 0)
-                    System.out.print(".");
-                else
-                    System.out.print(board[i][j] & 0xf);
-                System.out.print(" ");
+                    System.out.print(" .  ");
+                else {
+                    if ((board[i][j] & 0x10) != 0)
+                        System.out.print('~');
+                    else
+                        System.out.print(' ');
+                    char c = 0;
+                    switch (board[i][j] & 0xf) {
+                        case Piece.G:
+                            c = 'G';
+                            break;
+
+                        case Piece.A:
+                            c = 'A';
+                            break;
+
+                        case Piece.E:
+                            c = 'E';
+                            break;
+
+                        case Piece.H:
+                            c = 'H';
+                            break;
+
+                        case Piece.R:
+                            c = 'R';
+                            break;
+
+                        case Piece.C:
+                            c = 'C';
+                            break;
+
+                        case Piece.S:
+                            c = 'S';
+                            break;
+                    }
+                    System.out.print(c + "  ");
+                }
             }
             System.out.println();
         }
         System.out.println("Board hash: " + currentHash());
+        System.out.println();
         System.out.println();
     }
 }
