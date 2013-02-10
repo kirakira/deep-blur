@@ -12,7 +12,7 @@ public class Main {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         do {
             try {
-                System.out.print("m src dst to move, u to unmove, g player to show all moves for player: ");
+                System.out.print("m to move, u to unmove, g to show all moves, a to show all attacks: ");
                 String line = reader.readLine();
                 String[] parts = line.split(" ");
                 if (parts[0].equals("q"))
@@ -24,14 +24,16 @@ public class Main {
                 } else if (parts[0].equals("u")) {
                     board.unmove();
                     board.print();
-                } else if (parts[0].equals("g")) {
+                } else if (parts[0].equals("g") || parts[0].equals("a")) {
                     int turn = Integer.parseInt(parts[1]);
-                    List<Integer> moves = board.generateMoves(turn);
-                    System.out.print("Possible " + moves.size() + " moves for player " + turn + ": ");
-                    for (Integer mi: moves) {
-                        int m = mi.intValue();
+                    List<Integer> moves;
+                    if (parts[0].equals("g"))
+                        moves = board.generateMoves(turn);
+                    else
+                        moves = board.generateAttacks(turn);
+                    System.out.print("" + moves.size() + " possible moves for player " + turn + ": ");
+                    for (int m: moves)
                         System.out.print(parse(m >> 8) + "->" + parse(m & 0xff) + " ");
-                    }
                     System.out.println();
                 }
             } catch (Exception e) {
