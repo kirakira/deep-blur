@@ -12,6 +12,7 @@ public class Board {
     protected int[] pieces;
 
     protected long[][][] hash;
+    protected long[] playerHash;
     protected long currentHash;
 
     protected Stack<Integer> history = new Stack<Integer>();
@@ -71,6 +72,8 @@ public class Board {
             for (int j = 0; j < W; ++j)
                 if (board[i][j] != 0)
                     currentHash ^= hash[i][j][board[i][j] & 0xff];
+
+        playerHash = new long[] {random.nextLong(), random.nextLong()};
     }
 
     // returns true if the move caused the general to be captured
@@ -122,6 +125,10 @@ public class Board {
 
     public long currentHash() {
         return currentHash;
+    }
+
+    public long currentHash(int turn) {
+        return currentHash ^ playerHash[turn];
     }
 
     public void print() {
