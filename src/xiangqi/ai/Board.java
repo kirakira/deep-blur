@@ -375,6 +375,58 @@ public class Board {
                     ret.add(makeMove(pieces[index], hMove[p][k][0], hMove[p][k][1]));
         }
 
+
+        // CHARIOT
+        for (int index = start + 7; index <= start + 8; ++index) {
+            if (pieces[index] == 0)
+                continue;
+            int i = pieces[index] >> 12, j = (pieces[index] >> 8) & 0xf;
+            int t = j + 1;
+            while (t < W) {
+                if (board[i][t] == 0)
+                    ret.add(makeMove(pieces[index], i, t));
+                else {
+                    if (checkPosition(mask, test, i, t))
+                        ret.add(makeMove(pieces[index], i, t));
+                    break;
+                }
+                ++t;
+            }
+            t = i + 1;
+            while (t < H) {
+                if (board[t][j] == 0)
+                    ret.add(makeMove(pieces[index], t, j));
+                else {
+                    if (checkPosition(mask, test, t, j))
+                        ret.add(makeMove(pieces[index], t, j));
+                    break;
+                }
+                ++t;
+            }
+            t = j - 1;
+            while (t >= 0) {
+                if (board[i][t] == 0)
+                    ret.add(makeMove(pieces[index], i, t));
+                else {
+                    if (checkPosition(mask, test, i, t))
+                        ret.add(makeMove(pieces[index], i, t));
+                    break;
+                }
+                --t;
+            }
+            t = i - 1;
+            while (t >= 0) {
+                if (board[t][j] == 0)
+                    ret.add(makeMove(pieces[index], t, j));
+                else {
+                    if (checkPosition(mask, test, t, j))
+                        ret.add(makeMove(pieces[index], t, j));
+                    break;
+                }
+                --t;
+            }
+        }
+
         return ret;
     }
 }
