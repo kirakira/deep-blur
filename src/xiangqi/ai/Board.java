@@ -232,6 +232,37 @@ public class Board {
         aMove[makePosition(8, 4)] = new int[][] {{9, 3}, {9, 5}, {7, 3}, {7, 5}};
         aMove[makePosition(7, 3)] = new int[][] {{8, 4}};
         aMove[makePosition(7, 5)] = new int[][] {{8, 4}};
+
+        eMove = new int[256][][];
+        eCheck = new int[256][][];
+        eMove[makePosition(0, 2)] = new int[][] {{2, 0}, {2, 4}};
+        eCheck[makePosition(0, 2)] = new int[][] {{1, 1}, {1, 3}};
+        eMove[makePosition(0, 6)] = new int[][] {{2, 4}, {2, 8}};
+        eCheck[makePosition(0, 6)] = new int[][] {{1, 5}, {1, 7}};
+        eMove[makePosition(2, 0)] = new int[][] {{0, 2}, {4, 2}};
+        eCheck[makePosition(2, 0)] = new int[][] {{1, 1}, {3, 1}};
+        eMove[makePosition(2, 4)] = new int[][] {{0, 6}, {4, 6}, {4, 2}, {0, 2}};
+        eCheck[makePosition(2, 4)] = new int[][] {{1, 5}, {3, 5}, {3, 3}, {1, 3}};
+        eMove[makePosition(2, 8)] = new int[][] {{0, 6}, {4, 6}};
+        eCheck[makePosition(2, 8)] = new int[][] {{1, 7}, {3, 7}};
+        eMove[makePosition(4, 2)] = new int[][] {{2, 0}, {2, 4}};
+        eCheck[makePosition(4, 2)] = new int[][] {{3, 1}, {3, 3}};
+        eMove[makePosition(4, 6)] = new int[][] {{2, 4}, {2, 8}};
+        eCheck[makePosition(4, 6)] = new int[][] {{3, 5}, {3, 7}};
+        for (int i = 5; i < H; ++i)
+            for (int j = 0; j < W; ++j) {
+                int p = makePosition(i, j), op = makePosition(9 - i, j);
+                if (eMove[op] != null) {
+                    eMove[p] = new int[eMove[op].length][2];
+                    eCheck[p] = new int[eCheck[op].length][2];
+                    for (int k = 0; k < eMove[p].length; ++k) {
+                        eMove[p][k][0] = 9 - eMove[op][k][0];
+                        eMove[p][k][1] = eMove[op][k][1];
+                        eCheck[p][k][0] = 9 - eCheck[op][k][0];
+                        eCheck[p][k][1] = eCheck[op][k][1];
+                    }
+                }
+            }
     }
 
     protected static int makeMove(int piece, int dst_i, int dst_j) {
@@ -288,6 +319,18 @@ public class Board {
             for (int k = 0; k < aMove[p].length; ++k)
                 if (checkPosition(mask, test, aMove[p][k][0], aMove[p][k][1]))
                     ret.add(makeMove(pieces[index], aMove[p][k][0], aMove[p][k][1]));
+        }
+
+
+        // ELEPHANT
+        for (int index = start + 3; index <= start + 4; ++index) {
+            if (pieces[index] == 0)
+                continue;
+            int p = pieces[index] >> 8;
+            for (int k = 0; k < eMove[p].length; ++k)
+                if (checkPosition(mask, test, eMove[p][k][0], eMove[p][k][1])
+                        && board[eCheck[p][k][0]][eCheck[p][k][1]] == 0)
+                    ret.add(makeMove(pieces[index], eMove[p][k][0], eMove[p][k][1]));
         }
 
         return ret;
