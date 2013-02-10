@@ -199,6 +199,7 @@ public class Board {
         return (i << 4) | j;
     }
 
+    protected static int[] c4di = {0, 1, 0, -1}, c4dj = {1, 0, -1, 0};
     protected static int[][][] gMove, aMove, eMove, eCheck, hMove, hCheck;
     static {
         gMove = new int[256][][];
@@ -381,49 +382,51 @@ public class Board {
             if (pieces[index] == 0)
                 continue;
             int i = pieces[index] >> 12, j = (pieces[index] >> 8) & 0xf;
-            int t = j + 1;
-            while (t < W) {
-                if (board[i][t] == 0)
-                    ret.add(makeMove(pieces[index], i, t));
-                else {
-                    if (checkPosition(mask, test, i, t))
-                        ret.add(makeMove(pieces[index], i, t));
-                    break;
-                }
-                ++t;
+            for (int r = 0; r < 4; ++r) {
+                int oi = i, oj = j;
+                do {
+                    oi += c4di[r];
+                    oj += c4dj[r];
+                    if (!(oi >= 0 && oi < H && oj >= 0 && oj < W))
+                        break;
+                    if (board[oi][oj] == 0)
+                        ret.add(makeMove(pieces[index], oi, oj));
+                    else {
+                        if (checkPosition(mask, test, oi, oj))
+                            ret.add(makeMove(pieces[index], oi, oj));
+                        break;
+                    }
+                } while (true);
             }
-            t = i + 1;
-            while (t < H) {
-                if (board[t][j] == 0)
-                    ret.add(makeMove(pieces[index], t, j));
-                else {
-                    if (checkPosition(mask, test, t, j))
-                        ret.add(makeMove(pieces[index], t, j));
-                    break;
-                }
-                ++t;
-            }
-            t = j - 1;
-            while (t >= 0) {
-                if (board[i][t] == 0)
-                    ret.add(makeMove(pieces[index], i, t));
-                else {
-                    if (checkPosition(mask, test, i, t))
-                        ret.add(makeMove(pieces[index], i, t));
-                    break;
-                }
-                --t;
-            }
-            t = i - 1;
-            while (t >= 0) {
-                if (board[t][j] == 0)
-                    ret.add(makeMove(pieces[index], t, j));
-                else {
-                    if (checkPosition(mask, test, t, j))
-                        ret.add(makeMove(pieces[index], t, j));
-                    break;
-                }
-                --t;
+        }
+
+
+        // CANNON
+        for (int index = start + 9; index <= start + 10; ++index) {
+            if (pieces[index] == 0)
+                continue;
+            int i = pieces[index] >> 12, j = (pieces[index] >> 8) & 0xf;
+            for (int r = 0; r < 4; ++r) {
+                int oi = i, oj = j;
+                boolean platform = false;
+                do {
+                    oi += c4di[r];
+                    oj += c4dj[r];
+                    if (!(oi >= 0 && oi < H && oj >= 0 && oj < W))
+                        break;
+                    if (board[oi][oj] == 0) {
+                        if (!platform)
+                            ret.add(makeMove(pieces[index], oi, oj));
+                    } else {
+                        if (!platform)
+                            platform = true;
+                        else {
+                            if (checkPosition(mask, test, oi, oj))
+                                ret.add(makeMove(pieces[index], oi, oj));
+                            break;
+                        }
+                    }
+                } while (true);
             }
         }
 
