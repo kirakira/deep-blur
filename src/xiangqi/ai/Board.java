@@ -201,6 +201,7 @@ public class Board {
 
     protected static int[] c4di = {0, 1, 0, -1}, c4dj = {1, 0, -1, 0};
     protected static int[][][] gMove, aMove, eMove, eCheck, hMove, hCheck;
+    protected static int[][][][] sMove;
     static {
         gMove = new int[256][][];
         gMove[makePosition(0, 3)] = new int[][] {{0, 4}, {1, 3}};
@@ -291,6 +292,46 @@ public class Board {
                         hCheck[p][count][0] = i + check_di[r];
                         hCheck[p][count][1] = j + check_dj[r];
                         ++count;
+                    }
+                }
+            }
+
+        sMove = new int[2][256][][];
+        for (int i = 3; i <= 4; ++i)
+            for (int j = 0; j < W; j += 2) {
+                int p = makePosition(i, j);
+                sMove[0][p] = new int[][] {{i + 1, j}};
+            }
+        di = new int[] {0, 1, 0};
+        dj = new int[] {1, 0, -1};
+        for (int i = 5; i < H; ++i)
+            for (int j = 0; j < W; ++j) {
+                int count = 0;
+                for (int r = 0; r < 3; ++r) {
+                    int oi = i + di[r], oj = j + dj[r];
+                    if (oi >= 0 && oi < H && oj >= 0 && oj < W)
+                        ++count;
+                }
+                int p = makePosition(i, j);
+                sMove[0][p] = new int[count][2];
+                count = 0;
+                for (int r = 0; r < 3; ++r) {
+                    int oi = i + di[r], oj = j + dj[r];
+                    if (oi >= 0 && oi < H && oj >= 0 && oj < W) {
+                        sMove[0][p][count][0] = oi;
+                        sMove[0][p][count][1] = oj;
+                        ++count;
+                    }
+                }
+            }
+        for (int i = 0; i < H; ++i)
+            for (int j = 0; j < W; ++j) {
+                int p = makePosition(i, j), op = makePosition(9 - i, j);
+                if (sMove[0][op] != null) {
+                    sMove[1][p] = new int[sMove[0][op].length][2];
+                    for (int k = 0; k < sMove[1][p].length; ++k) {
+                        sMove[1][p][k][0] = 9 - sMove[0][op][k][0];
+                        sMove[1][p][k][1] = sMove[0][op][k][1];
                     }
                 }
             }
@@ -428,6 +469,17 @@ public class Board {
                     }
                 } while (true);
             }
+        }
+
+
+        // SOLDIER
+        for (int index = start + 11;  index <= start + 15; ++index) {
+            if (pieces[index] == 0)
+                continue;
+            int p = pieces[index] >> 8;
+            for (int k = 0; k < sMove[turn][p].length; ++k)
+                if (checkPosition(mask, test, sMove[turn][p][k][0], sMove[turn][p][k][1]))
+                    ret.add(makeMove(pieces[index], sMove[turn][p][k][0], sMove[turn][p][k][1]));
         }
 
         return ret;

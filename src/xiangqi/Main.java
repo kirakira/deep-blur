@@ -27,7 +27,7 @@ public class Main {
                 } else if (parts[0].equals("g")) {
                     int turn = Integer.parseInt(parts[1]);
                     List<Integer> moves = board.generateMoves(turn);
-                    System.out.print("Possible moves: ");
+                    System.out.print("Possible " + moves.size() + " moves for player " + turn + ": ");
                     for (Integer mi: moves) {
                         int m = mi.intValue();
                         System.out.print(parse(m >> 8) + "->" + parse(m & 0xff) + " ");
