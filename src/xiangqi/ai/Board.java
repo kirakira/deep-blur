@@ -263,6 +263,36 @@ public class Board {
                     }
                 }
             }
+
+        hMove = new int[256][][];
+        hCheck = new int[256][][];
+        int[] di = new int[] {-2, -1, 1, 2, 2, 1, -1, -2},
+            dj = new int[] {1, 2, 2, 1, -1, -2, -2, -1},
+            check_di = new int[] {-1, 0, 0, 1, 1, 0, 0, -1},
+            check_dj = new int[] {0, 1, 1, 0, 0, -1, -1, 0};
+        for (int i = 0; i < H; ++i)
+            for (int j = 0; j < W; ++j) {
+                int count = 0;
+                for (int r = 0; r < 8; ++r) {
+                    int oi = i + di[r], oj = j + dj[r];
+                    if (oi >= 0 && oi < H && oj >= 0 && oj < W)
+                        ++count;
+                }
+                int p = makePosition(i, j);
+                hMove[p] = new int[count][2];
+                hCheck[p] = new int[count][2];
+                count = 0;
+                for (int r = 0; r < 8; ++r) {
+                    int oi = i + di[r], oj = j + dj[r];
+                    if (oi >= 0 && oi < H && oj >= 0 && oj < W) {
+                        hMove[p][count][0] = oi;
+                        hMove[p][count][1] = oj;
+                        hCheck[p][count][0] = i + check_di[r];
+                        hCheck[p][count][1] = j + check_dj[r];
+                        ++count;
+                    }
+                }
+            }
     }
 
     protected static int makeMove(int piece, int dst_i, int dst_j) {
@@ -331,6 +361,18 @@ public class Board {
                 if (checkPosition(mask, test, eMove[p][k][0], eMove[p][k][1])
                         && board[eCheck[p][k][0]][eCheck[p][k][1]] == 0)
                     ret.add(makeMove(pieces[index], eMove[p][k][0], eMove[p][k][1]));
+        }
+
+
+        // HORSE
+        for (int index = start + 5; index <= start + 6; ++index) {
+            if (pieces[index] == 0)
+                continue;
+            int p = pieces[index] >> 8;
+            for (int k = 0; k < hMove[p].length; ++k)
+                if (checkPosition(mask, test, hMove[p][k][0], hMove[p][k][1])
+                        && board[hCheck[p][k][0]][hCheck[p][k][1]] == 0)
+                    ret.add(makeMove(pieces[index], hMove[p][k][0], hMove[p][k][1]));
         }
 
         return ret;
