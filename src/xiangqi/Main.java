@@ -33,7 +33,7 @@ public class Main {
                         moves = agent.board.generateAttacks(turn);
                     System.out.print("" + moves.size() + " possible moves for player " + turn + ": ");
                     for (int m: moves)
-                        System.out.print(new Move(m));
+                        System.out.print(new Move(m) + " ");
                     System.out.println();
                 } else if (parts[0].equals("s")) {
                     agent.move(agent.search());
