@@ -15,9 +15,11 @@ public class Board {
     protected long[] playerHash;
     protected long currentHash;
 
+    protected int[] staticValue = {0, 100000000, 3, 3, 7, 15, 7, 2};
+
     protected Stack<Integer> history = new Stack<Integer>();
 
-    public Board(int[][] board, int turn) {
+    public Board(int[][] board) {
         this.board = board;
         initPieces();
         initHasher();
@@ -191,6 +193,7 @@ public class Board {
             System.out.println();
         }
         System.out.println("Board hash: " + currentHash());
+        System.out.println("Value for p0: " + staticValue(0));
         System.out.println();
         System.out.println();
     }
@@ -494,5 +497,18 @@ public class Board {
                 ret.add(move);
         }
         return ret;
+    }
+
+    public int staticValue(int player) {
+        int[] score = new int[2];
+        for (int turn = 0; turn <= 1; ++turn)
+            for (int i = turn * 16; i < turn * 16 + 16; ++i) {
+                score[turn] += staticValue[pieces[i] & 0xf];
+            }
+
+        if (player == 0)
+            return score[0] - score[1];
+        else
+            return score[1] - score[0];
     }
 }

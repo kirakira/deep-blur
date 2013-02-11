@@ -6,35 +6,38 @@ import java.io.*;
 
 public class Main {
     public static final void main(String[] args) throws java.io.IOException {
-        Board board = new Board();
-        board.print();
+        Agent agent = new Agent();
+        agent.board.print();
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         do {
             try {
-                System.out.print("m to move, u to unmove, g to show all moves, a to show all attacks: ");
+                System.out.print("m to move, u to unmove, g to show all moves, a to show all attacks, s to search: ");
                 String line = reader.readLine();
                 String[] parts = line.split(" ");
                 if (parts[0].equals("q"))
                     break;
                 else if (parts[0].equals("m")) {
                     int x = Integer.parseInt(parts[1]), y = Integer.parseInt(parts[2]);
-                    board.move(((x / 10) << 12) | ((x % 10) << 8) | ((y / 10) << 4) | (y % 10));
-                    board.print();
+                    agent.move(new Move(x / 10, x % 10, y / 10, y % 10));
+                    agent.board.print();
                 } else if (parts[0].equals("u")) {
-                    board.unmove();
-                    board.print();
+                    agent.unmove();
+                    agent.board.print();
                 } else if (parts[0].equals("g") || parts[0].equals("a")) {
                     int turn = Integer.parseInt(parts[1]);
                     List<Integer> moves;
                     if (parts[0].equals("g"))
-                        moves = board.generateMoves(turn);
+                        moves = agent.board.generateMoves(turn);
                     else
-                        moves = board.generateAttacks(turn);
+                        moves = agent.board.generateAttacks(turn);
                     System.out.print("" + moves.size() + " possible moves for player " + turn + ": ");
                     for (int m: moves)
                         System.out.print(parse(m >> 8) + "->" + parse(m & 0xff) + " ");
                     System.out.println();
+                } else if (parts[0].equals("s")) {
+                    agent.move(agent.search());
+                    agent.board.print();
                 }
             } catch (Exception e) {
                 e.printStackTrace();
