@@ -33,7 +33,7 @@ public class Main {
                         moves = agent.board.generateAttacks(turn);
                     System.out.print("" + moves.size() + " possible moves for player " + turn + ": ");
                     for (int m: moves)
-                        System.out.print(parse(m >> 8) + "->" + parse(m & 0xff) + " ");
+                        System.out.print(new Move(m));
                     System.out.println();
                 } else if (parts[0].equals("s")) {
                     agent.move(agent.search());
@@ -43,9 +43,5 @@ public class Main {
                 e.printStackTrace();
             }
         } while (true);
-    }
-
-    public static String parse(int x) {
-        return "(" + (x >> 4) + ", " + (x & 0xf) + ")";
     }
 }

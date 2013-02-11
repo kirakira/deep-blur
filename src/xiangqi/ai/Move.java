@@ -30,4 +30,8 @@ public class Move {
     public int dstCol() {
         return move & 0xf;
     }
+
+    public String toString() {
+        return "(" + srcRow() + ", " + srcCol() + ")->(" + dstRow() + ", " + dstCol() + ")";
+    }
 }
