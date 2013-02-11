@@ -15,7 +15,7 @@ public class Agent {
     // Value[1]: score (relative)
     // Value[2]: best move
     protected Map<Long, int[]> transposition = new HashMap<Long, int[]>();
-    protected Map<Integer, Integer> moveScore;
+    protected Map<Integer, Integer> moveScore, currentMoveScore;
 
     protected Comparator<Integer> compare = new Comparator<Integer>() {
         public int compare(Integer o1, Integer o2) {
@@ -64,27 +64,47 @@ public class Agent {
 
     public Move search() {
         evaluateCount = 0;
-        moveScore = new HashMap<Integer, Integer>();
-        System.out.println("Score: " + id(6, turn) + " (" + evaluateCount + " evaluations)");
-        return new Move(transposition.get(board.currentHash(turn))[2]);
+        long startTime = System.nanoTime();
+        int score = id(7, turn);
+        long timeSpent = System.nanoTime() - startTime;
+        System.out.println("Score: " + score + " (" + evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s)");
+        int[] array = transposition.get(board.currentHash(turn));
+        if (array != null)
+            return new Move(array[2]);
+        else
+            return null;
     }
 
     protected int id(int depth, int turn) {
+        moveScore = new HashMap<Integer, Integer>();
+        currentMoveScore = new HashMap<Integer, Integer>();
         int best = -INFINITY;
         for (int d = 1; d <= depth; ++d) {
             System.out.print("Depth: " + d);
-            best = minimax(d, turn, -INFINITY, INFINITY);
+            for (int step = 1; ; step <<= 2) {
+                best = minimax(d, turn, -step, step);
+                if (best > -step && best < step)
+                    break;
+            }
             System.out.print(", value: " + best + ", move: ");
 
-            int t = turn;
-            for (int i = 0; i < d; ++i) {
-                int move = transposition.get(board.currentHash(t))[2];
+            moveScore = currentMoveScore;
+            currentMoveScore = new HashMap<Integer, Integer>();
+
+            int t = turn, i;
+            for (i = 0; i < d; ++i) {
+                int[] array = transposition.get(board.currentHash(t));
+                if (array == null)
+                    break;
+                int move = array[2];
                 board.move(move);
                 t = 1 - t;
                 System.out.print(new Move(move) + " ");
             }
-            for (int i = 0; i < d; ++i)
+            while (i > 0) {
                 board.unmove();
+                --i;
+            }
             System.out.println();
         }
         return best;
@@ -103,8 +123,8 @@ public class Agent {
         int[] oldHistory = transposition.put(hash, new int[] {depth, 0, 0});
 
         List<Integer> moves = board.generateMoves(turn);
-        //Collections.sort(moves, compare);
-        int bestMove = 0;
+        Collections.sort(moves, compare);
+        int bestMove = 0, best = -INFINITY;
 
         for (int move: moves) {
             int t;
@@ -114,9 +134,12 @@ public class Agent {
                 t = -minimax(depth - 1, 1 - turn, -beta, -alpha);
             board.unmove();
             saveMoveScore(move, t);
+            if (t > best) {
+                best = t;
+                bestMove = move;
+            }
             if (t > alpha) {
                 alpha = t;
-                bestMove = move;
                 if (beta <= alpha) {
                     if (oldHistory == null)
                         transposition.remove(hash);
@@ -128,16 +151,16 @@ public class Agent {
         }
 
         if (bestMove != 0)
-            transposition.put(board.currentHash(turn), new int[] {depth, alpha, bestMove});
+            transposition.put(board.currentHash(turn), new int[] {depth, best, bestMove});
         else
             transposition.remove(hash);
-        return alpha;
+        return best;
     }
 
     protected void saveMoveScore(int move, int score) {
-        Integer current = moveScore.get(move);
+        Integer current = currentMoveScore.get(move);
         if (current == null || current.intValue() < score)
-            moveScore.put(move, score);
+            currentMoveScore.put(move, score);
     }
 
     protected int evaluate(int turn) {
