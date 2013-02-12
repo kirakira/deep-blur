@@ -78,7 +78,7 @@ public class Board {
         playerHash = new long[] {random.nextLong(), random.nextLong()};
     }
 
-    // returns true if the move caused the general to be captured
+    // returns false if the if the move caused itself checked
     public boolean move(int move) {
         boolean ret = false;
 
@@ -89,9 +89,6 @@ public class Board {
         if (dst != 0) {
             pieces[dst >> 8] = 0;
             currentHash ^= hash[dst_i][dst_j][dst & 0xff];
-
-            if ((dst & 0xf) == Piece.G)
-                ret = true;
         }
 
         board[dst_i][dst_j] = src;
@@ -103,7 +100,12 @@ public class Board {
 
         history.push((dst << 16) | move);
 
-        return ret;
+        if (isChecked((src >> 4) & 0xf)) {
+            unmove();
+            return false;
+        }
+
+        return true;
     }
 
     public void unmove() {
@@ -123,6 +125,70 @@ public class Board {
             pieces[capture >> 8] = (dst_i << 12) | (dst_j << 8) | (capture & 0xff);
             currentHash ^= hash[dst_i][dst_j][capture & 0xff];
         }
+    }
+
+    protected boolean isChecked(int player) {
+        // GENERAL
+        if (((pieces[0] ^ pieces[16]) & 0xf00) == 0) {
+            int j = (pieces[0] >> 8) & 0xf;
+            int start = (pieces[0] >> 12) + 1, end = (pieces[16] >> 12) - 1;
+
+            boolean fail = false;
+            while (start <= end) {
+                if (board[start][j] != 0) {
+                    fail = true;
+                    break;
+                }
+                ++start;
+            }
+            if (!fail)
+                return true;
+        }
+
+        // SOLDIER
+        int index = player << 4;
+        int g_i = pieces[index] >> 12, g_j = (pieces[index] >> 8) & 0xf;
+        int targetSoldier = ((1 - player) << 4) | Piece.SOLDIER;
+        if ((board[g_i][g_j - 1] & 0xff) == targetSoldier ||
+                (board[g_i][g_j + 1] & 0xff) == targetSoldier
+                || (board[g_i + 1 - 2 * player][g_j] & 0xff) == targetSoldier)
+            return true;
+
+        // CHARIOT & CANNON
+        int targetChariot = ((1 - player) << 4) | Piece.CHARIOT,
+            targetCannon = ((1 - player) << 4) | Piece.CANNON;
+        for (int r = 0; r < 4; ++r) {
+            int oi = g_i, oj = g_j;
+            boolean platform = false;
+            do {
+                oi += c4di[r];
+                oj += c4dj[r];
+
+                if (!(oi >= 0 && oi < H && oj >= 0 && oj < W))
+                    break;
+
+                if (board[oi][oj] == 0)
+                    continue;
+                if (!platform) {
+                    if ((board[oi][oj] & 0xff) == targetChariot)
+                        return true;
+                    else
+                        platform = true;
+                } else if ((board[oi][oj] & 0xff) == targetCannon)
+                    return true;
+                else
+                    break;
+            } while (true);
+        }
+
+        // HORSE
+        int targetHorse = ((1 - player) << 4) | Piece.HORSE;
+        for (int k = 0; k < checkH[g_i][g_j].length; ++k)
+            if ((board[checkH[g_i][g_j][k][0]][checkH[g_i][g_j][k][1]] & 0xff) == targetHorse
+                    && board[checkH[g_i][g_j][k][2]][checkH[g_i][g_j][k][3]] == 0)
+                return true;
+
+        return false;
     }
 
     public long currentHash() {
@@ -205,6 +271,7 @@ public class Board {
     protected static int[] c4di = {0, 1, 0, -1}, c4dj = {1, 0, -1, 0};
     protected static int[][][] gMove, aMove, eMove, eCheck, hMove, hCheck;
     protected static int[][][][] sMove;
+    protected static int[][][][] checkH;
     static {
         gMove = new int[256][][];
         gMove[makePosition(0, 3)] = new int[][] {{0, 4}, {1, 3}};
@@ -298,6 +365,32 @@ public class Board {
                     }
                 }
             }
+        checkH = new int[H][W][][];
+        for (int player = 0; player <= 1; ++player) {
+            for (int ii = 0; ii <= 2; ++ii)
+                for (int j = 3; j <= 5; ++j) {
+                    int i = ii + (9 - 2 * ii) * player;
+
+                    int count = 0;
+                    for (int r = 0; r < 8; ++r) {
+                        int oi = i + di[r], oj = j + dj[r];
+                        if (oi >= 0 && oi < H && oj >= 0 && oj < W)
+                            ++count;
+                    }
+                    checkH[i][j] = new int[count][4];
+                    count = 0;
+                    for (int r = 0; r < 8; ++r) {
+                        int oi = i + di[r], oj = j + dj[r], dr = (r + 4) % 8;
+                        if (oi >= 0 && oi < H && oj >= 0 && oj < W) {
+                            checkH[i][j][count][0] = oi;
+                            checkH[i][j][count][1] = oj;
+                            checkH[i][j][count][2] = oi + check_di[dr];
+                            checkH[i][j][count][3] = oj + check_dj[dr];
+                            ++count;
+                        }
+                    }
+                }
+        }
 
         sMove = new int[2][256][][];
         for (int i = 3; i <= 4; ++i)

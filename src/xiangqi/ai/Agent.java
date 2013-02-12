@@ -65,7 +65,7 @@ public class Agent {
     public Move search() {
         evaluateCount = 0;
         long startTime = System.nanoTime();
-        int score = id(7, turn);
+        int score = id(6, turn);
         long timeSpent = System.nanoTime() - startTime;
         System.out.println("Score: " + score + " (" + evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s)");
         int[] array = transposition.get(board.currentHash(turn));
@@ -82,7 +82,7 @@ public class Agent {
         for (int d = 1; d <= depth; ++d) {
             System.out.print("Depth: " + d);
             for (int step = 1; ; step <<= 2) {
-                best = minimax(d, turn, -step, step);
+                best = minimax(d, turn, -step, step, 0);
                 if (best > -step && best < step)
                     break;
             }
@@ -99,6 +99,8 @@ public class Agent {
                 int move = array[2];
                 board.move(move);
                 t = 1 - t;
+                if (i == 0)
+                    System.out.print("#" + move);
                 System.out.print(new Move(move) + " ");
             }
             while (i > 0) {
@@ -110,7 +112,7 @@ public class Agent {
         return best;
     }
 
-    protected int minimax(int depth, int turn, int alpha, int beta) {
+    protected int minimax(int depth, int turn, int alpha, int beta, int debug) {
         long hash = board.currentHash(turn);
         int[] history = transposition.get(hash);
         if (history != null && history[0] >= depth)
@@ -124,37 +126,34 @@ public class Agent {
 
         List<Integer> moves = board.generateMoves(turn);
         Collections.sort(moves, compare);
-        int bestMove = 0, best = -INFINITY;
 
+        int bestMove = 0;
         for (int move: moves) {
-            int t;
-            if (board.move(move))
-                t = INFINITY;
-            else
-                t = -minimax(depth - 1, 1 - turn, -beta, -alpha);
+            if (!board.move(move))
+                continue;
+
+            int t = -minimax(depth - 1, 1 - turn, -beta, -alpha, 0);
             board.unmove();
             saveMoveScore(move, t);
-            if (t > best) {
-                best = t;
-                bestMove = move;
-            }
+
             if (t > alpha) {
                 alpha = t;
+                bestMove = move;
                 if (beta <= alpha) {
                     if (oldHistory == null)
                         transposition.remove(hash);
                     else
                         transposition.put(hash, oldHistory);
-                    return beta;
+                    return alpha;
                 }
             }
         }
 
         if (bestMove != 0)
-            transposition.put(board.currentHash(turn), new int[] {depth, best, bestMove});
+            transposition.put(board.currentHash(turn), new int[] {depth, alpha, bestMove});
         else
             transposition.remove(hash);
-        return best;
+        return alpha;
     }
 
     protected void saveMoveScore(int move, int score) {
