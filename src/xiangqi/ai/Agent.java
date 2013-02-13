@@ -127,7 +127,7 @@ public class Agent {
         List<Integer> moves = board.generateMoves(turn);
         Collections.sort(moves, compare);
 
-        int bestMove = 0;
+        int best = -INFINITY, bestMove = 0, oldAlpha = alpha;
         for (int move: moves) {
             if (!board.move(move))
                 continue;
@@ -136,24 +136,33 @@ public class Agent {
             board.unmove();
             saveMoveScore(move, t);
 
-            if (t > alpha) {
-                alpha = t;
+            if (t > best) {
+                best = t;
                 bestMove = move;
+            }
+
+            if (best > alpha) {
+                alpha = best;
                 if (beta <= alpha) {
                     if (oldHistory == null)
                         transposition.remove(hash);
                     else
                         transposition.put(hash, oldHistory);
-                    return alpha;
+                    return best;
                 }
             }
         }
 
-        if (bestMove != 0)
-            transposition.put(board.currentHash(turn), new int[] {depth, alpha, bestMove});
+        // bug note: we don't record alpha-pruned nodes here
+        // because alpha-prunings are caused by beta-prunings, and thus best here is only an estimate of the true value
+        // recording inaccurate evaluations in transposition may lead to unexpected behaviors
+        //
+        // WRONG: if (bestMove != 0)
+        if (best > oldAlpha)
+            transposition.put(board.currentHash(turn), new int[] {depth, best, bestMove});
         else
             transposition.remove(hash);
-        return alpha;
+        return best;
     }
 
     protected void saveMoveScore(int move, int score) {
