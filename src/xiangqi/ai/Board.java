@@ -15,7 +15,7 @@ public class Board {
     protected long[] playerHash;
     protected long currentHash;
 
-    protected int[] staticValue = {0, 100000000, 3, 3, 7, 15, 7, 2};
+    protected int[] staticValue = {0, 0, 3, 3, 7, 15, 7, 2};
 
     protected Stack<Integer> history = new Stack<Integer>();
 

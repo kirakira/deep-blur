@@ -8,13 +8,11 @@ import java.util.Collections;
 
 public class Agent {
     protected int turn;
-    protected static final int INFINITY = 100000000;
+    protected static final int INFINITY = 10000;
     public Board board;
 
-    // Value[0]: depth
-    // Value[1]: score (relative)
-    // Value[2]: best move
-    protected Map<Long, int[]> transposition = new HashMap<Long, int[]>();
+    // score(8) move(8) depth(8)
+    protected Map<Long, Long> transposition = new HashMap<Long, Long>();
     protected Map<Integer, Integer> moveScore, currentMoveScore;
 
     protected Comparator<Integer> compare = new Comparator<Integer>() {
@@ -68,9 +66,9 @@ public class Agent {
         int score = id(6, turn);
         long timeSpent = System.nanoTime() - startTime;
         System.out.println("Score: " + score + " (" + evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s)");
-        int[] array = transposition.get(board.currentHash(turn));
-        if (array != null)
-            return new Move(array[2]);
+        Long iHistory = transposition.get(board.currentHash(turn));
+        if (iHistory != null)
+            return new Move((iHistory.intValue() >> 16) & 0xffff);
         else
             return null;
     }
@@ -93,14 +91,15 @@ public class Agent {
 
             int t = turn, i;
             for (i = 0; i < d; ++i) {
-                int[] array = transposition.get(board.currentHash(t));
-                if (array == null)
+                Long iHistory = transposition.get(board.currentHash(t));
+                if (iHistory == null)
                     break;
-                int move = array[2];
+                long history = iHistory.longValue();
+                int move = (int) (history >> 16) & 0xffff;
                 board.move(move);
                 t = 1 - t;
                 if (i == 0)
-                    System.out.print("#" + move);
+                    System.out.print("0x" + Integer.toString(move, 16));
                 System.out.print(new Move(move) + " ");
             }
             while (i > 0) {
@@ -112,17 +111,23 @@ public class Agent {
         return best;
     }
 
+    protected Long storeTransposition(long hash, int depth, int move, int score) {
+        return transposition.put(hash, ((((long) score & 0xffffL) << 32) | ((long) move << 16) | (long) depth));
+    }
+
     protected int minimax(int depth, int turn, int alpha, int beta, int debug) {
         long hash = board.currentHash(turn);
-        int[] history = transposition.get(hash);
-        if (history != null && history[0] >= depth)
-            return history[1];
+        if (transposition.containsKey(hash)) {
+            long history = transposition.get(hash);
+            if ((history & 0xffff) >= depth)
+                return (int) (history << 16 >> 48);
+        }
 
         if (depth == 0)
             return evaluate(turn);
         
         ++evaluateCount;
-        int[] oldHistory = transposition.put(hash, new int[] {depth, 0, 0});
+        Long oldHistory = storeTransposition(hash, depth, 0, 0);
 
         List<Integer> moves = board.generateMoves(turn);
         Collections.sort(moves, compare);
@@ -159,7 +164,7 @@ public class Agent {
         //
         // WRONG: if (bestMove != 0)
         if (best > oldAlpha)
-            transposition.put(board.currentHash(turn), new int[] {depth, best, bestMove});
+            storeTransposition(hash, depth, bestMove, best);
         else
             transposition.remove(hash);
         return best;
