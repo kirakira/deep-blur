@@ -22,6 +22,11 @@ public class Agent {
 
     protected Comparator<Integer> compare = new Comparator<Integer>() {
         public int compare(Integer o1, Integer o2) {
+            if (o1 == 0)
+                return -1;
+            if (o2 == 0)
+                return 1;
+
             Integer s1 = moveScore.get(o1);
             int i1, i2;
             if (s1 == null)
@@ -71,7 +76,7 @@ public class Agent {
     public Move search() {
         evaluateCount = 0;
         long startTime = System.nanoTime();
-        int move = id(0, turn, 10L * 1000000000L);
+        int move = id(0, turn, 15L * 1000000000L);
         long timeSpent = System.nanoTime() - startTime;
         System.out.println(evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s");
         checkMemory();
@@ -127,6 +132,8 @@ public class Agent {
                 int move = (int) (history >> 16) & 0xffff;
                 if (i == 0)
                     bestMove = move;
+                if (move == 0)
+                    break;
                 board.move(move);
                 t = 1 - t;
                 if (i == 0)
@@ -151,7 +158,7 @@ public class Agent {
                 beta = g + 1;
             else
                 beta = g;
-            g = minimax(depth, turn, beta - 1, beta, deadLine);
+            g = minimax(depth, turn, beta - 1, beta, false, deadLine);
             if (g == ABORTED)
                 return ABORTED;
 
@@ -172,10 +179,10 @@ public class Agent {
     }
 
     public int evaluate() {
-        return minimax(0, turn, -INFINITY, INFINITY, 0);
+        return minimax(0, turn, -INFINITY, INFINITY, false, 0);
     }
 
-    protected int minimax(int depth, int turn, int alpha, int beta, long deadLine) {
+    protected int minimax(int depth, int turn, int alpha, int beta, boolean nullMove, long deadLine) {
         long hash = board.currentHash(turn);
         if (transposition.containsKey(hash)) {
             long history = transposition.get(hash);
@@ -222,6 +229,8 @@ public class Agent {
             }
         } else
             moves = board.generateMoves(turn);
+        if (nullMove && moves.size() > 0 && !board.isChecked(turn))
+            moves.add(0);
         Collections.sort(moves, compare);
 
         int best = -INFINITY, bestMove = 0, oldAlpha = alpha;
@@ -236,22 +245,24 @@ public class Agent {
                 }
             }
 
-            if (!board.move(move))
+            if (move != 0 && !board.move(move))
                 continue;
 
             int t;
             if (quiescence)
-                t = -minimax(0, 1 - turn, -beta, -alpha, deadLine);
+                t = -minimax(0, 1 - turn, -beta, -alpha, true, deadLine);
             else
-                t = -minimax(depth - 1, 1 - turn, -beta, -alpha, deadLine);
-            board.unmove();
+                t = -minimax(depth - 1, 1 - turn, -beta, -alpha, true, deadLine);
+            if (move != 0)
+                board.unmove();
 
             if (t == -ABORTED) {
                 aborted = true;
                 break;
             }
 
-            saveMoveScore(move, t);
+            if (move != 0)
+                saveMoveScore(move, t);
 
             if (t > best) {
                 best = t;
