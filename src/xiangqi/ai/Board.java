@@ -258,8 +258,7 @@ public class Board {
             }
             System.out.println();
         }
-        System.out.println("Board hash: " + currentHash());
-        System.out.println("Value for p0: " + staticValue(0));
+        System.out.println("Board hash: " + currentHash() + ", " + currentHash(0) + ", " + currentHash(1));
         System.out.println();
         System.out.println();
     }

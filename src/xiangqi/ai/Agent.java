@@ -11,7 +11,7 @@ public class Agent {
     protected static final int INFINITY = 10000;
     public Board board;
 
-    // score(8) move(8) depth(8)
+    // lower(16) upper(16) move(16) depth(16)
     protected Map<Long, Long> transposition = new HashMap<Long, Long>();
     protected Map<Integer, Integer> moveScore, currentMoveScore;
 
@@ -67,10 +67,29 @@ public class Agent {
         long timeSpent = System.nanoTime() - startTime;
         System.out.println("Score: " + score + " (" + evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s)");
         Long iHistory = transposition.get(board.currentHash(turn));
-        if (iHistory != null)
-            return new Move((iHistory.intValue() >> 16) & 0xffff);
-        else
+        checkMemory();
+        if (iHistory != null) {
+            long history = iHistory.longValue();
+            int move = (int) ((history >> 16) & 0xffffL);
+            int lower = (int) (history >> 48), upper = (int) (history << 16 >> 48);
+            if (move != 0)
+                return new Move(move);
+            else
+                return null;
+        } else
             return null;
+    }
+
+    protected void checkMemory() {
+        Runtime runtime = Runtime.getRuntime();
+        double ratio = (double) runtime.totalMemory() / (double) runtime.maxMemory();
+        System.out.print(transposition.size() + " entries. Memory: " + ratio + " of " + runtime.maxMemory() / (1L << 20) + "MB. ");
+        if (ratio >= .7) {
+            System.out.print("Running gc.. ");
+            transposition = new HashMap<Long, Long>();
+            runtime.gc();
+        }
+        System.out.println();
     }
 
     protected int id(int depth, int turn) {
@@ -79,11 +98,7 @@ public class Agent {
         int best = -INFINITY;
         for (int d = 1; d <= depth; ++d) {
             System.out.print("Depth: " + d);
-            for (int step = 1; ; step <<= 2) {
-                best = minimax(d, turn, -step, step, 0);
-                if (best > -step && best < step)
-                    break;
-            }
+            best = MTDf(d, turn);
             System.out.print(", value: " + best + ", move: ");
 
             moveScore = currentMoveScore;
@@ -111,23 +126,54 @@ public class Agent {
         return best;
     }
 
-    protected Long storeTransposition(long hash, int depth, int move, int score) {
-        return transposition.put(hash, ((((long) score & 0xffffL) << 32) | ((long) move << 16) | (long) depth));
+    protected int MTDf(int depth, int turn) {
+        int lower = -INFINITY, upper = INFINITY;
+        int g = 0;
+        while (lower < upper) {
+            int beta;
+            if (g == lower)
+                beta = g + 1;
+            else
+                beta = g;
+            g = minimax(depth, turn, beta - 1, beta, 0);
+            if (g < beta)
+                upper = g;
+            else
+                lower = g;
+        }
+        // note: it is possible that lower > upper here
+        // this is caused by having found an over-depth tranposition entry
+        // thus the g here is more accureate than desired depth
+        return g;
+    }
+
+    protected Long storeTransposition(long hash, int depth, int move, int upper, int lower) {
+        return transposition.put(hash, ((((long) lower & 0xffffL) << 48)
+                    | (((long) upper & 0xffffL) << 32) | ((long) move << 16) | (long) depth));
     }
 
     protected int minimax(int depth, int turn, int alpha, int beta, int debug) {
         long hash = board.currentHash(turn);
         if (transposition.containsKey(hash)) {
             long history = transposition.get(hash);
-            if ((history & 0xffff) >= depth)
-                return (int) (history << 16 >> 48);
+            if ((history & 0xffff) >= depth) {
+                int lower = (int) (history >> 48), upper = (int) (history << 16 >> 48);
+                if (lower == upper)
+                    return lower;
+                if (lower >= beta)
+                    return lower;
+                if (upper <= alpha)
+                    return upper;
+                alpha = Math.max(alpha, lower);
+                beta = Math.min(beta, upper);
+            }
         }
 
         if (depth == 0)
             return evaluate(turn);
         
         ++evaluateCount;
-        Long oldHistory = storeTransposition(hash, depth, 0, 0);
+        Long oldHistory = storeTransposition(hash, depth, 0, 0, 0);
 
         List<Integer> moves = board.generateMoves(turn);
         Collections.sort(moves, compare);
@@ -148,25 +194,18 @@ public class Agent {
 
             if (best > alpha) {
                 alpha = best;
-                if (beta <= alpha) {
-                    if (oldHistory == null)
-                        transposition.remove(hash);
-                    else
-                        transposition.put(hash, oldHistory);
-                    return best;
-                }
+                if (beta <= alpha)
+                    break;
             }
         }
 
-        // bug note: we don't record alpha-pruned nodes here
-        // because alpha-prunings are caused by beta-prunings, and thus best here is only an estimate of the true value
-        // recording inaccurate evaluations in transposition may lead to unexpected behaviors
-        //
-        // WRONG: if (bestMove != 0)
-        if (best > oldAlpha)
-            storeTransposition(hash, depth, bestMove, best);
+        if (best <= oldAlpha)
+            storeTransposition(hash, depth, bestMove, best, -INFINITY);
+        else if (best < beta)
+            storeTransposition(hash, depth, bestMove, best, best);
         else
-            transposition.remove(hash);
+            storeTransposition(hash, depth, bestMove, INFINITY, best);
+
         return best;
     }
 
