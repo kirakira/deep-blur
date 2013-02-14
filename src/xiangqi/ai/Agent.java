@@ -9,7 +9,7 @@ import java.util.Collections;
 public class Agent {
     protected int turn;
     protected int[] score;
-    protected static final int INFINITY = 10000, ABORTED = -20000;
+    protected static final int INFINITY = 10000, ABORTED = 20000;
     public Board board;
 
     // lower(16) upper(16) move(16) depth(16)
@@ -70,31 +70,24 @@ public class Agent {
     public Move search() {
         evaluateCount = 0;
         long startTime = System.nanoTime();
-        int score = id(0, turn, 10L * 1000000000L);
+        int move = id(0, turn, 10L * 1000000000L);
         long timeSpent = System.nanoTime() - startTime;
-        System.out.println("Score: " + score + " (" + evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s)");
-        Long iHistory = transposition.get(board.currentHash(turn));
+        System.out.println(evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s");
         checkMemory();
-        if (iHistory != null) {
-            long history = iHistory.longValue();
-            int move = (int) ((history >> 16) & 0xffffL);
-            int lower = (int) (history >> 48), upper = (int) (history << 16 >> 48);
-            if (move != 0)
-                return new Move(move);
-            else
-                return null;
-        } else
+        if (move != 0)
+            return new Move(move);
+        else
             return null;
     }
 
     protected void checkMemory() {
         Runtime runtime = Runtime.getRuntime();
         double ratio = (double) runtime.totalMemory() / (double) runtime.maxMemory();
-        System.out.print(transposition.size() + " entries. Memory: " + ratio + " of " + runtime.maxMemory() / (1L << 20) + "MB. ");
-        if (ratio >= .7) {
-            System.out.print("Running gc.. ");
-            transposition = new HashMap<Long, Long>();
-            runtime.gc();
+        int limit = (int) ((double) runtime.maxMemory() * .0047);
+        System.out.print(transposition.size() + " entries (limit: " + limit + "). Memory: " + ratio + " of " + runtime.maxMemory() / (1L << 20) + "MB. ");
+        if (transposition.size() > limit) {
+            System.out.print("Clearing transposition.. ");
+            transposition.clear();
         }
         System.out.println();
     }
@@ -102,12 +95,14 @@ public class Agent {
     protected int id(int depth, int turn, long timeLimit) {
         moveScore = new HashMap<Integer, Integer>();
         currentMoveScore = new HashMap<Integer, Integer>();
-        int best = -INFINITY;
+        int best = -INFINITY, bestMove = 0;
+
         long deadLine;
         if (timeLimit == 0)
             deadLine = Long.MAX_VALUE;
         else
             deadLine = System.nanoTime() + timeLimit;
+
         for (int d = 1; (depth == 0 ? true : (d <= depth)); ++d) {
             System.out.print("Depth: " + d);
             int t = MTDf(d, turn, score[turn], deadLine);
@@ -115,11 +110,11 @@ public class Agent {
                 System.out.println(", aborted");
                 break;
             }
-            best = t;
-            System.out.print(", value: " + best + ", move: ");
-
             moveScore = currentMoveScore;
             currentMoveScore = new HashMap<Integer, Integer>();
+
+            best = t;
+            System.out.print(", value: " + best + ", move: ");
 
             t = turn;
             int i;
@@ -129,6 +124,8 @@ public class Agent {
                     break;
                 long history = iHistory.longValue();
                 int move = (int) (history >> 16) & 0xffff;
+                if (i == 0)
+                    bestMove = move;
                 board.move(move);
                 t = 1 - t;
                 if (i == 0)
@@ -142,7 +139,7 @@ public class Agent {
             System.out.println();
         }
         score[turn] = best;
-        return best;
+        return bestMove;
     }
 
     protected int MTDf(int depth, int turn, int g, long deadLine) {
