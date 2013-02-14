@@ -14,7 +14,8 @@ public class Agent {
 
     // lower(16) upper(16) move(16) depth(16)
     protected Map<Long, Long> transposition = new HashMap<Long, Long>();
-    protected Map<Integer, Integer> moveScore, currentMoveScore;
+    protected Map<Integer, Integer> moveScore = new HashMap<Integer, Integer>(),
+              currentMoveScore = new HashMap<Integer, Integer>();
 
     protected int checkTime = 0;
     protected static final int CHECK_TIME_CYCLE = 100000;
@@ -170,6 +171,10 @@ public class Agent {
                     | (((long) upper & 0xffffL) << 32) | ((long) move << 16) | (long) depth));
     }
 
+    public int evaluate() {
+        return minimax(0, turn, -INFINITY, INFINITY, 0);
+    }
+
     protected int minimax(int depth, int turn, int alpha, int beta, long deadLine) {
         long hash = board.currentHash(turn);
         if (transposition.containsKey(hash)) {
@@ -187,13 +192,36 @@ public class Agent {
             }
         }
 
-        if (depth == 0)
-            return evaluate(turn);
-        
+        boolean quiescence = (depth == 0);
+
         ++evaluateCount;
         Long oldHistory = storeTransposition(hash, depth, 0, 0, 0);
 
-        List<Integer> moves = board.generateMoves(turn);
+        List<Integer> moves;
+        if (quiescence) {
+            moves = board.generateAttacks(turn);
+            if (moves.size() == 0) {
+                boolean checkmate = false;
+                if (board.isChecked(turn)) {
+                    checkmate = true;
+                    moves = board.generateMoves(turn);
+                    for (int move: moves)
+                        if (board.move(move)) {
+                            board.unmove();
+                            checkmate = false;
+                            break;
+                        }
+                }
+                int score;
+                if (checkmate)
+                    score = -INFINITY;
+                else
+                    score = board.staticValue(turn);
+                storeTransposition(hash, 0, 0, score, score);
+                return score;
+            }
+        } else
+            moves = board.generateMoves(turn);
         Collections.sort(moves, compare);
 
         int best = -INFINITY, bestMove = 0, oldAlpha = alpha;
@@ -211,9 +239,13 @@ public class Agent {
             if (!board.move(move))
                 continue;
 
-            int t = -minimax(depth - 1, 1 - turn, -beta, -alpha, deadLine);
+            int t;
+            if (quiescence)
+                t = -minimax(0, 1 - turn, -beta, -alpha, deadLine);
+            else
+                t = -minimax(depth - 1, 1 - turn, -beta, -alpha, deadLine);
             board.unmove();
-            
+
             if (t == -ABORTED) {
                 aborted = true;
                 break;
@@ -255,9 +287,5 @@ public class Agent {
         Integer current = currentMoveScore.get(move);
         if (current == null || current.intValue() < score)
             currentMoveScore.put(move, score);
-    }
-
-    protected int evaluate(int turn) {
-        return board.staticValue(turn);
     }
 }

@@ -12,7 +12,7 @@ public class Main {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         do {
             try {
-                System.out.print("m to move, u to unmove, g to show all moves, a to show all attacks, s to search: ");
+                System.out.print("m to move, u to unmove, g to show all moves, a to show all attacks, s to search, e to evaluate: ");
                 String line = reader.readLine();
                 String[] parts = line.split(" ");
                 if (parts[0].equals("q"))
@@ -38,6 +38,8 @@ public class Main {
                 } else if (parts[0].equals("s")) {
                     agent.move(agent.search());
                     agent.board.print();
+                } else if (parts[0].equals("e")) {
+                    System.out.println(agent.evaluate());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
