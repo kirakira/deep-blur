@@ -9,12 +9,15 @@ import java.util.Collections;
 public class Agent {
     protected int turn;
     protected int[] score;
-    protected static final int INFINITY = 10000;
+    protected static final int INFINITY = 10000, ABORTED = -20000;
     public Board board;
 
     // lower(16) upper(16) move(16) depth(16)
     protected Map<Long, Long> transposition = new HashMap<Long, Long>();
     protected Map<Integer, Integer> moveScore, currentMoveScore;
+
+    protected int checkTime = 0;
+    protected static final int CHECK_TIME_CYCLE = 100000;
 
     protected Comparator<Integer> compare = new Comparator<Integer>() {
         public int compare(Integer o1, Integer o2) {
@@ -67,7 +70,7 @@ public class Agent {
     public Move search() {
         evaluateCount = 0;
         long startTime = System.nanoTime();
-        int score = id(6, turn);
+        int score = id(0, turn, 10L * 1000000000L);
         long timeSpent = System.nanoTime() - startTime;
         System.out.println("Score: " + score + " (" + evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s)");
         Long iHistory = transposition.get(board.currentHash(turn));
@@ -96,19 +99,30 @@ public class Agent {
         System.out.println();
     }
 
-    protected int id(int depth, int turn) {
+    protected int id(int depth, int turn, long timeLimit) {
         moveScore = new HashMap<Integer, Integer>();
         currentMoveScore = new HashMap<Integer, Integer>();
         int best = -INFINITY;
-        for (int d = 1; d <= depth; ++d) {
+        long deadLine;
+        if (timeLimit == 0)
+            deadLine = Long.MAX_VALUE;
+        else
+            deadLine = System.nanoTime() + timeLimit;
+        for (int d = 1; (depth == 0 ? true : (d <= depth)); ++d) {
             System.out.print("Depth: " + d);
-            best = MTDf(d, turn, score[turn]);
+            int t = MTDf(d, turn, score[turn], deadLine);
+            if (t == ABORTED) {
+                System.out.println(", aborted");
+                break;
+            }
+            best = t;
             System.out.print(", value: " + best + ", move: ");
 
             moveScore = currentMoveScore;
             currentMoveScore = new HashMap<Integer, Integer>();
 
-            int t = turn, i;
+            t = turn;
+            int i;
             for (i = 0; i < d; ++i) {
                 Long iHistory = transposition.get(board.currentHash(t));
                 if (iHistory == null)
@@ -131,7 +145,7 @@ public class Agent {
         return best;
     }
 
-    protected int MTDf(int depth, int turn, int g) {
+    protected int MTDf(int depth, int turn, int g, long deadLine) {
         int lower = -INFINITY, upper = INFINITY;
         while (lower < upper) {
             int beta;
@@ -139,7 +153,10 @@ public class Agent {
                 beta = g + 1;
             else
                 beta = g;
-            g = minimax(depth, turn, beta - 1, beta, 0);
+            g = minimax(depth, turn, beta - 1, beta, deadLine);
+            if (g == ABORTED)
+                return ABORTED;
+
             if (g < beta)
                 upper = g;
             else
@@ -156,7 +173,7 @@ public class Agent {
                     | (((long) upper & 0xffffL) << 32) | ((long) move << 16) | (long) depth));
     }
 
-    protected int minimax(int depth, int turn, int alpha, int beta, int debug) {
+    protected int minimax(int depth, int turn, int alpha, int beta, long deadLine) {
         long hash = board.currentHash(turn);
         if (transposition.containsKey(hash)) {
             long history = transposition.get(hash);
@@ -183,12 +200,28 @@ public class Agent {
         Collections.sort(moves, compare);
 
         int best = -INFINITY, bestMove = 0, oldAlpha = alpha;
+        boolean aborted = false;
         for (int move: moves) {
+            ++checkTime;
+            if (checkTime == CHECK_TIME_CYCLE) {
+                checkTime = 0;
+                if (System.nanoTime() >= deadLine) {
+                    aborted = true;
+                    break;
+                }
+            }
+
             if (!board.move(move))
                 continue;
 
-            int t = -minimax(depth - 1, 1 - turn, -beta, -alpha, 0);
+            int t = -minimax(depth - 1, 1 - turn, -beta, -alpha, deadLine);
             board.unmove();
+            
+            if (t == -ABORTED) {
+                aborted = true;
+                break;
+            }
+
             saveMoveScore(move, t);
 
             if (t > best) {
@@ -201,6 +234,14 @@ public class Agent {
                 if (beta <= alpha)
                     break;
             }
+        }
+        
+        if (aborted) {
+            if (oldHistory != null)
+                transposition.put(hash, oldHistory);
+            else
+                transposition.remove(hash);
+            return ABORTED;
         }
 
         if (best <= oldAlpha)
