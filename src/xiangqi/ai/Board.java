@@ -587,6 +587,11 @@ public class Board {
             int dst_i = (move >> 4) & 0xf, dst_j = move & 0xf;
             if (board[dst_i][dst_j] != 0)
                 ret.add(move);
+            else if (move(move)) {
+                if (isChecked(1 - turn))
+                    ret.add(move);
+                unmove();
+            }
         }
         return ret;
     }
