@@ -8,6 +8,7 @@ import java.util.Collections;
 
 public class Agent {
     protected int turn;
+    protected int[] score;
     protected static final int INFINITY = 10000;
     public Board board;
 
@@ -37,11 +38,13 @@ public class Agent {
     public Agent() {
         board = new Board();
         turn = 0;
+        score = new int[2];
     }
 
     public Agent(int[][] board, int turn) {
         this.board = new Board(board);
         this.turn = turn;
+        score = new int[2];
     }
 
     protected void turn() {
@@ -56,6 +59,7 @@ public class Agent {
     public void unmove() {
         board.unmove();
         turn();
+        score = new int[2];
     }
 
     protected int evaluateCount = 0;
@@ -98,7 +102,7 @@ public class Agent {
         int best = -INFINITY;
         for (int d = 1; d <= depth; ++d) {
             System.out.print("Depth: " + d);
-            best = MTDf(d, turn);
+            best = MTDf(d, turn, score[turn]);
             System.out.print(", value: " + best + ", move: ");
 
             moveScore = currentMoveScore;
@@ -123,12 +127,12 @@ public class Agent {
             }
             System.out.println();
         }
+        score[turn] = best;
         return best;
     }
 
-    protected int MTDf(int depth, int turn) {
+    protected int MTDf(int depth, int turn, int g) {
         int lower = -INFINITY, upper = INFINITY;
-        int g = 0;
         while (lower < upper) {
             int beta;
             if (g == lower)
