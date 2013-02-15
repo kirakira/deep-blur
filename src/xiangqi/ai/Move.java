@@ -32,6 +32,9 @@ public class Move {
     }
 
     public String toString() {
-        return "(" + srcRow() + ", " + srcCol() + ")->(" + dstRow() + ", " + dstCol() + ")";
+        if (move != 0)
+            return "(" + srcRow() + ", " + srcCol() + ")->(" + dstRow() + ", " + dstCol() + ")";
+        else
+            return "null-move";
     }
 }

@@ -586,10 +586,13 @@ public class Board {
         for (int move: list) {
             int dst_i = (move >> 4) & 0xf, dst_j = move & 0xf;
             if (move(move)) {
-                if (isChecked(1 - turn))
+                boolean added = false;
+                if (isChecked(1 - turn)) {
                     ret.add(move);
+                    added = true;
+                }
                 unmove();
-                if (board[dst_i][dst_j] != 0 && (board[dst_i][dst_j] & 0xf) != Piece.SOLDIER)
+                if (!added && board[dst_i][dst_j] != 0 && (board[dst_i][dst_j] & 0xf) != Piece.SOLDIER)
                     ret.add(move);
             }
         }

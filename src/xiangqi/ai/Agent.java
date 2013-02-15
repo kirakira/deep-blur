@@ -76,7 +76,7 @@ public class Agent {
     public Move search() {
         evaluateCount = 0;
         long startTime = System.nanoTime();
-        int move = id(0, turn, 15L * 1000000000L);
+        int move = id(0, turn, 10L * 1000000000L);
         long timeSpent = System.nanoTime() - startTime;
         System.out.println(evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s");
         checkMemory();
@@ -250,9 +250,9 @@ public class Agent {
 
             int t;
             if (quiescence)
-                t = -minimax(0, 1 - turn, -beta, -alpha, true, deadLine);
+                t = -minimax(0, 1 - turn, -beta, -alpha, (move != 0), deadLine);
             else
-                t = -minimax(depth - 1, 1 - turn, -beta, -alpha, true, deadLine);
+                t = -minimax(depth - 1, 1 - turn, -beta, -alpha, (move != 0), deadLine);
             if (move != 0)
                 board.unmove();
 
@@ -284,12 +284,18 @@ public class Agent {
             return ABORTED;
         }
 
-        if (best <= oldAlpha)
-            storeTransposition(hash, depth, bestMove, best, -INFINITY);
-        else if (best < beta)
-            storeTransposition(hash, depth, bestMove, best, best);
-        else
-            storeTransposition(hash, depth, bestMove, INFINITY, best);
+        // bug note: we don't use static values if there's an beta cutoff
+        if (quiescence && best < beta && bestMove == 0) {
+            best = board.staticValue(turn);
+            storeTransposition(hash, 0, 0, best, best);
+        } else {
+            if (best <= oldAlpha)
+                storeTransposition(hash, depth, bestMove, best, -INFINITY);
+            else if (best < beta)
+                storeTransposition(hash, depth, bestMove, best, best);
+            else
+                storeTransposition(hash, depth, bestMove, INFINITY, best);
+        }
 
         return best;
     }
