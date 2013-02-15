@@ -36,7 +36,12 @@ public class Main {
                         System.out.print(new Move(m) + " ");
                     System.out.println();
                 } else if (parts[0].equals("s")) {
-                    agent.move(agent.search());
+                    Move move;
+                    if (parts.length == 1)
+                        move = agent.search(0, 10);
+                    else
+                        move = agent.search(Integer.parseInt(parts[1]), 0);
+                    agent.move(move);
                     agent.board.print();
                 } else if (parts[0].equals("e")) {
                     System.out.println(agent.evaluate());

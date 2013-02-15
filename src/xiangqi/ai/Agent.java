@@ -73,10 +73,10 @@ public class Agent {
 
     protected int evaluateCount = 0;
 
-    public Move search() {
+    public Move search(int depth, int time) {
         evaluateCount = 0;
         long startTime = System.nanoTime();
-        int move = id(0, turn, 10L * 1000000000L);
+        int move = id(depth, turn, time * 1000000000L);
         long timeSpent = System.nanoTime() - startTime;
         System.out.println(evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s");
         checkMemory();
