@@ -78,6 +78,20 @@ public class Board {
         playerHash = new long[] {random.nextLong(), random.nextLong()};
     }
 
+    public boolean checkedMove(int move) {
+        int src_i = move >> 12, src_j = (move >> 8) & 0xf,
+            dst_i = (move >> 4) & 0xf, dst_j = move & 0xf;
+        if (board[src_i][src_j] == 0)
+            return false;
+        if (src_i == dst_i && src_j == dst_j)
+            return false;
+        if (src_i >= 0 && src_i < H && src_j >= 0 && src_j < W
+                && dst_i >= 0 && dst_i < H && dst_j >= 0 && dst_j < W)
+            return move(move);
+        else
+            return false;
+    }
+
     // returns false if the if the move caused itself checked
     public boolean move(int move) {
         boolean ret = false;
@@ -585,16 +599,8 @@ public class Board {
         List<Integer> list = generateMoves(turn), ret = new ArrayList<Integer>();
         for (int move: list) {
             int dst_i = (move >> 4) & 0xf, dst_j = move & 0xf;
-            if (move(move)) {
-                boolean added = false;
-                if (isChecked(1 - turn)) {
-                    ret.add(move);
-                    added = true;
-                }
-                unmove();
-                if (!added && board[dst_i][dst_j] != 0 && (board[dst_i][dst_j] & 0xf) != Piece.SOLDIER)
-                    ret.add(move);
-            }
+            if (board[dst_i][dst_j] != 0 && (board[dst_i][dst_j] & 0xf) != Piece.SOLDIER)
+                ret.add(move);
         }
         return ret;
     }
