@@ -209,10 +209,6 @@ public class Board {
         return currentHash;
     }
 
-    public long currentHash(int turn) {
-        return currentHash ^ playerHash[turn];
-    }
-
     public void print() {
         System.out.print("\t ");
         for (int j = 0; j < W; ++j)
@@ -272,7 +268,7 @@ public class Board {
             }
             System.out.println();
         }
-        System.out.println("Board hash: " + currentHash() + ", " + currentHash(0) + ", " + currentHash(1));
+        System.out.println("Board hash: " + currentHash());
         System.out.println();
         System.out.println();
     }

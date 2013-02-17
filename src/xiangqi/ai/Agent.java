@@ -143,7 +143,7 @@ public class Agent {
             t = turn;
             int i;
             for (i = 0; i < d; ++i) {
-                Long iHistory = transposition.get(board.currentHash(t));
+                Long iHistory = transposition.get(board.currentHash());
                 if (iHistory == null)
                     break;
                 long history = iHistory.longValue();
@@ -190,7 +190,12 @@ public class Agent {
         return g;
     }
 
-    protected Long storeTransposition(long hash, int depth, int move, int upper, int lower) {
+    protected Long storeTransposition(long hash, int side, int depth, int move, int upper, int lower) {
+        if (side == 1) {
+            int t = upper;
+            upper = -lower;
+            lower = -t;
+        }
         return transposition.put(hash, ((((long) lower & 0xffffL) << 48)
                     | (((long) upper & 0xffffL) << 32) | ((long) move << 16) | ((long) depth & 0xffffL)));
     }
@@ -200,7 +205,7 @@ public class Agent {
     }
 
     protected int minimax(int depth, int turn, int alpha, int beta, int level, boolean nullMove, long deadLine) {
-        long hash = board.currentHash(turn);
+        long hash = board.currentHash();
 
         if (transposition.containsKey(hash)) {
             long history = transposition.get(hash);
@@ -208,6 +213,11 @@ public class Agent {
             if (dHistory >= depth) {
                 int lower = (int) (history >> 48), upper = (int) (history << 16 >> 48),
                     move = (int) (history >> 16) & 0xffff;
+                if (turn == 1) {
+                    int t = lower;
+                    lower = -upper;
+                    upper = -t;
+                }
                 if (nullMove || move != 0) {
                     if (lower == upper)
                         return lower;
@@ -224,14 +234,14 @@ public class Agent {
         boolean quiescence = (depth <= 0);
 
         ++evaluateCount;
-        Long oldHistory = storeTransposition(hash, depth, 0, 0, 0);
+        Long oldHistory = storeTransposition(hash, turn, depth, 0, 0, 0);
 
         List<Integer> moves;
         if (quiescence) {
             moves = board.generateAttacks(turn);
             if (moves.size() == 0) {
                 int score = board.staticValue(turn);
-                storeTransposition(hash, 0, 0, score, score);
+                storeTransposition(hash, turn, 0, 0, score, score);
                 return score;
             }
         } else
@@ -316,14 +326,14 @@ public class Agent {
         // bug note: we don't use static values if there's an beta cutoff
         if (quiescence && best < beta && bestMove == 0) {
             best = board.staticValue(turn);
-            storeTransposition(hash, 0, 0, best, best);
+            storeTransposition(hash, turn, 0, 0, best, best);
         } else {
             if (best <= oldAlpha)
-                storeTransposition(hash, depth, bestMove, best, -INFINITY);
+                storeTransposition(hash, turn, depth, bestMove, best, -INFINITY);
             else if (best < beta)
-                storeTransposition(hash, depth, bestMove, best, best);
+                storeTransposition(hash, turn, depth, bestMove, best, best);
             else
-                storeTransposition(hash, depth, bestMove, INFINITY, best);
+                storeTransposition(hash, turn, depth, bestMove, INFINITY, best);
         }
 
         return best;
@@ -336,12 +346,17 @@ public class Agent {
     }
 
     public void bestResponse() {
-        Long lHistory = transposition.get(board.currentHash(turn));
+        Long lHistory = transposition.get(board.currentHash());
         if (lHistory == null)
             System.out.println("No result found");
         else {
             long history = lHistory.longValue();
             int lower = (int) (history >> 48), upper = (int) (history << 16 >> 48);
+            if (turn == 1) {
+                int t = lower;
+                lower = -upper;
+                upper = -lower;
+            }
             int move = (int) (history >> 16) & 0xffff;
             System.out.println("Move: " + new Move(move) + ", score: [" + lower + ", " + upper + "]");
         }
