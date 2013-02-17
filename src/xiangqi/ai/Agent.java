@@ -127,7 +127,8 @@ public class Agent {
 
         for (int d = 1; (depth == 0 ? true : (d <= depth)); ++d) {
             System.out.print("Depth: " + d);
-            int t = MTDf(d, turn, score[turn], deadLine);
+//            int t = MTDf(d, turn, score[turn], deadLine);
+            int t = minimax(d, turn, -INFINITY, INFINITY, 0, false, deadLine);
             if (t == ABORTED) {
                 System.out.println(", aborted");
                 break;
@@ -243,7 +244,7 @@ public class Agent {
 
         int best = -INFINITY + level, bestMove = 0, oldAlpha = alpha;
         int bestIndex = 0, i = 0;
-        boolean aborted = false;
+        boolean aborted = false, pvFound = false;
         for (int move: moves) {
             ++checkTime;
             if (checkTime == CHECK_TIME_CYCLE) {
@@ -257,7 +258,14 @@ public class Agent {
             if (move != 0 && !board.move(move))
                 continue;
 
-            int t = -minimax(depth - 1, 1 - turn, -beta, -alpha, level + 1, true, deadLine);
+            int t;
+            if (pvFound) {
+                t = -minimax(depth - 1, 1 - turn, -alpha - 1, -alpha, level + 1, true, deadLine);
+                if (t > alpha && t < beta)
+                    t = -minimax(depth - 1, 1 - turn, -beta, -t, level + 1, true, deadLine);
+            } else
+                t = -minimax(depth - 1, 1 - turn, -beta, -alpha, level + 1, true, deadLine);
+
             if (move != 0)
                 board.unmove();
 
@@ -285,6 +293,7 @@ public class Agent {
 
             if (best > alpha) {
                 alpha = best;
+                pvFound = true;
                 if (beta <= alpha)
                     break;
             }
