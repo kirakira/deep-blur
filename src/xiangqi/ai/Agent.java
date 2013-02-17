@@ -12,6 +12,8 @@ public class Agent {
     protected static final int INFINITY = 10000, ABORTED = 20000;
     public Board board;
 
+    protected int[] stat = new int[100];
+
     // lower(16) upper(16) move(16) depth(16)
     protected Map<Long, Long> transposition = new HashMap<Long, Long>();
     protected Map<Integer, Integer> moveScore = new HashMap<Integer, Integer>(),
@@ -87,6 +89,13 @@ public class Agent {
         long timeSpent = System.nanoTime() - startTime;
         System.out.println(evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s");
         checkMemory();
+
+        int statSum = 0;
+        for (int i = 0; i < 10; ++i) {
+            statSum += stat[i];
+            System.out.print(stat[i] + " ");
+        }
+        System.out.println((double) stat[0] / (double) statSum + ", " + (double) stat[1] / (double) statSum);
         if (move != 0)
             return new Move(move);
         else
@@ -227,12 +236,13 @@ public class Agent {
         } else
             moves = board.generateMoves(turn);
 
-        if (nullMove && moves.size() > 0 && !board.isChecked(turn))
+        if (nullMove && quiescence && moves.size() > 0 && !board.isChecked(turn))
             moves.add(0);
 
         Collections.sort(moves, compare);
 
         int best = -INFINITY + level, bestMove = 0, oldAlpha = alpha;
+        int bestIndex = 0, i = 0;
         boolean aborted = false;
         for (int move: moves) {
             ++checkTime;
@@ -256,8 +266,17 @@ public class Agent {
                 break;
             }
 
-            if (move != 0)
-                saveMoveScore(move, t);
+            if (move != 0) {
+                int bonus = 0;
+                if (t >= beta)
+                    bonus += 100;
+                if (i == 0)
+                    bonus += 20;
+                saveMoveScore(move, t + bonus);
+            }
+
+            if (t > best)
+                bestIndex = i;
 
             if (t > best || (t == best && bestMove == 0)) {
                 best = t;
@@ -269,7 +288,12 @@ public class Agent {
                 if (beta <= alpha)
                     break;
             }
+
+            ++i;
         }
+
+        if (!quiescence)
+            ++stat[bestIndex];
         
         if (aborted) {
             if (oldHistory != null)
