@@ -1,10 +1,10 @@
 .PHONY:
 	all
 
-SOURCES = src/xiangqi/ai/Board.java src/xiangqi/ai/Piece.java src/xiangqi/Main.java src/xiangqi/ai/Agent.java src/xiangqi/ai/Move.java
+SOURCES = src/UCI.cc
 
 all: $(SOURCES)
-	javac -d bin -Xlint $(SOURCES)
+	c++ -o bin/DeepBlur_debug -Wall $(SOURCES)
 
-jar:
-	cd bin; jar -cfe xiangqi.jar xiangqi.Main xiangqi
+o: $(SOURCES)
+	c++ -o bin/DeepBlur -O3 $(SOURCES)
