@@ -302,7 +302,7 @@ public class Agent {
                 }
 
                 if (move != 0 && t >= beta)
-                    addMoveScore(move, 1);
+                    addMoveScore(move, depth * depth);
 
                 if (t > best)
                     bestIndex = i;
