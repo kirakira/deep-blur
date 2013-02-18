@@ -68,10 +68,10 @@ public class Agent {
 
     protected int evaluateCount = 0;
 
-    public Move search(int depth, int time) {
+    public Move search(int minDepth, int maxDepth, int time) {
         evaluateCount = 0;
         long startTime = System.nanoTime();
-        int move = id(depth, turn, time * 1000000000L);
+        int move = id(minDepth, maxDepth, turn, time * 1000000000L);
         long timeSpent = System.nanoTime() - startTime;
         System.out.println(evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s");
 
@@ -87,7 +87,7 @@ public class Agent {
             return null;
     }
 
-    protected int id(int depth, int turn, long timeLimit) {
+    protected int id(int minDepth, int maxDepth, int turn, long timeLimit) {
         moveScore = new int[65536];
         moveScore[0] = 50;
         int best = -INFINITY, bestMove = 0;
@@ -98,10 +98,10 @@ public class Agent {
         else
             deadLine = System.nanoTime() + timeLimit;
 
-        for (int d = 1; (depth == 0 ? true : (d <= depth)); ++d) {
+        for (int d = 1; (maxDepth == 0 ? true : (d <= maxDepth)); ++d) {
             System.out.print("Depth: " + d);
 //            int t = MTDf(d, turn, score[turn], deadLine);
-            int t = minimax(d, turn, -INFINITY, INFINITY, 0, false, deadLine);
+            int t = minimax(d, turn, -INFINITY, INFINITY, 0, false, (d > minDepth) ? deadLine : Long.MAX_VALUE);
             if (t == ABORTED) {
                 System.out.println(", aborted");
                 break;

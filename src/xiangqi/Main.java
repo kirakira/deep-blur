@@ -42,9 +42,9 @@ public class Main {
                 } else if (parts[0].equals("s")) {
                     Move move;
                     if (parts.length == 1)
-                        move = agent.search(0, 10);
+                        move = agent.search(6, 0, 10);
                     else
-                        move = agent.search(Integer.parseInt(parts[1]), 0);
+                        move = agent.search(0, Integer.parseInt(parts[1]), 0);
                     agent.checkedMove(move);
                     agent.board.print();
                 } else if (parts[0].equals("e")) {
