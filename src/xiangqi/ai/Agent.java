@@ -259,9 +259,7 @@ public class Agent {
         if (nullMove && quiescence && moves.size() > 0 && !board.isChecked(turn))
             moves.add(0);
 
-        addMoveScore(historyMove, 100);
         Collections.sort(moves, compare);
-        addMoveScore(historyMove, -100);
 
         int best = -INFINITY + level, bestMove = 0, oldAlpha = alpha;
         int bestIndex = 0, i = 0;
