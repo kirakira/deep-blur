@@ -14,8 +14,9 @@ public class Agent {
 
     protected int[] stat = new int[100];
 
+    protected int transpSize = 1 << 20;
     // lower(16) upper(16) move(16) depth(16)
-    protected Map<Long, Long> transposition = new HashMap<Long, Long>();
+    protected long [][][] transposition = new long[transpSize][4][2];
     protected int[] moveScore = new int[65536], currentMoveScore = new int[65536];
 
     protected int checkTime = 0;
@@ -74,7 +75,6 @@ public class Agent {
         int move = id(depth, turn, time * 1000000000L);
         long timeSpent = System.nanoTime() - startTime;
         System.out.println(evaluateCount + " evaluations in " + timeSpent / 1e9 + "s, " + (int) ((double) evaluateCount / (timeSpent / 1e6)) + " k/s");
-        checkMemory();
 
         int statSum = 0;
         for (int i = 0; i < 10; ++i) {
@@ -86,18 +86,6 @@ public class Agent {
             return new Move(move);
         else
             return null;
-    }
-
-    protected void checkMemory() {
-        Runtime runtime = Runtime.getRuntime();
-        double ratio = (double) runtime.totalMemory() / (double) runtime.maxMemory();
-        int limit = (int) ((double) runtime.maxMemory() * .0047);
-        System.out.print(transposition.size() + " entries (limit: " + limit + "). Memory: " + ratio + " of " + runtime.maxMemory() / (1L << 20) + "MB. ");
-        if (transposition.size() > limit) {
-            System.out.print("Clearing transposition.. ");
-            clearTransposition();
-        }
-        System.out.println();
     }
 
     protected int id(int depth, int turn, long timeLimit) {
@@ -129,10 +117,9 @@ public class Agent {
             t = turn;
             int i;
             for (i = 0; i < d; ++i) {
-                Long iHistory = transposition.get(board.currentHash(t));
-                if (iHistory == null)
+                long history = loadTransposition(board.currentHash(t));
+                if (history == -1)
                     break;
-                long history = iHistory.longValue();
                 int move = (int) (history >> 16) & 0xffff;
                 if (i == 0)
                     bestMove = move;
@@ -176,9 +163,54 @@ public class Agent {
         return g;
     }
 
-    protected Long storeTransposition(long hash, int depth, int move, int upper, int lower) {
-        return transposition.put(hash, ((((long) lower & 0xffffL) << 48)
-                    | (((long) upper & 0xffffL) << 32) | ((long) move << 16) | ((long) depth & 0xffffL)));
+    // returns -1 if entry not found
+    protected long loadTransposition(long hash) {
+        int p = (int) (hash & (transpSize - 1));
+        for (int i = 0; i < 4; ++i)
+            if (transposition[p][i][0] == hash) {
+                return transposition[p][i][1];
+            }
+        return -1;
+    }
+
+    protected void removeTransposition(long hash) {
+        int p = (int) (hash & (transpSize - 1));
+        for (int i = 0; i < 4; ++i)
+            if (transposition[p][i][0] == hash) {
+                transposition[p][i][0] = 0;
+                return;
+            }
+    }
+
+    protected long storeTransposition(long hash, int depth, int move, int upper, int lower) {
+        long value = ((((long) lower & 0xffffL) << 48)
+                    | (((long) upper & 0xffffL) << 32) | ((long) move << 16) | ((long) depth & 0xffffL));
+        return storeTransposition(hash, value);
+    }
+
+    protected long storeTransposition(long hash, long value) {
+        int p = (int) (hash & (transpSize - 1));
+        int hole = -1, shallowest = INFINITY, si = 0;
+        for (int i = 0; i < 4; ++i) {
+            if (transposition[p][i][0] == 0 || transposition[p][i][0] == hash) {
+                hole = i;
+                break;
+            } else {
+                int depth = (int) (transposition[p][i][1] << 48 >> 48);
+                if (depth < shallowest) {
+                    shallowest = depth;
+                    si = i;
+                }
+            }
+        }
+        long ret = -1;
+        if (hole == -1) {
+            hole = si;
+            ret = transposition[p][hole][1];
+        }
+        transposition[p][hole][0] = hash;
+        transposition[p][hole][1] = value;
+        return ret;
     }
 
     public int evaluate() {
@@ -188,8 +220,8 @@ public class Agent {
     protected int minimax(int depth, int turn, int alpha, int beta, int level, boolean nullMove, long deadLine) {
         long hash = board.currentHash(turn);
 
-        if (transposition.containsKey(hash)) {
-            long history = transposition.get(hash);
+        long history = loadTransposition(hash);
+        if (history != -1) {
             int dHistory = (int) (history << 48 >> 48);
             if (dHistory >= depth) {
                 int lower = (int) (history >> 48), upper = (int) (history << 16 >> 48),
@@ -210,7 +242,7 @@ public class Agent {
         boolean quiescence = (depth <= 0);
 
         ++evaluateCount;
-        Long oldHistory = storeTransposition(hash, depth, 0, 0, 0);
+        long oldHistory = storeTransposition(hash, depth, 0, 0, 0);
 
         List<Integer> moves;
         if (quiescence) {
@@ -291,13 +323,12 @@ public class Agent {
             ++stat[bestIndex];
         
         if (aborted) {
-            if (oldHistory != null)
-                transposition.put(hash, oldHistory);
+            if (oldHistory != -1)
+                storeTransposition(hash, oldHistory);
             else
-                transposition.remove(hash);
+                removeTransposition(hash);
             return ABORTED;
         }
-
 
         // bug note: we don't use static values if there's an beta cutoff
         if (quiescence && best < beta && bestMove == 0) {
@@ -321,11 +352,10 @@ public class Agent {
     }
 
     public void bestResponse() {
-        Long lHistory = transposition.get(board.currentHash(turn));
-        if (lHistory == null)
+        long history = loadTransposition(board.currentHash(turn));
+        if (history == -1)
             System.out.println("No result found");
         else {
-            long history = lHistory.longValue();
             int lower = (int) (history >> 48), upper = (int) (history << 16 >> 48);
             int move = (int) (history >> 16) & 0xffff;
             System.out.println("Move: " + new Move(move) + ", score: [" + lower + ", " + upper + "]");
@@ -333,6 +363,6 @@ public class Agent {
     }
 
     public void clearTransposition() {
-        transposition.clear();
+        transposition = new long[transpSize][4][2];
     }
 }
