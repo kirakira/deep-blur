@@ -23,17 +23,12 @@ public class Agent {
     protected static final int CHECK_TIME_CYCLE = 100000;
 
     protected class MoveComparator implements Comparator<Integer> {
-        public int historyMove = 0;
         public int compare(Integer o1, Integer o2) {
-            if (o1 == historyMove)
-                return -1;
-            else if (o2 == historyMove)
-                return 1;
-            else if (o1 == 0)
+/*            if (o1 == 0)
                 return -1;
             else if (o2 == 0)
                 return 1;
-            else
+            else*/
                 return moveScore[o2] - moveScore[o1];
         }
     }
@@ -100,6 +95,7 @@ public class Agent {
 
     protected int id(int minDepth, int maxDepth, int turn, long timeLimit) {
         moveScore = new int[65536];
+        moveScore[0] = 50;
         int best = -INFINITY, bestMove = 0;
 
         long deadLine;
@@ -229,9 +225,9 @@ public class Agent {
 
         long history = loadTransposition(hash);
         int lower = -INFINITY, upper = INFINITY;
-        int historyMove = 0;
         if (history != -1) {
             int dHistory = (int) (history << 48 >> 48);
+            int historyMove = (int) (history >> 16) & 0xffff;
             if (dHistory >= depth) {
                 lower = (int) (history >> 48);
                 upper = (int) (history << 16 >> 48);
@@ -246,7 +242,6 @@ public class Agent {
                 alpha = Math.max(alpha, lower);
                 beta = Math.min(beta, upper);
             }
-            historyMove = (int) (history >> 16) & 0xffff;
         }
 
         if (level >= DEPTH_LIMIT)
@@ -271,7 +266,6 @@ public class Agent {
         if (nullMove && quiescence && moves.size() > 0 && !board.isChecked(turn))
             moves.add(0);
 
-        compare.historyMove = historyMove;
         Collections.sort(moves, compare);
 
         int best = -INFINITY + level, bestMove = 0, oldAlpha = alpha;
