@@ -9,7 +9,7 @@ import java.util.Collections;
 public class Agent {
     protected int turn;
     protected int[] score;
-    protected static final int INFINITY = 10000, ABORTED = 20000;
+    protected static final int INFINITY = 10000, ABORTED = 20000, DEPTH_LIMIT = 1000;
     public Board board;
 
     protected int[] stat = new int[100];
@@ -239,6 +239,9 @@ public class Agent {
             if (dHistory >= depth - 1)
                 historyMove = (int) (history >> 16) & 0xffff;
         }
+
+        if (level >= DEPTH_LIMIT)
+            return board.staticValue(turn);
 
         boolean quiescence = (depth <= 0);
 
