@@ -9,7 +9,7 @@ import java.util.Collections;
 public class Agent {
     protected int turn;
     protected int[] score;
-    protected static final int INFINITY = 10000, ABORTED = 20000, DEPTH_LIMIT = 1000;
+    protected static final int INFINITY = 10000, ABORTED = 20000, DEPTH_LIMIT = 64;
     public Board board;
 
     protected int[] stat = new int[100];
@@ -22,11 +22,22 @@ public class Agent {
     protected int checkTime = 0;
     protected static final int CHECK_TIME_CYCLE = 100000;
 
-    protected Comparator<Integer> compare = new Comparator<Integer>() {
+    protected class MoveComparator implements Comparator<Integer> {
+        public int historyMove = 0;
         public int compare(Integer o1, Integer o2) {
-            return moveScore[o2] - moveScore[o1];
+            if (o1 == historyMove)
+                return -1;
+            else if (o2 == historyMove)
+                return 1;
+            else if (o1 == 0)
+                return -1;
+            else if (o2 == 0)
+                return 1;
+            else
+                return moveScore[o2] - moveScore[o1];
         }
-    };
+    }
+    protected MoveComparator compare = new MoveComparator();
 
     public Agent(int transpDepth) {
         transpSize = 1 << transpDepth;
@@ -89,7 +100,6 @@ public class Agent {
 
     protected int id(int minDepth, int maxDepth, int turn, long timeLimit) {
         moveScore = new int[65536];
-        moveScore[0] = 50;
         int best = -INFINITY, bestMove = 0;
 
         long deadLine;
@@ -236,8 +246,7 @@ public class Agent {
                 alpha = Math.max(alpha, lower);
                 beta = Math.min(beta, upper);
             }
-            if (dHistory >= depth - 1)
-                historyMove = (int) (history >> 16) & 0xffff;
+            historyMove = (int) (history >> 16) & 0xffff;
         }
 
         if (level >= DEPTH_LIMIT)
@@ -262,6 +271,7 @@ public class Agent {
         if (nullMove && quiescence && moves.size() > 0 && !board.isChecked(turn))
             moves.add(0);
 
+        compare.historyMove = historyMove;
         Collections.sort(moves, compare);
 
         int best = -INFINITY + level, bestMove = 0, oldAlpha = alpha;
