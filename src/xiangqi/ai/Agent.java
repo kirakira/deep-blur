@@ -97,6 +97,10 @@ public class Agent {
         moveScore = new int[65536];
         moveScore[0] = 50;
         int best = -INFINITY, bestMove = 0;
+        if (maxDepth == 0)
+            maxDepth = DEPTH_LIMIT;
+        else
+            maxDepth = Math.min(maxDepth, DEPTH_LIMIT);
 
         long deadLine;
         if (timeLimit == 0)
@@ -104,7 +108,7 @@ public class Agent {
         else
             deadLine = System.nanoTime() + timeLimit;
 
-        for (int d = 1; (maxDepth == 0 ? true : (d <= maxDepth)); ++d) {
+        for (int d = 1; d <= maxDepth; ++d) {
             System.out.print("Depth: " + d);
 //            int t = MTDf(d, turn, score[turn], deadLine);
             int t = minimax(d, turn, -INFINITY, INFINITY, 0, false, (d > minDepth) ? deadLine : Long.MAX_VALUE);
@@ -243,9 +247,6 @@ public class Agent {
                 beta = Math.min(beta, upper);
             }
         }
-
-        if (level >= DEPTH_LIMIT)
-            return board.staticValue(turn);
 
         boolean quiescence = (depth <= 0);
 
