@@ -221,11 +221,13 @@ public class Agent {
         long hash = board.currentHash(turn);
 
         long history = loadTransposition(hash);
+        int lower = -INFINITY, upper = INFINITY;
         if (history != -1) {
             int dHistory = (int) (history << 48 >> 48);
             if (dHistory >= depth) {
-                int lower = (int) (history >> 48), upper = (int) (history << 16 >> 48),
-                    move = (int) (history >> 16) & 0xffff;
+                lower = (int) (history >> 48);
+                upper = (int) (history << 16 >> 48);
+                int move = (int) (history >> 16) & 0xffff;
                 if (nullMove || move != 0) {
                     if (lower == upper)
                         return lower;
@@ -336,11 +338,11 @@ public class Agent {
             storeTransposition(hash, 0, 0, best, best);
         } else {
             if (best <= oldAlpha)
-                storeTransposition(hash, depth, bestMove, best, -INFINITY);
+                storeTransposition(hash, depth, bestMove, best, lower);
             else if (best < beta)
                 storeTransposition(hash, depth, bestMove, best, best);
             else
-                storeTransposition(hash, depth, bestMove, INFINITY, best);
+                storeTransposition(hash, depth, bestMove, upper, best);
         }
 
         return best;
