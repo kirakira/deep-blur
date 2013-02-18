@@ -191,9 +191,12 @@ public class Agent {
     protected long storeTransposition(long hash, long value) {
         int p = (int) (hash & (transpSize - 1));
         int hole = -1, shallowest = INFINITY, si = 0;
+        long ret = -1;
         for (int i = 0; i < 4; ++i) {
             if (transposition[p][i][0] == 0 || transposition[p][i][0] == hash) {
                 hole = i;
+                if (transposition[p][i][0] == hash)
+                    ret = transposition[p][i][1];
                 break;
             } else {
                 int depth = (int) (transposition[p][i][1] << 48 >> 48);
@@ -203,11 +206,8 @@ public class Agent {
                 }
             }
         }
-        long ret = -1;
-        if (hole == -1) {
+        if (hole == -1)
             hole = si;
-            ret = transposition[p][hole][1];
-        }
         transposition[p][hole][0] = hash;
         transposition[p][hole][1] = value;
         return ret;
