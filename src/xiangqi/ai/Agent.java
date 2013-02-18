@@ -17,7 +17,7 @@ public class Agent {
     protected int transpSize = 1 << 20;
     // lower(16) upper(16) move(16) depth(16)
     protected long [][][] transposition = new long[transpSize][4][2];
-    protected int[] moveScore = new int[65536], currentMoveScore = new int[65536];
+    protected int[] moveScore = new int[65536];
 
     protected int checkTime = 0;
     protected static final int CHECK_TIME_CYCLE = 100000;
@@ -90,7 +90,6 @@ public class Agent {
 
     protected int id(int depth, int turn, long timeLimit) {
         moveScore = new int[65536];
-        currentMoveScore = new int[65536];
         int best = -INFINITY, bestMove = 0;
 
         long deadLine;
@@ -107,8 +106,6 @@ public class Agent {
                 System.out.println(", aborted");
                 break;
             }
-            moveScore = currentMoveScore;
-            currentMoveScore = new int[65536];
 
             best = t;
             score[turn] = best;
@@ -294,14 +291,8 @@ public class Agent {
                 break;
             }
 
-            if (move != 0) {
-                int bonus = 0;
-                if (t >= beta)
-                    bonus += 100;
-                if (i == 0)
-                    bonus += 20;
-                saveMoveScore(move, t + bonus);
-            }
+            if (move != 0 && t >= beta)
+                addMoveScore(move, 1);
 
             if (t > best)
                 bestIndex = i;
@@ -348,9 +339,8 @@ public class Agent {
         return best;
     }
 
-    protected void saveMoveScore(int move, int score) {
-        if (currentMoveScore[move] < score)
-            currentMoveScore[move] = score;
+    protected void addMoveScore(int move, int score) {
+        moveScore[move] += score;
     }
 
     public void bestResponse() {
