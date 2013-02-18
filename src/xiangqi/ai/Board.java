@@ -15,7 +15,7 @@ public class Board {
     protected long[] playerHash;
     protected long currentHash;
 
-    protected int[] staticValue = {0, 0, 3, 3, 7, 15, 7, 2};
+    protected int staticValue;
 
     protected Stack<Integer> history = new Stack<Integer>();
 
@@ -23,6 +23,7 @@ public class Board {
         this.board = board;
         initPieces();
         initHasher();
+        initStaticValue();
     }
 
     public Board() {
@@ -41,6 +42,7 @@ public class Board {
         };
         initPieces();
         initHasher();
+        initStaticValue();
     }
 
     protected void initPieces() {
@@ -78,6 +80,14 @@ public class Board {
         playerHash = new long[] {random.nextLong(), random.nextLong()};
     }
 
+    protected void initStaticValue() {
+        staticValue = 0;
+        for (int i = 0; i < H; ++i)
+            for (int j = 0; j < W; ++j)
+                if (board[i][j] != 0)
+                    staticValue += Piece.values[board[i][j] & 0xff][i][j];
+    }
+
     public boolean checkedMove(int move) {
         int src_i = move >> 12, src_j = (move >> 8) & 0xf,
             dst_i = (move >> 4) & 0xf, dst_j = move & 0xf;
@@ -103,13 +113,16 @@ public class Board {
         if (dst != 0) {
             pieces[dst >> 8] = 0;
             currentHash ^= hash[dst_i][dst_j][dst & 0xff];
+            staticValue -= Piece.values[dst & 0xff][dst_i][dst_j];
         }
 
         board[dst_i][dst_j] = src;
         currentHash ^= hash[dst_i][dst_j][src & 0xff];
+        staticValue += Piece.values[src & 0xff][dst_i][dst_j];
 
         board[src_i][src_j] = 0;
         currentHash ^= hash[src_i][src_j][src & 0xff];
+        staticValue -= Piece.values[src & 0xff][src_i][src_j];
         pieces[src >> 8] = (dst_i << 12) | (dst_j << 8) | (src & 0xff);
 
         history.push((dst << 16) | move);
@@ -131,13 +144,16 @@ public class Board {
         int dst = board[dst_i][dst_j];
         board[src_i][src_j] = dst;
         currentHash ^= hash[src_i][src_j][dst & 0xff];
+        staticValue += Piece.values[dst & 0xff][src_i][src_j];
         pieces[dst >> 8] = (src_i << 12) | (src_j << 8) | (dst & 0xff);
 
         board[dst_i][dst_j] = capture;
         currentHash ^= hash[dst_i][dst_j][dst & 0xff];
+        staticValue -= Piece.values[dst & 0xff][dst_i][dst_j];
         if (capture != 0) {
             pieces[capture >> 8] = (dst_i << 12) | (dst_j << 8) | (capture & 0xff);
             currentHash ^= hash[dst_i][dst_j][capture & 0xff];
+            staticValue += Piece.values[capture & 0xff][dst_i][dst_j];
         }
     }
 
@@ -273,6 +289,7 @@ public class Board {
             System.out.println();
         }
         System.out.println("Board hash: " + currentHash() + ", " + currentHash(0) + ", " + currentHash(1));
+        System.out.println("Material balance: " + staticValue);
         System.out.println();
         System.out.println();
     }
@@ -606,15 +623,9 @@ public class Board {
     }
 
     public int staticValue(int player) {
-        int[] score = new int[2];
-        for (int turn = 0; turn <= 1; ++turn)
-            for (int i = turn * 16; i < turn * 16 + 16; ++i) {
-                score[turn] += staticValue[pieces[i] & 0xf];
-            }
-
         if (player == 0)
-            return score[0] - score[1];
+            return staticValue;
         else
-            return score[1] - score[0];
+            return -staticValue;
     }
 }
