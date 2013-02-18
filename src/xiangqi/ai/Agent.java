@@ -263,60 +263,69 @@ public class Agent {
 
         int best = -INFINITY + level, bestMove = 0, oldAlpha = alpha;
         int bestIndex = 0, i = 0;
+
+        if (quiescence) {
+            best = board.staticValue(turn);
+            if (best > alpha)
+                alpha = best;
+        }
+
         boolean aborted = false, pvFound = false;
-        for (int move: moves) {
-            ++checkTime;
-            if (checkTime == CHECK_TIME_CYCLE) {
-                checkTime = 0;
-                if (System.nanoTime() >= deadLine) {
+        if (best < beta) {
+            for (int move: moves) {
+                ++checkTime;
+                if (checkTime == CHECK_TIME_CYCLE) {
+                    checkTime = 0;
+                    if (System.nanoTime() >= deadLine) {
+                        aborted = true;
+                        break;
+                    }
+                }
+
+                if (move != 0 && !board.move(move))
+                    continue;
+
+                int t;
+                if (pvFound) {
+                    t = -minimax(depth - 1, 1 - turn, -alpha - 1, -alpha, level + 1, true, deadLine);
+                    if (t > alpha && t < beta)
+                        t = -minimax(depth - 1, 1 - turn, -beta, -t, level + 1, true, deadLine);
+                } else
+                    t = -minimax(depth - 1, 1 - turn, -beta, -alpha, level + 1, true, deadLine);
+
+                if (move != 0)
+                    board.unmove();
+
+                if (t == -ABORTED) {
                     aborted = true;
                     break;
                 }
+
+                if (move != 0 && t >= beta)
+                    addMoveScore(move, 1);
+
+                if (t > best)
+                    bestIndex = i;
+
+                if (t > best || (t == best && bestMove == 0)) {
+                    best = t;
+                    bestMove = move;
+                }
+
+                if (best > alpha) {
+                    alpha = best;
+                    pvFound = true;
+                    if (beta <= alpha)
+                        break;
+                }
+
+                ++i;
             }
-
-            if (move != 0 && !board.move(move))
-                continue;
-
-            int t;
-            if (pvFound) {
-                t = -minimax(depth - 1, 1 - turn, -alpha - 1, -alpha, level + 1, true, deadLine);
-                if (t > alpha && t < beta)
-                    t = -minimax(depth - 1, 1 - turn, -beta, -t, level + 1, true, deadLine);
-            } else
-                t = -minimax(depth - 1, 1 - turn, -beta, -alpha, level + 1, true, deadLine);
-
-            if (move != 0)
-                board.unmove();
-
-            if (t == -ABORTED) {
-                aborted = true;
-                break;
-            }
-
-            if (move != 0 && t >= beta)
-                addMoveScore(move, 1);
-
-            if (t > best)
-                bestIndex = i;
-
-            if (t > best || (t == best && bestMove == 0)) {
-                best = t;
-                bestMove = move;
-            }
-
-            if (best > alpha) {
-                alpha = best;
-                pvFound = true;
-                if (beta <= alpha)
-                    break;
-            }
-
-            ++i;
         }
 
         if (!quiescence)
             ++stat[bestIndex];
-        
+
         if (aborted) {
             if (oldHistory != -1)
                 storeTransposition(hash, oldHistory);
@@ -325,18 +334,12 @@ public class Agent {
             return ABORTED;
         }
 
-        // bug note: we don't use static values if there's an beta cutoff
-        if (quiescence && best < beta && bestMove == 0) {
-            best = board.staticValue(turn);
-            storeTransposition(hash, 0, 0, best, best);
-        } else {
-            if (best <= oldAlpha)
-                storeTransposition(hash, depth, bestMove, best, lower);
-            else if (best < beta)
-                storeTransposition(hash, depth, bestMove, best, best);
-            else
-                storeTransposition(hash, depth, bestMove, upper, best);
-        }
+        if (best <= oldAlpha)
+            storeTransposition(hash, depth, bestMove, best, lower);
+        else if (best < beta)
+            storeTransposition(hash, depth, bestMove, best, best);
+        else
+            storeTransposition(hash, depth, bestMove, upper, best);
 
         return best;
     }
