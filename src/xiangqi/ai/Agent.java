@@ -16,7 +16,7 @@ public class Agent {
 
     protected int transpSize = 1 << 20;
     // lower(16) upper(16) move(16) depth(16)
-    protected long [][][] transposition = new long[transpSize][4][2];
+    protected long [][][] transposition;
     protected int[] moveScore = new int[65536];
 
     protected int checkTime = 0;
@@ -24,22 +24,21 @@ public class Agent {
 
     protected Comparator<Integer> compare = new Comparator<Integer>() {
         public int compare(Integer o1, Integer o2) {
-            if (o1 == 0)
-                return -1;
-            if (o2 == 0)
-                return 1;
-
             return moveScore[o2] - moveScore[o1];
         }
     };
 
-    public Agent() {
+    public Agent(int transpDepth) {
+        transpSize = 1 << transpDepth;
+        transposition = new long[transpSize][4][2];
         board = new Board();
         turn = 0;
         score = new int[2];
     }
 
-    public Agent(int[][] board, int turn) {
+    public Agent(int[][] board, int turn, int transpDepth) {
+        transpSize = 1 << transpDepth;
+        transposition = new long[transpSize][4][2];
         this.board = new Board(board);
         this.turn = turn;
         score = new int[2];
@@ -90,6 +89,7 @@ public class Agent {
 
     protected int id(int depth, int turn, long timeLimit) {
         moveScore = new int[65536];
+        moveScore[0] = 50;
         int best = -INFINITY, bestMove = 0;
 
         long deadLine;
@@ -219,13 +219,13 @@ public class Agent {
 
         long history = loadTransposition(hash);
         int lower = -INFINITY, upper = INFINITY;
+        int historyMove = 0;
         if (history != -1) {
             int dHistory = (int) (history << 48 >> 48);
             if (dHistory >= depth) {
                 lower = (int) (history >> 48);
                 upper = (int) (history << 16 >> 48);
-                int move = (int) (history >> 16) & 0xffff;
-                if (nullMove || move != 0) {
+                if (nullMove || historyMove != 0) {
                     if (lower == upper)
                         return lower;
                     if (lower >= beta)
@@ -236,6 +236,8 @@ public class Agent {
                 alpha = Math.max(alpha, lower);
                 beta = Math.min(beta, upper);
             }
+            if (dHistory >= depth - 1)
+                historyMove = (int) (history >> 16) & 0xffff;
         }
 
         boolean quiescence = (depth <= 0);
@@ -257,7 +259,9 @@ public class Agent {
         if (nullMove && quiescence && moves.size() > 0 && !board.isChecked(turn))
             moves.add(0);
 
+        addMoveScore(historyMove, 100);
         Collections.sort(moves, compare);
+        addMoveScore(historyMove, -100);
 
         int best = -INFINITY + level, bestMove = 0, oldAlpha = alpha;
         int bestIndex = 0, i = 0;

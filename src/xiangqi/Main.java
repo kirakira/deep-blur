@@ -6,7 +6,9 @@ import java.io.*;
 
 public class Main {
     public static final void main(String[] args) throws java.io.IOException {
-        Agent agent = new Agent();
+        System.out.print("Transposition depth: ");
+        Scanner scan = new Scanner(System.in);
+        Agent agent = new Agent(scan.nextInt());
         agent.board.print();
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
