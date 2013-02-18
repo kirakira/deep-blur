@@ -16,8 +16,7 @@ public class Agent {
 
     // lower(16) upper(16) move(16) depth(16)
     protected Map<Long, Long> transposition = new HashMap<Long, Long>();
-    protected Map<Integer, Integer> moveScore = new HashMap<Integer, Integer>(),
-              currentMoveScore = new HashMap<Integer, Integer>();
+    protected int[] moveScore = new int[65536], currentMoveScore = new int[65536];
 
     protected int checkTime = 0;
     protected static final int CHECK_TIME_CYCLE = 100000;
@@ -29,20 +28,7 @@ public class Agent {
             if (o2 == 0)
                 return 1;
 
-            Integer s1 = moveScore.get(o1);
-            int i1, i2;
-            if (s1 == null)
-                i1 = 0;
-            else
-                i1 = s1.intValue();
-
-            Integer s2 = moveScore.get(o2);
-            if (s2 == null)
-                i2 = 0;
-            else
-                i2 = s2.intValue();
-
-            return i2 - i1;
+            return moveScore[o2] - moveScore[o1];
         }
     };
 
@@ -115,8 +101,8 @@ public class Agent {
     }
 
     protected int id(int depth, int turn, long timeLimit) {
-        moveScore = new HashMap<Integer, Integer>();
-        currentMoveScore = new HashMap<Integer, Integer>();
+        moveScore = new int[65536];
+        currentMoveScore = new int[65536];
         int best = -INFINITY, bestMove = 0;
 
         long deadLine;
@@ -134,7 +120,7 @@ public class Agent {
                 break;
             }
             moveScore = currentMoveScore;
-            currentMoveScore = new HashMap<Integer, Integer>();
+            currentMoveScore = new int[65536];
 
             best = t;
             score[turn] = best;
@@ -330,9 +316,8 @@ public class Agent {
     }
 
     protected void saveMoveScore(int move, int score) {
-        Integer current = currentMoveScore.get(move);
-        if (current == null || current.intValue() < score)
-            currentMoveScore.put(move, score);
+        if (currentMoveScore[move] < score)
+            currentMoveScore[move] = score;
     }
 
     public void bestResponse() {
