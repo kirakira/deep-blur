@@ -3,6 +3,8 @@
 #include <sstream>
 #include <string>
 
+#include "Board.h"
+
 using namespace std;
 
 string feature_string = "feature myname=\"Deep Blur\" setboard=1 analyze=0 variants=\"xiangqi\" nps=0 debug=1 done=1";
@@ -31,6 +33,9 @@ bool is_move(string s)
 
 int main()
 {
+    Board board;
+    board.print();
+
     string s;
     string line;
 

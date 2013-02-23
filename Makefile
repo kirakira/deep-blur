@@ -1,10 +1,11 @@
 .PHONY:
 	all
 
-SOURCES = src/xboard.cc
+HEADERS = src/Board.h src/Piece.h
+SOURCES = src/Board.cc src/Piece.cc src/xboard.cc
 
-all: $(SOURCES)
-	c++ -o bin/DeepBlur_debug -Wall $(SOURCES)
+all: $(HEADERS) $(SOURCES)
+	c++ -o bin/DeepBlur_debug -std=c++11 -Wall $(SOURCES)
 
-o: $(SOURCES)
-	c++ -o bin/DeepBlur -O3 $(SOURCES)
+o: $(HEADERS) $(SOURCES)
+	c++ -o bin/DeepBlur -std=c++11 -O3 $(SOURCES)
