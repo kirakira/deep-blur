@@ -1,7 +1,7 @@
 .PHONY:
 	all
 
-HEADERS = src/board.h src/piece.h
+HEADERS = src/board.h src/piece.h src/rc4.h
 SOURCES = src/board.cc src/piece.cc src/xboard.cc
 
 all: $(HEADERS) $(SOURCES)

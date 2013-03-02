@@ -2,7 +2,9 @@
 
 #include <cstdint>
 #include <string>
+
 #include "piece.h"
+#include "rc4.h"
 
 typedef uint8_t POSITION;
 
@@ -25,7 +27,7 @@ class Board
         bool move(Move m);
         void unmove();
         bool is_checked();
-        int64_t hash_code(int side);
+        uint64_t hash_code(int side);
 
         void print();
 
@@ -46,4 +48,8 @@ class Board
 
         BoardEntry board[H][W];
         PieceEntry pieces[32];
+
+        uint64_t get_hash(int rank, int col, PIECE piece);
+        const uint64_t hash_side = rc4_uint64[W * H * 16];
+        uint64_t hash;
 };

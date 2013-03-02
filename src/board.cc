@@ -36,6 +36,8 @@ Board::Board(string fen)
         {0, 0, 1, 3, 5, 7, 9, 11,
          16, 16, 17, 19, 21, 23, 25, 27};
 
+    hash = 0;
+
     int i = 0, j = 0;
     for (size_t k = 0; k < fen.length(); ++k)
     {
@@ -66,6 +68,8 @@ Board::Board(string fen)
             pieces[index].position = make_position(i, j);
             pieces[index].piece = piece;
 
+            hash ^= get_hash(i, j, piece);
+
             ++j;
         }
     }
@@ -88,4 +92,23 @@ void Board::print()
         cout << " " << H - 1 - i << endl;
     }
     cout << endl << "   a b c d e f g h i" << endl;
+    cout << "Hash code: " << hash_code(0) << ", " << hash_code(1) <<  endl;
+}
+
+uint64_t Board::get_hash(int rank, int col, PIECE piece)
+{
+    return rc4_uint64[rank * W * 16 + col * 16 + piece];
+}
+
+uint64_t Board::hash_code(int side)
+{
+    if (side == 0)
+        return hash;
+    else
+        return hash ^ hash_side;
+}
+
+bool Board::move(Move move)
+{
+    return true;
 }
