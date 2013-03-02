@@ -1,3 +1,3 @@
 #!/bin/bash
 
-xboard -fcp bin/DeepBlur_debug -variant xiangqi
+xboard -fcp bin/deep-blur_debug -variant xiangqi

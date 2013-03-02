@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstring>
 #include "board.h"
 
 using namespace std;
@@ -25,6 +26,16 @@ Board::Board()
 
 Board::Board(string fen)
 {
+    for (int i = 0; i < 32; ++i)
+    {
+        pieces[i].position = 0;
+        pieces[i].piece = 0;
+    }
+
+    int starting_position[16] =
+        {0, 0, 1, 3, 5, 7, 9, 11,
+         16, 16, 17, 19, 21, 23, 25, 27};
+
     int i = 0, j = 0;
     for (size_t k = 0; k < fen.length(); ++k)
     {
@@ -46,7 +57,15 @@ Board::Board(string fen)
         }
         else
         {
-            board[i][j].piece = make_piece(fen[k]);
+            PIECE piece = make_piece(fen[k]);
+            int index = starting_position[piece];
+            ++starting_position[piece];
+
+            board[i][j].index = index;
+            board[i][j].piece = piece;
+            pieces[index].position = make_position(i, j);
+            pieces[index].piece = piece;
+
             ++j;
         }
     }
