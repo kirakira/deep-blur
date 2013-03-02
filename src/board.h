@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <string>
-#include "Piece.h"
+#include "piece.h"
 
 typedef uint8_t POSITION;
 

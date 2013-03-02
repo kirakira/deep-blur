@@ -1,4 +1,4 @@
-#include "Piece.h"
+#include "piece.h"
 
 PIECE make_piece(int side, int type)
 {
