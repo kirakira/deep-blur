@@ -34,12 +34,10 @@ bool is_move(string s)
 int main()
 {
     Board board;
-    board.print();
 
     string s;
     string line;
 
-    int i = 0;
     while (getline(cin, line))
     {
         debug_output("Received: " + line);
@@ -52,15 +50,13 @@ int main()
             cout << feature_string << endl;
         else if (is_move(command))
         {
-            debug_output("received move " + command);
-            if (i == 0)// if (is_move(command))
-            cout << "move b7e7" << endl;
-        else if (i == 1)
-            cout << "move a9a8" << endl;
-/*        else
-            debug_output("Unknown command: " + line);*/
-        ++i;
+            if (!board.checked_move(Move(command)))
+                cout << "Illegal move: " << command << endl;
         }
+        else if (command == "print")
+            board.print();
+        else if (command == "undo")
+            board.checked_unmove();
     }
     debug_output("quitting");
 

@@ -1,8 +1,8 @@
 .PHONY:
 	all
 
-HEADERS = src/board.h src/piece.h src/rc4.h
-SOURCES = src/board.cc src/piece.cc src/xboard.cc
+HEADERS = src/board.h src/piece.h src/move.h src/rc4.h
+SOURCES = src/board.cc src/piece.cc src/move.cc src/xboard.cc
 
 all: $(HEADERS) $(SOURCES)
 	g++ -o bin/deep-blur_debug -std=c++11 -Wall -g $(SOURCES)

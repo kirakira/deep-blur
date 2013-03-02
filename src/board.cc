@@ -4,21 +4,6 @@
 
 using namespace std;
 
-POSITION make_position(int rank, int col)
-{
-    return (POSITION) ((rank << 4) | col);
-}
-
-int position_rank(POSITION p)
-{
-    return p >> 4;
-}
-
-int position_col(POSITION p)
-{
-    return p & 0xf;
-}
-
 Board::Board()
     : Board("rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR")
 {
@@ -73,6 +58,8 @@ Board::Board(string fen)
             ++j;
         }
     }
+
+    history.reserve(128);
 }
 
 void Board::print()
@@ -108,7 +95,82 @@ uint64_t Board::hash_code(int side)
         return hash ^ hash_side;
 }
 
+bool Board::checked_move(Move move)
+{
+    int src_i = position_rank(move.src),
+        src_j = position_col(move.src),
+        dst_i = position_rank(move.dst),
+        dst_j = position_col(move.dst);
+    if (!(src_i >= 0 && src_i < H && dst_i >= 0 && dst_i < H
+            && src_j >= 0 && src_j < W && dst_j >= 0 && dst_j < W))
+        return false;
+    if (board[src_i][src_j].piece == 0)
+        return false;
+    if (src_i == dst_i && src_j == dst_j)
+        return false;
+    return this->move(move);
+}
+
 bool Board::move(Move move)
 {
+    int src_i = position_rank(move.src),
+        src_j = position_col(move.src),
+        dst_i = position_rank(move.dst),
+        dst_j = position_col(move.dst);
+    BoardEntry src = board[src_i][src_j],
+               dst = board[dst_i][dst_j];
+
+    if (dst.piece != 0)
+    {
+        pieces[dst.index].piece = 0;
+        hash ^= get_hash(dst_i, dst_j, dst.piece);
+    }
+
+    board[dst_i][dst_j] = src;
+    pieces[src.index].position = make_position(dst_i, dst_j);
+    hash ^= get_hash(dst_i, dst_j, src.piece);
+
+    board[src_i][src_j].piece = 0;
+    hash ^= get_hash(src_i, src_j, src.piece);
+
+    HistoryEntry history_entry;
+    history_entry.move = move;
+    history_entry.capture = dst;
+    history.push_back(history_entry);
+
+    return true;
+}
+
+void Board::unmove()
+{
+    HistoryEntry history_entry = history.back();
+    history.pop_back();
+
+    int src_i = position_rank(history_entry.move.src),
+        src_j = position_col(history_entry.move.src),
+        dst_i = position_rank(history_entry.move.dst),
+        dst_j = position_col(history_entry.move.dst);
+
+    BoardEntry src = board[dst_i][dst_j], dst = history_entry.capture;
+
+    board[src_i][src_j] = src;
+    pieces[src.index].position = make_position(src_i, src_j);
+    hash ^= get_hash(src_i, src_j, src.piece);
+
+    hash ^= get_hash(dst_i, dst_j, src.piece);
+    board[dst_i][dst_j] = dst;
+    if (dst.piece != 0)
+    {
+        pieces[dst.index].piece = dst.piece;
+        pieces[dst.index].position = make_position(dst_i, dst_j);
+        hash ^= get_hash(dst_i, dst_j, dst.piece);
+    }
+}
+
+bool Board::checked_unmove()
+{
+    if (history.size() == 0)
+        return false;
+    unmove();
     return true;
 }
