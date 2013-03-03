@@ -70,6 +70,8 @@ int main()
                 cout << moves[i].to_string() << " ";
             cout << endl << moves_count << " moves in all." << endl;
         }
+        else
+            cout << "Error (unknown command): " << line << endl;
     }
     debug_output("quitting");
 

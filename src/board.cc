@@ -408,25 +408,69 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
     }
 }
 
+void Board::add_move(Move *moves, int *moves_count, Move move_to_add)
+{
+    moves[*moves_count] = move_to_add;
+    ++*moves_count;
+}
+
 void Board::generate_moves(int side, Move *moves, int *moves_count)
 {
     int index;
-    POSITION pos;
-
     *moves_count = 0;
+
+    // Rook
+    index = 7;
+    if (side != 0)
+        index += 16;
+    for (int i = 0; i < 2; ++i)
+        if (pieces[index + i].piece != 0)
+            generate_rook_moves(index + i, moves, moves_count);
 
     // King
     index = 0;
     if (side != 0)
         index += 16;
-    pos = pieces[index].position;
+    generate_king_moves(index, moves, moves_count);
+}
+
+void Board::generate_king_moves(int index, Move *moves, int *moves_count)
+{
+    POSITION pos = pieces[index].position;
+    int side = piece_side(pieces[index].piece);
     for (int i = 0; i < king_moves_count[pos]; ++i)
     {
         int oi = king_moves[pos][i][0], oj = king_moves[pos][i][1];
         if (check_position(side, oi, oj))
+            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+    }
+}
+
+void Board::generate_rook_moves(int index, Move *moves, int *moves_count)
+{
+    POSITION pos = pieces[index].position;
+    int side = piece_side(pieces[index].piece);
+
+    int i = position_rank(pos), j = position_col(pos);
+    for (int r = 0; r < 4; ++r)
+    {
+        int oi = i, oj = j;
+        while (true)
         {
-            moves[*moves_count] = Move(pos, make_position(oi, oj));
-            ++*moves_count;
+            oi += c4di[r];
+            oj += c4dj[r];
+
+            if (!is_on_board(oi, oj))
+                break;
+
+            if (board[oi][oj].piece == 0)
+                add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+            else
+            {
+                if (check_position(side, oi, oj))
+                    add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+                break;
+            }
         }
     }
 }

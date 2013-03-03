@@ -73,4 +73,8 @@ class Board
 
         static int c4di[4], c4dj[4];
         static int king_moves[256][4][2], king_moves_count[256];
+
+        void add_move(Move *moves, int *moves_count, Move move_to_add);
+        void generate_king_moves(int index, Move *moves, int *moves_count);
+        void generate_rook_moves(int index, Move *moves, int *moves_count);
 };
