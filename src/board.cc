@@ -353,6 +353,11 @@ int Board::static_value(int side)
         return -current_static_value;
 }
 
+bool Board::is_valid_position(PIECE piece, int i, int j)
+{
+    return (static_values[piece][i][j] != 0);
+}
+
 bool Board::is_on_board(int i, int j)
 {
     return (i >= 0 && i < H && j >= 0 && j < W);
@@ -375,7 +380,18 @@ bool Board::check_position(int side, int i, int j)
 }
 
 int Board::c4di[4] = {0, 1, 0, -1}, Board::c4dj[4] = {1, 0, -1, 0};
-int Board::king_moves[256][4][2], Board::king_moves_count[256];
+int Board::king_moves[256][4][2], Board::king_moves_count[256] = {0};
+int Board::horse_d[8][4] = {
+    {-2, 1, -1, 0},
+    {-1, 2, 0, 1},
+    {1, 2, 0, 1},
+    {2, 1, 1, 0},
+    {2, -1, 1, 0},
+    {1, -2, 0, -1},
+    {-1, -2, 0, -1},
+    {-2, -1, -1, 0}
+};
+int Board::horse_moves[256][8][4], Board::horse_moves_count[256] = {0};
 Board::BoardStaticFieldsInitializer Board::board_initializer;
 
 Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
@@ -406,6 +422,27 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
             }
         }
     }
+
+    // Horse
+    for (int i = 0; i < H; ++i)
+        for (int j = 0; j < W; ++j)
+        {
+            POSITION p = make_position(i, j);
+            for (int r = 0; r < 8; ++r)
+            {
+                int oi = i + horse_d[r][0], oj = j + horse_d[r][1];
+                if (is_on_board(oi, oj))
+                {
+                    int index = horse_moves_count[p];
+                    ++horse_moves_count[p];
+
+                    horse_moves[p][index][0] = oi;
+                    horse_moves[p][index][1] = oj;
+                    horse_moves[p][index][2] = i + horse_d[r][2];
+                    horse_moves[p][index][3] = j + horse_d[r][3];
+                }
+            }
+        }
 }
 
 void Board::add_move(Move *moves, int *moves_count, Move move_to_add)
@@ -426,6 +463,14 @@ void Board::generate_moves(int side, Move *moves, int *moves_count)
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_rook_moves(index + i, moves, moves_count);
+
+    // Horse
+    index = 5;
+    if (side != 0)
+        index += 16;
+    for (int i = 0; i < 2; ++i)
+        if (pieces[index + i].piece != 0)
+            generate_horse_moves(index + i, moves, moves_count);
 
     // King
     index = 0;
@@ -472,5 +517,19 @@ void Board::generate_rook_moves(int index, Move *moves, int *moves_count)
                 break;
             }
         }
+    }
+}
+
+void Board::generate_horse_moves(int index, Move *moves, int *moves_count)
+{
+    POSITION pos = pieces[index].position;
+    int side = piece_side(pieces[index].piece);
+
+    for (int i = 0; i < horse_moves_count[pos]; ++i)
+    {
+        int oi = horse_moves[pos][i][0], oj = horse_moves[pos][i][1];
+        if (check_position(side, oi, oj) &&
+                board[horse_moves[pos][i][2]][horse_moves[pos][i][3]].piece == 0)
+            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
     }
 }
