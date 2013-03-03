@@ -21,6 +21,7 @@ class Board
 
         bool is_checked();
         uint64_t hash_code(int side);
+        int static_value(int side);
 
         void print();
 
@@ -49,8 +50,11 @@ class Board
         PieceEntry pieces[32];
 
         uint64_t get_hash(int rank, int col, PIECE piece);
-        const uint64_t hash_side = rc4_uint64[W * H * 16];
+        const uint64_t hash_side = rc4_uint64[H * W * 16];
         uint64_t hash;
+
+        static const int static_values[16][H][W];
+        int current_static_value;
 
         std::vector<HistoryEntry> history;
 };
