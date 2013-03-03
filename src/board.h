@@ -23,6 +23,8 @@ class Board
         uint64_t hash_code(int side);
         int static_value(int side);
 
+        void generate_moves(int side, Move *moves, int *moves_count);
+
         void print();
 
         static const int H = 10, W = 9;
@@ -57,4 +59,18 @@ class Board
         int current_static_value;
 
         std::vector<HistoryEntry> history;
+
+        static bool is_in_palace(int side, int i, int j);
+        static bool is_on_board(int i, int j);
+        bool check_position(int side, int i, int j);
+
+        class BoardStaticFieldsInitializer
+        {
+            public:
+                BoardStaticFieldsInitializer();
+        };
+        static BoardStaticFieldsInitializer board_initializer;
+
+        static int c4di[4], c4dj[4];
+        static int king_moves[256][4][2], king_moves_count[256];
 };

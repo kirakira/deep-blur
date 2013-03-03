@@ -28,6 +28,15 @@ int position_col(POSITION p)
     return p & 0xf;
 }
 
+string position_string(POSITION p)
+{
+    string ret;
+    int rank = position_rank(p), col = position_col(p);
+    ret += (char) (col + 'a');
+    ret += (char) (9 - rank + '0');
+    return ret;
+}
+
 Move::Move()
     : Move(0, 0)
 {
@@ -51,4 +60,9 @@ Move::Move(string s)
         src = 0;
         dst = 0;
     }
+}
+
+string Move::to_string()
+{
+    return position_string(src) + position_string(dst);
 }

@@ -57,6 +57,19 @@ int main()
             board.print();
         else if (command == "undo")
             board.checked_unmove();
+        else if (command == "generate")
+        {
+            int side = 0;
+            iss >> side;
+
+            Move moves[120];
+            int moves_count;
+            board.generate_moves(side, moves, &moves_count);
+
+            for (int i = 0; i < moves_count; ++i)
+                cout << moves[i].to_string() << " ";
+            cout << endl << moves_count << " moves in all." << endl;
+        }
     }
     debug_output("quitting");
 

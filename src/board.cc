@@ -17,7 +17,7 @@ Board::Board(string fen)
         pieces[i].piece = 0;
     }
 
-    int starting_position[16] =
+    int start_position[16] =
         {0, 0, 1, 3, 5, 7, 9, 11,
          16, 16, 17, 19, 21, 23, 25, 27};
 
@@ -46,8 +46,8 @@ Board::Board(string fen)
         else
         {
             PIECE piece = make_piece(fen[k]);
-            int index = starting_position[piece];
-            ++starting_position[piece];
+            int index = start_position[piece];
+            ++start_position[piece];
 
             board[i][j].index = index;
             board[i][j].piece = piece;
@@ -104,8 +104,7 @@ bool Board::checked_move(Move move)
         src_j = position_col(move.src),
         dst_i = position_rank(move.dst),
         dst_j = position_col(move.dst);
-    if (!(src_i >= 0 && src_i < H && dst_i >= 0 && dst_i < H
-            && src_j >= 0 && src_j < W && dst_j >= 0 && dst_j < W))
+    if (!(is_on_board(src_i, src_j) && is_on_board(src_i, src_j)))
         return false;
     if (board[src_i][src_j].piece == 0)
         return false;
@@ -352,4 +351,82 @@ int Board::static_value(int side)
         return current_static_value;
     else
         return -current_static_value;
+}
+
+bool Board::is_on_board(int i, int j)
+{
+    return (i >= 0 && i < H && j >= 0 && j < W);
+}
+
+bool Board::is_in_palace(int side, int i, int j)
+{
+    if (side == 0)
+        return (i >= 0 && i <= 2 && j >= 3 && j <= 5);
+    else
+        return (i >= 7 && i <= 9 && j >= 3 && j <= 5);
+}
+
+bool Board::check_position(int side, int i, int j)
+{
+    if (board[i][j].piece == 0 || piece_side(board[i][j].piece) != side)
+        return true;
+    else
+        return false;
+}
+
+int Board::c4di[4] = {0, 1, 0, -1}, Board::c4dj[4] = {1, 0, -1, 0};
+int Board::king_moves[256][4][2], Board::king_moves_count[256];
+Board::BoardStaticFieldsInitializer Board::board_initializer;
+
+Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
+{
+    // King
+    for (int side = 0; side <= 1; ++side)
+    {
+        for (int ii = 0; ii <= 2; ++ii)
+        {
+            int i = ii;
+            if (side == 1)
+                i = 9 - ii;
+            for (int j = 3; j <= 5; ++j)
+            {
+                POSITION p = make_position(i, j);
+                for (int r = 0; r < 4; ++r)
+                {
+                    int oi = i + c4di[r], oj = j + c4dj[r];
+                    if (is_in_palace(side, oi, oj))
+                    {
+                        int index = king_moves_count[p];
+                        ++king_moves_count[p];
+
+                        king_moves[p][index][0] = oi;
+                        king_moves[p][index][1] = oj;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void Board::generate_moves(int side, Move *moves, int *moves_count)
+{
+    int index;
+    POSITION pos;
+
+    *moves_count = 0;
+
+    // King
+    index = 0;
+    if (side != 0)
+        index += 16;
+    pos = pieces[index].position;
+    for (int i = 0; i < king_moves_count[pos]; ++i)
+    {
+        int oi = king_moves[pos][i][0], oj = king_moves[pos][i][1];
+        if (check_position(side, oi, oj))
+        {
+            moves[*moves_count] = Move(pos, make_position(oi, oj));
+            ++*moves_count;
+        }
+    }
 }
