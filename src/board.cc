@@ -380,7 +380,7 @@ bool Board::check_position(int side, int i, int j)
 }
 
 int Board::c4di[4] = {0, 1, 0, -1}, Board::c4dj[4] = {1, 0, -1, 0};
-int Board::king_moves[256][4][2], Board::king_moves_count[256] = {0};
+int Board::king_moves[256][4][2], Board::king_moves_count[256];
 int Board::horse_d[8][4] = {
     {-2, 1, -1, 0},
     {-1, 2, 0, 1},
@@ -391,7 +391,7 @@ int Board::horse_d[8][4] = {
     {-1, -2, 0, -1},
     {-2, -1, -1, 0}
 };
-int Board::horse_moves[256][8][4], Board::horse_moves_count[256] = {0};
+int Board::horse_moves[256][8][4], Board::horse_moves_count[256];
 Board::BoardStaticFieldsInitializer Board::board_initializer;
 
 Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
@@ -407,6 +407,7 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
             for (int j = 3; j <= 5; ++j)
             {
                 POSITION p = make_position(i, j);
+                king_moves_count[p] = 0;
                 for (int r = 0; r < 4; ++r)
                 {
                     int oi = i + c4di[r], oj = j + c4dj[r];
@@ -428,6 +429,7 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
         for (int j = 0; j < W; ++j)
         {
             POSITION p = make_position(i, j);
+            horse_moves_count[p] = 0;
             for (int r = 0; r < 8; ++r)
             {
                 int oi = i + horse_d[r][0], oj = j + horse_d[r][1];
