@@ -476,6 +476,14 @@ void Board::generate_moves(int side, Move *moves, int *moves_count)
     if (side != 0)
         index += 16;
     generate_king_moves(index, moves, moves_count);
+
+    // Cannon
+    index = 9;
+    if (side != 0)
+        index += 16;
+    for (int i = 0; i < 2; ++i)
+        if (pieces[index + i].piece != 0)
+            generate_cannon_moves(index + i, moves, moves_count);
 }
 
 void Board::generate_king_moves(int index, Move *moves, int *moves_count)
@@ -530,5 +538,43 @@ void Board::generate_horse_moves(int index, Move *moves, int *moves_count)
         if (check_position(side, oi, oj) &&
                 board[horse_moves[pos][i][2]][horse_moves[pos][i][3]].piece == 0)
             add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+    }
+}
+
+void Board::generate_cannon_moves(int index, Move *moves, int *moves_count)
+{
+    POSITION pos = pieces[index].position;
+    int side = piece_side(pieces[index].piece);
+
+    int i = position_rank(pos), j = position_col(pos);
+    for (int r = 0; r < 4; ++r)
+    {
+        int oi = i, oj = j;
+        int state = 0;
+        while (true)
+        {
+            oi += c4di[r];
+            oj += c4dj[r];
+
+            if (!is_on_board(oi, oj))
+                break;
+
+            if (state == 0)
+            {
+                if (board[oi][oj].piece == 0)
+                    add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+                else
+                    state = 1;
+            }
+            else if (state == 1)
+            {
+                if (board[oi][oj].piece != 0)
+                {
+                    if (check_position(side, oi, oj))
+                        add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+                    break;
+                }
+            }
+        }
     }
 }

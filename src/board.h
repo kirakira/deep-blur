@@ -79,4 +79,5 @@ class Board
         void generate_king_moves(int index, Move *moves, int *moves_count);
         void generate_rook_moves(int index, Move *moves, int *moves_count);
         void generate_horse_moves(int index, Move *moves, int *moves_count);
+        void generate_cannon_moves(int index, Move *moves, int *moves_count);
 };
