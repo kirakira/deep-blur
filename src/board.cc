@@ -4,12 +4,8 @@
 
 using namespace std;
 
-Board::Board()
-    : Board("rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR")
-{
-}
-
 Board::Board(string fen)
+    : hash_side(rc4_uint64[H * W * 16])
 {
     for (int i = 0; i < 32; ++i)
     {
@@ -104,7 +100,7 @@ bool Board::checked_move(Move move)
         src_j = position_col(move.src),
         dst_i = position_rank(move.dst),
         dst_j = position_col(move.dst);
-    if (!(is_on_board(src_i, src_j) && is_on_board(src_i, src_j)))
+    if (!(is_on_board(src_i, src_j) && is_on_board(dst_i, dst_j)))
         return false;
     if (board[src_i][src_j].piece == 0)
         return false;

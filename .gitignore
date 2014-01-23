@@ -1,1 +1,3 @@
 *.jar
+bin/deep-blur_debug
+bin/deep-blur

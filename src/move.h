@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <stdint.h>
 
 typedef uint8_t POSITION;
 
@@ -15,8 +16,7 @@ class Move
 public:
     POSITION src, dst;
 
-    Move();
-    Move(POSITION source, POSITION destination);
+    Move(POSITION source = 0, POSITION destination = 0);
     Move(std::string s);
 
     std::string to_string();

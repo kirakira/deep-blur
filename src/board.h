@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -11,8 +11,7 @@
 class Board
 {
     public:
-        Board();
-        Board(std::string fen);
+        Board(std::string fen = "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR");
 
         bool move(Move m);
         bool checked_move(Move m);
@@ -52,7 +51,7 @@ class Board
         PieceEntry pieces[32];
 
         uint64_t get_hash(int rank, int col, PIECE piece);
-        const uint64_t hash_side = rc4_uint64[H * W * 16];
+        const uint64_t hash_side;
         uint64_t hash;
 
         static const int static_values[16][H][W];

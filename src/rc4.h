@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
 
 const uint64_t rc4_uint64[] = {
     0x3a5d37a3418918deLL, 0x6d926e57671e068aLL, 0x97ebccf0a37f1ac7LL, 0x9e5f9627324d2b45LL, 0xc5b99f6d0775cca8LL,

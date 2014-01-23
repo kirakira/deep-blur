@@ -37,11 +37,6 @@ string position_string(POSITION p)
     return ret;
 }
 
-Move::Move()
-    : Move(0, 0)
-{
-}
-
 Move::Move(POSITION source, POSITION destination)
     : src(source)
     , dst(destination)
