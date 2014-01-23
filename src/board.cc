@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include "board.h"
+#include "rc4.h"
 
 using namespace std;
 

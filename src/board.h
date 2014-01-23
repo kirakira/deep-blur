@@ -6,7 +6,6 @@
 
 #include "piece.h"
 #include "move.h"
-#include "rc4.h"
 
 class Board
 {
