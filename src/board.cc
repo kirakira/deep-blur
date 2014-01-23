@@ -389,6 +389,8 @@ int Board::horse_d[8][4] = {
     {-2, -1, -1, 0}
 };
 int Board::horse_moves[256][8][4], Board::horse_moves_count[256];
+int Board::s4di[4] = {1, 1, -1, -1}, Board::s4dj[4] = {-1, 1, 1, -1};
+
 Board::BoardStaticFieldsInitializer Board::board_initializer;
 
 Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
