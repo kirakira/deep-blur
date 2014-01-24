@@ -402,6 +402,7 @@ int Board::horse_moves[256][8][4], Board::horse_moves_count[256];
 int Board::s4di[4] = {1, 1, -1, -1}, Board::s4dj[4] = {-1, 1, 1, -1};
 int Board::elephant_positions[7][2] = {{0, 2}, {0, 6}, {2, 0}, {2, 4}, {2, 8}, {4, 2}, {4, 6}};
 int Board::elephant_moves[256][4][4], Board::elephant_moves_count[256];
+int Board::assistant_moves[256][4][2], Board::assistant_moves_count[256];
 
 Board::BoardStaticFieldsInitializer Board::board_initializer;
 
@@ -414,7 +415,7 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
         {
             int i = ii;
             if (side == 1)
-                i = 9 - ii;
+                i = H - 1 - ii;
             for (int j = 3; j <= 5; ++j)
             {
                 POSITION p = make_position(i, j);
@@ -429,6 +430,34 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
 
                         king_moves[p][index][0] = oi;
                         king_moves[p][index][1] = oj;
+                    }
+                }
+            }
+        }
+    }
+
+    // Assistant
+    for (int side = 0; side <= 1; ++side)
+    {
+        for (int ii = 0; ii <= 2; ++ii)
+        {
+            int i = ii;
+            if (side == 1)
+                i = H - 1 - ii;
+            for (int j = 3; j <= 5; ++j)
+            {
+                POSITION p = make_position(i, j);
+                assistant_moves_count[p] = 0;
+                for (int r = 0; r < 4; ++r)
+                {
+                    int oi = i + s4di[r], oj = j + s4dj[r];
+                    if (is_in_palace(side, oi, oj))
+                    {
+                        int index = assistant_moves_count[p];
+                        ++assistant_moves_count[p];
+
+                        assistant_moves[p][index][0] = oi;
+                        assistant_moves[p][index][1] = oj;
                     }
                 }
             }
@@ -539,6 +568,14 @@ void Board::generate_moves(int side, Move *moves, int *moves_count)
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_elephant_moves(index + i, moves, moves_count);
+
+    // Assistant
+    index = 1;
+    if (side != 0)
+        index += 16;
+    for (int i = 0; i < 2; ++i)
+        if (pieces[index + i].piece != 0)
+            generate_assistant_moves(index + i, moves, moves_count);
 }
 
 void Board::generate_king_moves(int index, Move *moves, int *moves_count)
@@ -548,6 +585,18 @@ void Board::generate_king_moves(int index, Move *moves, int *moves_count)
     for (int i = 0; i < king_moves_count[pos]; ++i)
     {
         int oi = king_moves[pos][i][0], oj = king_moves[pos][i][1];
+        if (check_position(side, oi, oj))
+            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+    }
+}
+
+void Board::generate_assistant_moves(int index, Move *moves, int *moves_count)
+{
+    POSITION pos = pieces[index].position;
+    int side = piece_side(pieces[index].piece);
+    for (int i = 0; i < assistant_moves_count[pos]; ++i)
+    {
+        int oi = assistant_moves[pos][i][0], oj = assistant_moves[pos][i][1];
         if (check_position(side, oi, oj))
             add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
     }
