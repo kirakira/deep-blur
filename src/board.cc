@@ -368,6 +368,16 @@ bool Board::is_in_palace(int side, int i, int j)
         return (i >= 7 && i <= 9 && j >= 3 && j <= 5);
 }
 
+bool Board::is_in_half(int side, int i, int j)
+{
+    if (!(i >= 0 && i < H && j >= 0 && j < W))
+        return false;
+    if ((side == 0 && i <= 4) || (side == 1 && j >= 5))
+        return true;
+    else
+        return false;
+}
+
 bool Board::check_position(int side, int i, int j)
 {
     if (board[i][j].piece == 0 || piece_side(board[i][j].piece) != side)
@@ -390,6 +400,8 @@ int Board::horse_d[8][4] = {
 };
 int Board::horse_moves[256][8][4], Board::horse_moves_count[256];
 int Board::s4di[4] = {1, 1, -1, -1}, Board::s4dj[4] = {-1, 1, 1, -1};
+int Board::elephant_positions[7][2] = {{0, 2}, {0, 6}, {2, 0}, {2, 4}, {2, 8}, {4, 2}, {4, 6}};
+int Board::elephant_moves[256][4][4], Board::elephant_moves_count[256];
 
 Board::BoardStaticFieldsInitializer Board::board_initializer;
 
@@ -444,6 +456,39 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
                 }
             }
         }
+
+    // Elephant
+    for (int k = 0; k < 7; ++k)
+    {
+        int i = elephant_positions[k][0], j = elephant_positions[k][1];
+        POSITION p = make_position(i, j);
+        elephant_moves_count[p] = 0;
+        for (int r = 0; r < 4; ++r)
+        {
+            int oi = i + s4di[r] * 2, oj = j + s4dj[r] * 2;
+            if (is_in_half(0, oi, oj))
+            {
+                int index = elephant_moves_count[p];
+                ++elephant_moves_count[p];
+
+                elephant_moves[p][index][0] = oi;
+                elephant_moves[p][index][1] = oj;
+                elephant_moves[p][index][2] = i + s4di[r];
+                elephant_moves[p][index][3] = j + s4dj[r];
+            }
+        }
+
+        int pi = H - 1 - i, pj = j;
+        POSITION pp = make_position(pi, pj);
+        elephant_moves_count[pp] = elephant_moves_count[p];
+        for (int kk = 0; kk < elephant_moves_count[p]; ++kk)
+        {
+            elephant_moves[pp][kk][0] = H - 1 - elephant_moves[p][kk][0];
+            elephant_moves[pp][kk][1] = elephant_moves[p][kk][1];
+            elephant_moves[pp][kk][2] = H - 1 - elephant_moves[p][kk][2];
+            elephant_moves[pp][kk][3] = elephant_moves[p][kk][3];
+        }
+    }
 }
 
 void Board::add_move(Move *moves, int *moves_count, Move move_to_add)
@@ -486,6 +531,14 @@ void Board::generate_moves(int side, Move *moves, int *moves_count)
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_cannon_moves(index + i, moves, moves_count);
+
+    // Elephant
+    index = 3;
+    if (side != 0)
+        index += 16;
+    for (int i = 0; i < 2; ++i)
+        if (pieces[index + i].piece != 0)
+            generate_elephant_moves(index + i, moves, moves_count);
 }
 
 void Board::generate_king_moves(int index, Move *moves, int *moves_count)
@@ -578,5 +631,19 @@ void Board::generate_cannon_moves(int index, Move *moves, int *moves_count)
                 }
             }
         }
+    }
+}
+
+void Board::generate_elephant_moves(int index, Move *moves, int *moves_count)
+{
+    POSITION pos = pieces[index].position;
+    int side = piece_side(pieces[index].piece);
+
+    for (int i = 0; i < elephant_moves_count[pos]; ++i)
+    {
+        int oi = elephant_moves[pos][i][0], oj = elephant_moves[pos][i][1];
+        if (check_position(side, oi, oj) &&
+                board[elephant_moves[pos][i][2]][elephant_moves[pos][i][3]].piece == 0)
+            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
     }
 }
