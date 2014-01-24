@@ -79,6 +79,7 @@ class Board
         static int elephant_positions[7][2];
         static int elephant_moves[256][4][4], elephant_moves_count[256];
         static int assistant_moves[256][4][2], assistant_moves_count[256];
+        static int pawn_moves[2][256][3][2], pawn_moves_count[2][256];
 
         void add_move(Move *moves, int *moves_count, Move move_to_add);
         void generate_king_moves(int index, Move *moves, int *moves_count);
@@ -87,4 +88,5 @@ class Board
         void generate_cannon_moves(int index, Move *moves, int *moves_count);
         void generate_elephant_moves(int index, Move *moves, int *moves_count);
         void generate_assistant_moves(int index, Move *moves, int *moves_count);
+        void generate_pawn_moves(int index, Move *moves, int *moves_count);
 };

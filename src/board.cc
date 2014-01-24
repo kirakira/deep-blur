@@ -387,7 +387,7 @@ bool Board::check_position(int side, int i, int j)
 }
 
 int Board::c4di[4] = {0, 1, 0, -1}, Board::c4dj[4] = {1, 0, -1, 0};
-int Board::king_moves[256][4][2], Board::king_moves_count[256];
+int Board::king_moves[256][4][2], Board::king_moves_count[256] = {0};
 int Board::horse_d[8][4] = {
     {-2, 1, -1, 0},
     {-1, 2, 0, 1},
@@ -403,6 +403,7 @@ int Board::s4di[4] = {1, 1, -1, -1}, Board::s4dj[4] = {-1, 1, 1, -1};
 int Board::elephant_positions[7][2] = {{0, 2}, {0, 6}, {2, 0}, {2, 4}, {2, 8}, {4, 2}, {4, 6}};
 int Board::elephant_moves[256][4][4], Board::elephant_moves_count[256];
 int Board::assistant_moves[256][4][2], Board::assistant_moves_count[256];
+int Board::pawn_moves[2][256][3][2], Board::pawn_moves_count[2][256];
 
 Board::BoardStaticFieldsInitializer Board::board_initializer;
 
@@ -518,6 +519,48 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
             elephant_moves[pp][kk][3] = elephant_moves[p][kk][3];
         }
     }
+
+    // Pawn
+    for (int i = 3; i <= 4; ++i)
+        for (int j = 0; j < W; j += 2)
+        {
+            POSITION p = make_position(i, j);
+            pawn_moves_count[0][p] = 1;
+            pawn_moves[0][p][0][0] = i + 1;
+            pawn_moves[0][p][0][1] = j;
+        }
+    for (int i = 5; i < H; ++i)
+        for (int j = 0; j < W; ++j)
+        {
+            POSITION p = make_position(i, j);
+            pawn_moves_count[0][p] = 0;
+            for (int r = 0; r < 4; ++r)
+            {
+                int oi = i + c4di[r], oj = j + c4dj[r];
+                if (c4di[r] >= 0 && is_on_board(oi, oj))
+                {
+                    int index = pawn_moves_count[0][p];
+                    ++pawn_moves_count[0][p];
+
+                    pawn_moves[0][p][index][0] = oi;
+                    pawn_moves[0][p][index][1] = oj;
+                }
+            }
+        }
+    for (int i = 0; i < H; ++i)
+        for (int j = 0; j < W; ++j)
+        {
+            int pi = H - 1 - i, pj = j;
+            if (pawn_moves_count[0][make_position(pi, pj)] > 0)
+            {
+                pawn_moves_count[1][make_position(i, j)] = pawn_moves_count[0][make_position(pi, pj)];
+                for (int r = 0; r < pawn_moves_count[1][make_position(i, j)]; ++r)
+                {
+                    pawn_moves[1][make_position(i, j)][r][0] = H - 1 - pawn_moves[0][make_position(pi, pj)][r][0];
+                    pawn_moves[1][make_position(i, j)][r][1] = pawn_moves[0][make_position(pi, pj)][r][1];
+                }
+            }
+        }
 }
 
 void Board::add_move(Move *moves, int *moves_count, Move move_to_add)
@@ -576,6 +619,14 @@ void Board::generate_moves(int side, Move *moves, int *moves_count)
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_assistant_moves(index + i, moves, moves_count);
+
+    // Pawn
+    index = 11;
+    if (side != 0)
+        index += 16;
+    for (int i = 0; i < 5; ++i)
+        if (pieces[index + i].piece != 0)
+            generate_pawn_moves(index + i, moves, moves_count);
 }
 
 void Board::generate_king_moves(int index, Move *moves, int *moves_count)
@@ -693,6 +744,19 @@ void Board::generate_elephant_moves(int index, Move *moves, int *moves_count)
         int oi = elephant_moves[pos][i][0], oj = elephant_moves[pos][i][1];
         if (check_position(side, oi, oj) &&
                 board[elephant_moves[pos][i][2]][elephant_moves[pos][i][3]].piece == 0)
+            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+    }
+}
+
+void Board::generate_pawn_moves(int index, Move *moves, int *moves_count)
+{
+    POSITION pos = pieces[index].position;
+    int side = piece_side(pieces[index].piece);
+
+    for (int i = 0; i < pawn_moves_count[side][pos]; ++i)
+    {
+        int oi = pawn_moves[side][pos][i][0], oj = pawn_moves[side][pos][i][1];
+        if (check_position(side, oi, oj))
             add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
     }
 }
