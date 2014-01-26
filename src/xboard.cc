@@ -3,7 +3,7 @@
 #include <sstream>
 #include <string>
 
-#include "board.h"
+#include "agent.h"
 
 using namespace std;
 
@@ -34,9 +34,11 @@ bool is_move(string s)
 int main()
 {
     Board board;
+    Agent agent;
 
     string s;
     string line;
+    int side = 0;
 
     while (getline(cin, line))
     {
@@ -52,6 +54,8 @@ int main()
         {
             if (!board.checked_move(Move(command)))
                 cout << "Illegal move: " << command << endl;
+            else
+                side = 1 - side;
         }
         else if (command == "print")
             board.print();
@@ -69,6 +73,18 @@ int main()
             for (int i = 0; i < moves_count; ++i)
                 cout << moves[i].to_string() << " ";
             cout << endl << moves_count << " moves in all." << endl;
+        }
+        else if (command == "quit")
+            break;
+        else if (command == "go")
+        {
+            Move res;
+            if (agent.search(board, side, &res))
+            {
+                board.move(res);
+                cout << res.to_string() << endl;
+                side = 1 - side;
+            }
         }
         else
             cout << "Error (unknown command): " << line << endl;
