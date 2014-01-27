@@ -11,7 +11,16 @@ class Agent
 
     protected:
         int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable);
+        class MoveComparator
+        {
+            int *score_table;
+            public:
+                MoveComparator(int *table);
+
+                bool operator()(const MOVE &x, const MOVE &y) const;
+        };
+        MoveComparator move_comparator;
 
         int firstHit, secondHit, miss;
-        int move_score[65535];
+        int move_score[1 << 16];
 };

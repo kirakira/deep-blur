@@ -1,14 +1,32 @@
 #include <iostream>
+#include <algorithm>
+#include <cstring>
 
 #include "agent.h"
 
 using namespace std;
+
+Agent::MoveComparator::MoveComparator(int *table)
+    : score_table(table)
+{
+}
+
+bool Agent::MoveComparator::operator()(const MOVE &x, const MOVE &y) const
+{
+    return score_table[x] > score_table[y];
+}
+
+Agent::Agent()
+    : move_comparator(move_score)
+{
+}
 
 int Agent::search(Board &board, int side, MOVE *result)
 {
     firstHit = 0;
     secondHit = 0;
     miss = 0;
+    memset(move_score, 0, sizeof(move_score));
 
     int ret = alpha_beta(board, side, result, 5, -INF, INF, true);
 
@@ -25,18 +43,12 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         ans = board.static_value(side);
     else
     {
-        MOVE best_move;
-        // Null-move
-        if (nullable)
-        {
-            ans = -alpha_beta(board, 1 - side, &best_move, depth - 1, -beta, -alpha, false);
-        }
-
         if (ans < beta)
         {
             MOVE moves[120];
             int moves_count;
             board.generate_moves(side, moves, &moves_count);
+            sort(moves, moves_count, move_comparator);
 
             int bestIndex = 0;
             for (int i = 0; i < moves_count; ++i)
@@ -46,6 +58,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     continue;
 
                 int current_alpha = max(alpha, ans);
+                MOVE best_move;
                 int t = -alpha_beta(board, 1 - side, &best_move, depth - 1, -beta, -current_alpha, true);
                 board.unmove();
 
@@ -58,6 +71,8 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
                 if (t >= beta)
                 {
+                    if (depth > 0)
+                        move_score[move] += depth * depth;
                     break;
                 }
             }
