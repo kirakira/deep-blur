@@ -2,9 +2,9 @@
 
 using namespace std;
 
-bool Agent::search(Board &board, int side, Move *result)
+int Agent::search(Board &board, int side, Move *result)
 {
-    return alpha_beta(board, side, result, 5, -INF, INF) != -INF;
+    return alpha_beta(board, side, result, 5, -INF, INF);
 }
 
 int Agent::alpha_beta(Board &board, int side, Move *result, int depth, int alpha, int beta)

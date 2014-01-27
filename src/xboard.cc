@@ -60,7 +60,10 @@ int main()
         else if (command == "print")
             board.print();
         else if (command == "undo")
+        {
             board.checked_unmove();
+            side = 1 - side;
+        }
         else if (command == "generate")
         {
             int side = 0;
@@ -79,12 +82,19 @@ int main()
         else if (command == "go")
         {
             Move res;
-            if (agent.search(board, side, &res))
+            int score = agent.search(board, side, &res);
+            if (score != -Agent::INF)
             {
                 board.move(res);
-                cout << res.to_string() << endl;
                 side = 1 - side;
+
+                cout << "move " << res.to_string() << endl;
+                cout << "# " << score << endl;
             }
+        }
+        else if (command == "new" || command == "random" || command == "accepted" || command == "rejected" || command == "protocol")
+        {
+            // do nothing
         }
         else
             cout << "Error (unknown command): " << line << endl;
