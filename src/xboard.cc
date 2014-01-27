@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <ctime>
 
 #include "agent.h"
 
@@ -52,7 +53,7 @@ int main()
             cout << feature_string << endl;
         else if (is_move(command))
         {
-            if (!board.checked_move(Move(command)))
+            if (!board.checked_move(make_move(command)))
                 cout << "Illegal move: " << command << endl;
             else
                 side = 1 - side;
@@ -69,27 +70,30 @@ int main()
             int side = 0;
             iss >> side;
 
-            Move moves[120];
+            MOVE moves[120];
             int moves_count;
             board.generate_moves(side, moves, &moves_count);
 
             for (int i = 0; i < moves_count; ++i)
-                cout << moves[i].to_string() << " ";
+                cout << move_string(moves[i]) << " ";
             cout << endl << moves_count << " moves in all." << endl;
         }
         else if (command == "quit")
             break;
         else if (command == "go")
         {
-            Move res;
+            MOVE res;
+
+            clock_t t = clock();
             int score = agent.search(board, side, &res);
+            t = clock() - t;
             if (score != -Agent::INF)
             {
                 board.move(res);
                 side = 1 - side;
 
-                cout << "move " << res.to_string() << endl;
-                cout << "# " << score << endl;
+                cout << "move " << move_string(res) << endl;
+                cout << "# " << score << "(" << ((double) t) / CLOCKS_PER_SEC << " s)" << endl;
             }
         }
         else if (command == "new" || command == "random" || command == "accepted" || command == "rejected" || command == "protocol")

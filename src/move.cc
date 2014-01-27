@@ -37,14 +37,14 @@ string position_string(POSITION p)
     return ret;
 }
 
-Move::Move(POSITION source, POSITION destination)
-    : src(source)
-    , dst(destination)
+MOVE make_move(POSITION src, POSITION dst)
 {
+    return (MOVE) ((src << 8) | dst);
 }
 
-Move::Move(string s)
+MOVE make_move(string s)
 {
+    POSITION src, dst;
     if (s.length() >= 4)
     {
         src = make_position(s.substr(0, 2));
@@ -55,9 +55,20 @@ Move::Move(string s)
         src = 0;
         dst = 0;
     }
+    return make_move(src, dst);
 }
 
-string Move::to_string()
+POSITION move_src(MOVE move)
 {
-    return position_string(src) + position_string(dst);
+    return move >> 8;
+}
+
+POSITION move_dst(MOVE move)
+{
+    return move & 0xff;
+}
+
+string move_string(MOVE move)
+{
+    return position_string(move_src(move)) + position_string(move_dst(move));
 }

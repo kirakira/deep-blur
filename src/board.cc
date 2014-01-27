@@ -95,12 +95,12 @@ uint64_t Board::hash_code(int side)
         return hash ^ hash_side;
 }
 
-bool Board::checked_move(Move move)
+bool Board::checked_move(MOVE move)
 {
-    int src_i = position_rank(move.src),
-        src_j = position_col(move.src),
-        dst_i = position_rank(move.dst),
-        dst_j = position_col(move.dst);
+    int src_i = position_rank(move_src(move)),
+        src_j = position_col(move_src(move)),
+        dst_i = position_rank(move_dst(move)),
+        dst_j = position_col(move_dst(move));
     if (!(is_on_board(src_i, src_j) && is_on_board(dst_i, dst_j)))
         return false;
     if (board[src_i][src_j].piece == 0)
@@ -110,12 +110,12 @@ bool Board::checked_move(Move move)
     return this->move(move);
 }
 
-bool Board::move(Move move)
+bool Board::move(MOVE move)
 {
-    int src_i = position_rank(move.src),
-        src_j = position_col(move.src),
-        dst_i = position_rank(move.dst),
-        dst_j = position_col(move.dst);
+    int src_i = position_rank(move_src(move)),
+        src_j = position_col(move_src(move)),
+        dst_i = position_rank(move_dst(move)),
+        dst_j = position_col(move_dst(move));
     BoardEntry src = board[src_i][src_j],
                dst = board[dst_i][dst_j];
 
@@ -148,10 +148,10 @@ void Board::unmove()
     HistoryEntry history_entry = history.back();
     history.pop_back();
 
-    int src_i = position_rank(history_entry.move.src),
-        src_j = position_col(history_entry.move.src),
-        dst_i = position_rank(history_entry.move.dst),
-        dst_j = position_col(history_entry.move.dst);
+    int src_i = position_rank(move_src(history_entry.move)),
+        src_j = position_col(move_src(history_entry.move)),
+        dst_i = position_rank(move_dst(history_entry.move)),
+        dst_j = position_col(move_dst(history_entry.move));
 
     BoardEntry src = board[dst_i][dst_j], dst = history_entry.capture;
 
@@ -563,13 +563,13 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
         }
 }
 
-void Board::add_move(Move *moves, int *moves_count, Move move_to_add)
+void Board::add_move(MOVE *moves, int *moves_count, MOVE move_to_add)
 {
     moves[*moves_count] = move_to_add;
     ++*moves_count;
 }
 
-void Board::generate_moves(int side, Move *moves, int *moves_count)
+void Board::generate_moves(int side, MOVE *moves, int *moves_count)
 {
     int index;
     *moves_count = 0;
@@ -629,7 +629,7 @@ void Board::generate_moves(int side, Move *moves, int *moves_count)
             generate_pawn_moves(index + i, moves, moves_count);
 }
 
-void Board::generate_king_moves(int index, Move *moves, int *moves_count)
+void Board::generate_king_moves(int index, MOVE *moves, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -637,11 +637,11 @@ void Board::generate_king_moves(int index, Move *moves, int *moves_count)
     {
         int oi = king_moves[pos][i][0], oj = king_moves[pos][i][1];
         if (check_position(side, oi, oj))
-            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
     }
 }
 
-void Board::generate_assistant_moves(int index, Move *moves, int *moves_count)
+void Board::generate_assistant_moves(int index, MOVE *moves, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -649,11 +649,11 @@ void Board::generate_assistant_moves(int index, Move *moves, int *moves_count)
     {
         int oi = assistant_moves[pos][i][0], oj = assistant_moves[pos][i][1];
         if (check_position(side, oi, oj))
-            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
     }
 }
 
-void Board::generate_rook_moves(int index, Move *moves, int *moves_count)
+void Board::generate_rook_moves(int index, MOVE *moves, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -671,18 +671,18 @@ void Board::generate_rook_moves(int index, Move *moves, int *moves_count)
                 break;
 
             if (board[oi][oj].piece == 0)
-                add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+                add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
             else
             {
                 if (check_position(side, oi, oj))
-                    add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+                    add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
                 break;
             }
         }
     }
 }
 
-void Board::generate_horse_moves(int index, Move *moves, int *moves_count)
+void Board::generate_horse_moves(int index, MOVE *moves, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -692,11 +692,11 @@ void Board::generate_horse_moves(int index, Move *moves, int *moves_count)
         int oi = horse_moves[pos][i][0], oj = horse_moves[pos][i][1];
         if (check_position(side, oi, oj) &&
                 board[horse_moves[pos][i][2]][horse_moves[pos][i][3]].piece == 0)
-            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
     }
 }
 
-void Board::generate_cannon_moves(int index, Move *moves, int *moves_count)
+void Board::generate_cannon_moves(int index, MOVE *moves, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -717,7 +717,7 @@ void Board::generate_cannon_moves(int index, Move *moves, int *moves_count)
             if (state == 0)
             {
                 if (board[oi][oj].piece == 0)
-                    add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+                    add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
                 else
                     state = 1;
             }
@@ -726,7 +726,7 @@ void Board::generate_cannon_moves(int index, Move *moves, int *moves_count)
                 if (board[oi][oj].piece != 0)
                 {
                     if (check_position(side, oi, oj))
-                        add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+                        add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
                     break;
                 }
             }
@@ -734,7 +734,7 @@ void Board::generate_cannon_moves(int index, Move *moves, int *moves_count)
     }
 }
 
-void Board::generate_elephant_moves(int index, Move *moves, int *moves_count)
+void Board::generate_elephant_moves(int index, MOVE *moves, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -744,11 +744,11 @@ void Board::generate_elephant_moves(int index, Move *moves, int *moves_count)
         int oi = elephant_moves[pos][i][0], oj = elephant_moves[pos][i][1];
         if (check_position(side, oi, oj) &&
                 board[elephant_moves[pos][i][2]][elephant_moves[pos][i][3]].piece == 0)
-            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
     }
 }
 
-void Board::generate_pawn_moves(int index, Move *moves, int *moves_count)
+void Board::generate_pawn_moves(int index, MOVE *moves, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -757,6 +757,6 @@ void Board::generate_pawn_moves(int index, Move *moves, int *moves_count)
     {
         int oi = pawn_moves[side][pos][i][0], oj = pawn_moves[side][pos][i][1];
         if (check_position(side, oi, oj))
-            add_move(moves, moves_count, Move(pos, make_position(oi, oj)));
+            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
     }
 }

@@ -12,8 +12,8 @@ class Board
     public:
         Board(std::string fen = "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR");
 
-        bool move(Move m);
-        bool checked_move(Move m);
+        bool move(MOVE m);
+        bool checked_move(MOVE m);
         void unmove();
         bool checked_unmove();
 
@@ -21,7 +21,7 @@ class Board
         uint64_t hash_code(int side);
         int static_value(int side);
 
-        void generate_moves(int side, Move *moves, int *moves_count);
+        void generate_moves(int side, MOVE *moves, int *moves_count);
 
         void print();
 
@@ -42,7 +42,7 @@ class Board
 
         typedef struct sHistoryEntry
         {
-            Move move;
+            MOVE move;
             BoardEntry capture;
         } HistoryEntry;
 
@@ -81,12 +81,12 @@ class Board
         static int assistant_moves[256][4][2], assistant_moves_count[256];
         static int pawn_moves[2][256][3][2], pawn_moves_count[2][256];
 
-        void add_move(Move *moves, int *moves_count, Move move_to_add);
-        void generate_king_moves(int index, Move *moves, int *moves_count);
-        void generate_rook_moves(int index, Move *moves, int *moves_count);
-        void generate_horse_moves(int index, Move *moves, int *moves_count);
-        void generate_cannon_moves(int index, Move *moves, int *moves_count);
-        void generate_elephant_moves(int index, Move *moves, int *moves_count);
-        void generate_assistant_moves(int index, Move *moves, int *moves_count);
-        void generate_pawn_moves(int index, Move *moves, int *moves_count);
+        void add_move(MOVE *moves, int *moves_count, MOVE move_to_add);
+        void generate_king_moves(int index, MOVE *moves, int *moves_count);
+        void generate_rook_moves(int index, MOVE *moves, int *moves_count);
+        void generate_horse_moves(int index, MOVE *moves, int *moves_count);
+        void generate_cannon_moves(int index, MOVE *moves, int *moves_count);
+        void generate_elephant_moves(int index, MOVE *moves, int *moves_count);
+        void generate_assistant_moves(int index, MOVE *moves, int *moves_count);
+        void generate_pawn_moves(int index, MOVE *moves, int *moves_count);
 };
