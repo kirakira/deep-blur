@@ -5,6 +5,7 @@
 class Agent
 {
     public:
+        Agent();
         int search(Board &board, int side, MOVE *result);
 
         static const int INF = 0xfffffff;

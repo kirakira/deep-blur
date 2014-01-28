@@ -28,7 +28,7 @@ int Agent::search(Board &board, int side, MOVE *result)
     miss = 0;
     memset(move_score, 0, sizeof(move_score));
 
-    int ret = alpha_beta(board, side, result, 5, -INF, INF, true);
+    int ret = alpha_beta(board, side, result, 6, -INF, INF, true);
 
     int tot = firstHit + secondHit + miss;
     cout << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
@@ -48,7 +48,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             MOVE moves[120];
             int moves_count;
             board.generate_moves(side, moves, &moves_count);
-            sort(moves, moves_count, move_comparator);
+            sort(moves, moves + moves_count, move_comparator);
 
             int bestIndex = 0;
             for (int i = 0; i < moves_count; ++i)
