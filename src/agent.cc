@@ -30,8 +30,8 @@ int Agent::search(Board &board, int side, MOVE *result)
 
     int ret = alpha_beta(board, side, result, 6, -INF, INF, true);
 
-    int tot = firstHit + secondHit + miss;
-    cout << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
+    //int tot = firstHit + secondHit + miss;
+    //cout << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
     return ret;
 }
 

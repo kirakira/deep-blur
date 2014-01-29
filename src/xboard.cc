@@ -8,7 +8,7 @@
 
 using namespace std;
 
-string feature_string = "feature myname=\"Deep Blur\" setboard=1 analyze=0 variants=\"xiangqi\" nps=0 debug=1 done=1";
+string feature_string = "feature myname=\"Deep Blur\" setboard=1 analyze=0 sigint=0 sigterm=0 variants=\"xiangqi\" nps=0 debug=1 done=1";
 ofstream fdebug("/tmp/output");
 
 void debug_output(string s)
@@ -39,7 +39,7 @@ int main()
 
     string s;
     string line;
-    int side = 0;
+    int side = 1;
 
     while (getline(cin, line))
     {
@@ -49,14 +49,27 @@ int main()
         string command;
         iss >> command;
 
-        if (command == "xboard")
+        if (command == "protover")
             cout << feature_string << endl;
         else if (is_move(command))
         {
             if (!board.checked_move(make_move(command)))
                 cout << "Illegal move: " << command << endl;
             else
+            {
                 side = 1 - side;
+
+                MOVE res;
+                int score = agent.search(board, side, &res);
+                if (score != -Agent::INF)
+                {
+                    board.move(res);
+                    side = 1 - side;
+
+                    cout << "move " << move_string(res) << endl;
+                    debug_output("Sent a move " + move_string(res));
+                }
+            }
         }
         else if (command == "print")
             board.print();
@@ -96,9 +109,18 @@ int main()
                 cout << "# " << score << "(" << ((double) t) / CLOCKS_PER_SEC << " s)" << endl;
             }
         }
-        else if (command == "new" || command == "random" || command == "accepted" || command == "rejected" || command == "protocol")
+        else if (command == "xboard" || command == "new" || command == "random" || command == "accepted" || command == "rejected" || command == "variant" || command == "post" || command == "hard")
         {
             // do nothing
+        }
+        else if (command == "level")
+        {
+        }
+        else if (command == "time")
+        {
+        }
+        else if (command == "otime")
+        {
         }
         else
             cout << "Error (unknown command): " << line << endl;
