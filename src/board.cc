@@ -8,6 +8,11 @@ using namespace std;
 Board::Board(string fen)
     : hash_side(rc4_uint64[H * W * 16])
 {
+    set(fen);
+}
+
+void Board::set(string fen)
+{
     for (int i = 0; i < 32; ++i)
     {
         pieces[i].position = 0;
@@ -58,6 +63,7 @@ Board::Board(string fen)
         }
     }
 
+    history.clear();
     history.reserve(128);
 }
 

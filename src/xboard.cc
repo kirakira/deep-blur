@@ -8,7 +8,7 @@
 
 using namespace std;
 
-string feature_string = "feature myname=\"Deep Blur\" setboard=1 analyze=0 sigint=0 sigterm=0 variants=\"xiangqi\" nps=0 debug=1 done=1";
+string feature_string = "feature myname=\"Deep Blur\" setboard=1 analyze=0 sigint=0 sigterm=0 reuse=0 variants=\"xiangqi\" nps=0 debug=1 done=1";
 ofstream fdebug("/tmp/output");
 
 void debug_output(string s)
@@ -32,6 +32,24 @@ bool is_move(string s)
             && is_rank(s[1]) && is_square(s[2]) && is_rank(s[3]));
 }
 
+void go(Board &board, Agent &agent, int &side)
+{
+    MOVE res;
+
+    clock_t t = clock();
+    int score = agent.search(board, side, &res);
+    t = clock() - t;
+    if (score != -Agent::INF)
+    {
+        board.move(res);
+        side = 1 - side;
+
+        cout << "move " << move_string(res) << endl;
+        cout << "# " << score << "(" << ((double) t) / CLOCKS_PER_SEC << " s)" << endl;
+        debug_output("Sent a move: " + move_string(res));
+    }
+}
+
 int main()
 {
     Board board;
@@ -40,6 +58,7 @@ int main()
     string s;
     string line;
     int side = 1;
+    bool force = false;
 
     while (getline(cin, line))
     {
@@ -51,6 +70,12 @@ int main()
 
         if (command == "protover")
             cout << feature_string << endl;
+        else if (command == "force")
+            force = true;
+        else if (command == "black")
+            side = 0;
+        else if (command == "white")
+            side = 1;
         else if (is_move(command))
         {
             if (!board.checked_move(make_move(command)))
@@ -59,16 +84,8 @@ int main()
             {
                 side = 1 - side;
 
-                MOVE res;
-                int score = agent.search(board, side, &res);
-                if (score != -Agent::INF)
-                {
-                    board.move(res);
-                    side = 1 - side;
-
-                    cout << "move " << move_string(res) << endl;
-                    debug_output("Sent a move " + move_string(res));
-                }
+                if (!force)
+                    go(board, agent, side);
             }
         }
         else if (command == "print")
@@ -77,6 +94,21 @@ int main()
         {
             board.checked_unmove();
             side = 1 - side;
+        }
+        else if (command == "remove")
+        {
+            board.checked_unmove();
+            board.checked_unmove();
+        }
+        else if (command == "setboard")
+        {
+            string fen, turn;
+            iss >> fen >> turn;
+            board.set(fen);
+            if (turn == "b")
+                side = 0;
+            else
+                side = 1;
         }
         else if (command == "generate")
         {
@@ -95,19 +127,8 @@ int main()
             break;
         else if (command == "go")
         {
-            MOVE res;
-
-            clock_t t = clock();
-            int score = agent.search(board, side, &res);
-            t = clock() - t;
-            if (score != -Agent::INF)
-            {
-                board.move(res);
-                side = 1 - side;
-
-                cout << "move " << move_string(res) << endl;
-                cout << "# " << score << "(" << ((double) t) / CLOCKS_PER_SEC << " s)" << endl;
-            }
+            force = false;
+            go(board, agent, side);
         }
         else if (command == "xboard" || command == "new" || command == "random" || command == "accepted" || command == "rejected" || command == "variant" || command == "post" || command == "hard")
         {

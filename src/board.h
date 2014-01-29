@@ -12,6 +12,8 @@ class Board
     public:
         Board(std::string fen = "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR");
 
+        void set(std::string fen);
+
         bool move(MOVE m);
         bool checked_move(MOVE m);
         void unmove();
