@@ -6,18 +6,18 @@
 
 using namespace std;
 
-Agent::MoveComparator::MoveComparator(int *table)
-    : score_table(table)
-{
-}
-
 bool Agent::MoveComparator::operator()(const MOVE &x, const MOVE &y) const
 {
     return score_table[x] > score_table[y];
 }
 
+void Agent::MoveComparator::set(int *table)
+{
+    score_table = table;
+}
+
 Agent::Agent()
-    : move_comparator(move_score)
+    : trans(22)
 {
 }
 
@@ -26,30 +26,91 @@ int Agent::search(Board &board, int side, MOVE *result)
     firstHit = 0;
     secondHit = 0;
     miss = 0;
-    memset(move_score, 0, sizeof(move_score));
 
-    int ret = alpha_beta(board, side, result, 6, -INF, INF, false);
+    int ret = id(board, side, result, 6);
 
-    //int tot = firstHit + secondHit + miss;
-    //cout << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
+    int tot = firstHit + secondHit + miss;
+    cout << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
+    cout << "Nodes: " << nodes << ", hit: " << trans_hit << " (" << (double) trans_hit / (double) (trans_hit + nodes) << ")" << endl;
+    return ret;
+}
+
+int Agent::id(Board &board, int side, MOVE *result, int depth)
+{
+    int ret;
+    int move_history_index = 0;
+    memset(move_score[move_history_index], 0, sizeof(move_score[move_history_index]));
+    trans_hit = 0;
+    nodes = 0;
+    for (int level = depth; level <= depth; ++level)
+    {
+        memset(move_score[move_history_index], 0, sizeof(move_score[move_history_index]));
+        move_comparator.set(move_score[move_history_index]);
+        ret = alpha_beta(board, side, result, level, -INF, INF, false, move_score[move_history_index]);
+        //move_history_index = 1 - move_history_index;
+
+        cout << "Level " << level << " ";
+        int score, exact, d, s = side, count = 0;
+        MOVE t;
+        while (trans.get(board.hash_code(s), &score, &exact, &t, &d))
+        {
+            if (t != 0 && board.checked_move(t))
+            {
+                cout << move_string(t) << "(" << score;
+                if (exact != Transposition::EXACT)
+                   cout << "!";
+                cout << ") ";
+                ++count;
+                s = 1 - s;
+            }
+            else
+                break;
+        }
+        cout << endl;
+        while (count > 0)
+        {
+            --count;
+            board.unmove();
+        }
+    }
     return ret;
 }
 
 // Null-move heuristic: 40%
+// Transposition: 30%
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
-int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable)
+int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable, int *move_score_table)
 {
+    int his_score, his_exact = 0, his_depth;
+    MOVE his_move = 0;
+    if (trans.get(board.hash_code(side), &his_score, &his_exact, &his_move, &his_depth)
+            && his_depth >= depth &&
+            (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
+             || (his_exact == Transposition::LOWER && his_score >= beta))
+            && ((nullable && his_move == 0) || (his_move != 0 && board.checked_move(his_move))))
+    {
+        if (his_move != 0)
+            board.unmove();
+
+        ++trans_hit;
+
+        if (result)
+            *result = his_move;
+        return his_score;
+    }
+
+    ++nodes;
+
     int ans = -INF;
+    MOVE best_move = 0;
 
     if (depth == 0)
         ans = board.static_value(side);
     else
     {
-        // TODO don't perform null-move when in check
-        MOVE best_move;
         if (nullable)
-            ans = -alpha_beta(board, 1 - side, &best_move, depth - 1, -beta, -beta + 1, false);
+            ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, false, move_score_table);
         if (ans < beta)
         {
             ans = -INF;
@@ -73,21 +134,21 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 else
                 {
                     int current_alpha = max(alpha, ans);
-                    t = -alpha_beta(board, 1 - side, &best_move, depth - 1, -beta, -current_alpha, true);
+                    t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true, move_score_table);
                 }
                 board.unmove();
 
                 if (t > ans)
                 {
                     bestIndex = i;
+                    best_move = move;
                     ans = t;
-                    *result = move;
                 }
 
                 if (t >= beta)
                 {
                     if (depth > 0)
-                        move_score[move] += depth * depth;
+                        move_score_table[move] += depth * depth;
                     break;
                 }
             }
@@ -100,5 +161,17 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         }
     }
 
+    if (his_exact != Transposition::EXACT || his_depth <= depth)
+    {
+        int e = Transposition::EXACT;
+        if (ans <= alpha)
+            e = Transposition::UPPER;
+        else if (ans >= beta)
+            e = Transposition::LOWER;
+        trans.put(board.hash_code(side), ans, e, best_move, depth);
+    }
+
+    if (result)
+        *result = best_move;
     return ans;
 }
