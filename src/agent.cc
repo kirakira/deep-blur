@@ -28,13 +28,14 @@ int Agent::search(Board &board, int side, MOVE *result)
     miss = 0;
     memset(move_score, 0, sizeof(move_score));
 
-    int ret = alpha_beta(board, side, result, 6, -INF, INF, true);
+    int ret = alpha_beta(board, side, result, 6, -INF, INF, false);
 
     //int tot = firstHit + secondHit + miss;
     //cout << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
     return ret;
 }
 
+// if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable)
 {
     int ans = -INF;
@@ -43,8 +44,14 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         ans = board.static_value(side);
     else
     {
+        // TODO don't perform null-move when in check
+        MOVE best_move;
+        if (nullable)
+            ans = -alpha_beta(board, 1 - side, &best_move, depth - 1, -beta, -beta + 1, false);
         if (ans < beta)
         {
+            ans = -INF;
+
             MOVE moves[120];
             int moves_count;
             board.generate_moves(side, moves, &moves_count);
@@ -64,7 +71,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 else
                 {
                     int current_alpha = max(alpha, ans);
-                    MOVE best_move;
                     t = -alpha_beta(board, 1 - side, &best_move, depth - 1, -beta, -current_alpha, true);
                 }
                 board.unmove();
