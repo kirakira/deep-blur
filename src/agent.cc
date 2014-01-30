@@ -35,6 +35,8 @@ int Agent::search(Board &board, int side, MOVE *result)
     return ret;
 }
 
+// Null-move heuristic: 40%
+
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable)
 {
