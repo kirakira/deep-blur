@@ -116,7 +116,7 @@ bool Board::checked_move(MOVE move)
     return this->move(move);
 }
 
-bool Board::move(MOVE move)
+bool Board::move(MOVE move, bool *game_end)
 {
     int src_i = position_rank(move_src(move)),
         src_j = position_col(move_src(move)),
@@ -125,8 +125,13 @@ bool Board::move(MOVE move)
     BoardEntry src = board[src_i][src_j],
                dst = board[dst_i][dst_j];
 
+    if (game_end)
+        *game_end = false;
+
     if (dst.piece != 0)
     {
+        if (piece_type(dst.piece) == PIECE_K && game_end)
+            *game_end = true;
         pieces[dst.index].piece = 0;
         hash ^= get_hash(dst_i, dst_j, dst.piece);
         current_static_value -= static_values[dst.piece][dst_i][dst_j];

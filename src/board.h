@@ -14,7 +14,7 @@ class Board
 
         void set(std::string fen);
 
-        bool move(MOVE m);
+        bool move(MOVE m, bool *game_end = NULL);
         bool checked_move(MOVE m);
         void unmove();
         bool checked_unmove();

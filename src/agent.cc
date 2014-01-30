@@ -54,12 +54,19 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             for (int i = 0; i < moves_count; ++i)
             {
                 MOVE move = moves[i];
-                if (!board.move(move))
+                bool game_end;
+                if (!board.move(move, &game_end))
                     continue;
 
-                int current_alpha = max(alpha, ans);
-                MOVE best_move;
-                int t = -alpha_beta(board, 1 - side, &best_move, depth - 1, -beta, -current_alpha, true);
+                int t;
+                if (game_end)
+                    t = INF;
+                else
+                {
+                    int current_alpha = max(alpha, ans);
+                    MOVE best_move;
+                    t = -alpha_beta(board, 1 - side, &best_move, depth - 1, -beta, -current_alpha, true);
+                }
                 board.unmove();
 
                 if (t > ans)

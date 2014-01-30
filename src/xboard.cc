@@ -39,7 +39,7 @@ void go(Board &board, Agent &agent, int &side)
     clock_t t = clock();
     int score = agent.search(board, side, &res);
     t = clock() - t;
-    if (score != -Agent::INF)
+    if (score > -Agent::INF)
     {
         board.move(res);
         side = 1 - side;
@@ -47,6 +47,13 @@ void go(Board &board, Agent &agent, int &side)
         cout << "move " << move_string(res) << endl;
         cout << "# " << score << "(" << ((double) t) / CLOCKS_PER_SEC << " s)" << endl;
         debug_output("Sent a move: " + move_string(res));
+    }
+    else
+    {
+        if (side == 0)
+            cout << "0-1 {Black mates}" << endl;
+        else
+            cout << "1-0 {White mates}" << endl;
     }
 }
 
