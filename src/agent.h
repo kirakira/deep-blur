@@ -7,7 +7,7 @@ class Agent
 {
     public:
         Agent();
-        int search(Board &board, int side, MOVE *result);
+        int search(Board &board, int side, MOVE *result, int depth);
 
         static const int INF = 2047;
 

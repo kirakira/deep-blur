@@ -32,12 +32,12 @@ bool is_move(string s)
             && is_rank(s[1]) && is_square(s[2]) && is_rank(s[3]));
 }
 
-void go(Board &board, Agent &agent, int &side)
+void go(Board &board, Agent &agent, int &side, int depth = 6)
 {
     MOVE res;
 
     clock_t t = clock();
-    int score = agent.search(board, side, &res);
+    int score = agent.search(board, side, &res, depth);
     t = clock() - t;
     if (score > -Agent::INF)
     {
@@ -135,7 +135,11 @@ int main()
         else if (command == "go")
         {
             force = false;
-            go(board, agent, side);
+            int depth;
+            if (iss >> depth)
+                go(board, agent, side, depth);
+            else
+                go(board, agent, side);
         }
         else if (command == "xboard" || command == "new" || command == "random" || command == "accepted" || command == "rejected" || command == "variant" || command == "post" || command == "hard")
         {

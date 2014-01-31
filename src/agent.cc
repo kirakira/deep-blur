@@ -30,13 +30,13 @@ Agent::Agent()
 {
 }
 
-int Agent::search(Board &board, int side, MOVE *result)
+int Agent::search(Board &board, int side, MOVE *result, int depth)
 {
     firstHit = 0;
     secondHit = 0;
     miss = 0;
 
-    int ret = id(board, side, result, 6);
+    int ret = id(board, side, result, depth);
 
     int tot = firstHit + secondHit + miss;
     cout << "# move ordering: " << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
@@ -70,7 +70,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
                     ++count;
                     cout << move_string(t);
                 }
-                cout << "(";
+                cout << "(" << d << ": ";
                 if (exact == Transposition::LOWER)
                     cout << ">=";
                 else if (exact == Transposition::UPPER)
