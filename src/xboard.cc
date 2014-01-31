@@ -51,9 +51,9 @@ void go(Board &board, Agent &agent, int &side)
     else
     {
         if (side == 0)
-            cout << "0-1 {Black mates}" << endl;
-        else
             cout << "1-0 {White mates}" << endl;
+        else
+            cout << "0-1 {Black mates}" << endl;
     }
 }
 
