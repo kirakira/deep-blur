@@ -126,6 +126,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     int ans = -INF;
     MOVE best_move = 0;
+    /*
+    if (depth > 2)
+        alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false);*/
 
     if (depth == 0)
         ans = board.static_value(side);
