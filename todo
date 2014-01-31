@@ -1,3 +1,4 @@
+Avoid king-to-king when genering King's move
 Avoid null-move when transposition has a low upper bound
 Move ordering: TR, capture, non-capture history
 Repetition
