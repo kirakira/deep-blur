@@ -21,7 +21,7 @@ class Transposition
         int t_depth;
         TranspositionEntry *table;
 
-        int access, collision;
+        int used, access, collision;
 
     public:
         // table_depth should be at least 10

@@ -52,7 +52,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
         MOVE t;
         while (trans.get(board.hash_code(s), &score, &exact, &t, &d))
         {
-            if (d >= level - count && (t == 0 || board.checked_move(t)))
+            if (d > 0 && d >= level - count && (t == 0 || board.checked_move(t)))
             {
                 if (t == 0)
                     cout << "null";
