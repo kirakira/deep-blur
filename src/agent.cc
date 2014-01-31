@@ -8,10 +8,14 @@ using namespace std;
 
 bool Agent::MoveComparator::operator()(const MOVE &x, const MOVE &y) const
 {
-    if (x == transp_move)
+    if (move_dst(x) == king_pos)
         return true;
+    if (move_dst(y) == king_pos)
+        return false;
     if (y == transp_move)
         return false;
+    if (x == transp_move)
+        return true;
     return score_table[x] > score_table[y];
 }
 
@@ -20,9 +24,10 @@ void Agent::MoveComparator::set(int *table)
     score_table = table;
 }
 
-void Agent::MoveComparator::set(MOVE trans_move)
+void Agent::MoveComparator::set(MOVE trans_move, POSITION king_p)
 {
     transp_move = trans_move;
+    king_pos = king_p;
 }
 
 Agent::Agent()
@@ -117,8 +122,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             *result = his_move;
         return his_score;
     }
-    move_comparator.set(his_move);
-
     ++nodes;
 
     int ans = -INF;
@@ -136,7 +139,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
             MOVE moves[120];
             int moves_count;
+
             board.generate_moves(side, moves, &moves_count);
+            move_comparator.set(his_move, board.king_position(1 - side));
             sort(moves, moves + moves_count, move_comparator);
 
             int bestIndex = 0;

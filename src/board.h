@@ -21,6 +21,7 @@ class Board
 
         bool in_check(int side);
         bool is_capture(MOVE move, int *value = NULL);
+        POSITION king_position(int side);
 
         uint64_t hash_code(int side);
         int static_value(int side);

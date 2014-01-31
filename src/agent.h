@@ -19,11 +19,12 @@ class Agent
         {
             int *score_table;
             MOVE transp_move;
+            POSITION king_pos;
 
             public:
                 bool operator()(const MOVE &x, const MOVE &y) const;
                 void set(int *table);
-                void set(MOVE trans_move);
+                void set(MOVE trans_move, POSITION king_p);
         };
         MoveComparator move_comparator;
 

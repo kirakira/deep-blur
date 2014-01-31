@@ -209,6 +209,14 @@ bool Board::is_capture(MOVE move, int *value)
     return false;
 }
 
+POSITION Board::king_position(int side)
+{
+    int index = 0;
+    if (side == 1)
+        index += 16;
+    return pieces[index].position;
+}
+
 const int Board::capture_values[8] = {0, 100, 1, 1, 5, 10, 5, 1};
 const int Board::static_values[16][H][W] =
     {{{0, 0, 0, 0, 0, 0, 0, 0, 0},
