@@ -628,12 +628,6 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
         if (pieces[index + i].piece != 0)
             generate_horse_moves(index + i, moves, moves_count);
 
-    // King
-    index = 0;
-    if (side != 0)
-        index += 16;
-    generate_king_moves(index, moves, moves_count);
-
     // Cannon
     index = 9;
     if (side != 0)
@@ -642,13 +636,13 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
         if (pieces[index + i].piece != 0)
             generate_cannon_moves(index + i, moves, moves_count);
 
-    // Elephant
-    index = 3;
+    // Pawn
+    index = 11;
     if (side != 0)
         index += 16;
-    for (int i = 0; i < 2; ++i)
+    for (int i = 0; i < 5; ++i)
         if (pieces[index + i].piece != 0)
-            generate_elephant_moves(index + i, moves, moves_count);
+            generate_pawn_moves(index + i, moves, moves_count);
 
     // Assistant
     index = 1;
@@ -658,13 +652,19 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
         if (pieces[index + i].piece != 0)
             generate_assistant_moves(index + i, moves, moves_count);
 
-    // Pawn
-    index = 11;
+    // Elephant
+    index = 3;
     if (side != 0)
         index += 16;
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
-            generate_pawn_moves(index + i, moves, moves_count);
+            generate_elephant_moves(index + i, moves, moves_count);
+
+    // King
+    index = 0;
+    if (side != 0)
+        index += 16;
+    generate_king_moves(index, moves, moves_count);
 }
 
 void Board::generate_king_moves(int index, MOVE *moves, int *moves_count)
