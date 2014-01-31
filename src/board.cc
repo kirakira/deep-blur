@@ -669,13 +669,35 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
 
 void Board::generate_king_moves(int index, MOVE *moves, int *moves_count)
 {
-    POSITION pos = pieces[index].position;
+    POSITION pos = pieces[index].position, other_king_pos = pieces[16 - index].position;
     int side = piece_side(pieces[index].piece);
     for (int i = 0; i < king_moves_count[pos]; ++i)
     {
         int oi = king_moves[pos][i][0], oj = king_moves[pos][i][1];
         if (check_position(side, oi, oj))
-            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+        {
+            bool face = false;
+            if (oj != position_col(pos) && oj == position_col(other_king_pos))
+            {
+                int start, end;
+                if (oi < position_rank(other_king_pos))
+                {
+                    start = oi + 1;
+                    end = position_rank(other_king_pos) - 1;
+                }
+                else
+                {
+                    start = position_rank(other_king_pos) + 1;
+                    end = oi - 1;
+                }
+                face = true;
+                for (int j = start; face && j <= end; ++j)
+                    if (board[j][oj].piece != 0)
+                        face = false;
+            }
+            if (!face)
+                add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+        }
     }
 }
 
