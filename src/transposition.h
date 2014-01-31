@@ -21,6 +21,8 @@ class Transposition
         int t_depth;
         TranspositionEntry *table;
 
+        int access, collision;
+
     public:
         // table_depth should be at least 10
         Transposition(int table_depth);
@@ -30,6 +32,8 @@ class Transposition
         bool get(uint64_t key, int *score, int *exact, MOVE *move, int *depth);
 
         void clear();
+
+        void stat();
 
         static const int EXACT = 1, UPPER = 2, LOWER = 3;
 };

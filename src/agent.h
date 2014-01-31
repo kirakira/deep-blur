@@ -12,7 +12,7 @@ class Agent
         static const int INF = 2047;
 
     protected:
-        int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable, int *move_score_table);
+        int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable);
         int id(Board &board, int side, MOVE *result, int depth);
 
         class MoveComparator
@@ -26,7 +26,7 @@ class Agent
 
         int firstHit, secondHit, miss;
         int trans_hit, nodes;
-        int move_score[2][1 << 16];
+        int move_score[1 << 16];
 
         Transposition trans;
 };

@@ -32,35 +32,42 @@ int Agent::search(Board &board, int side, MOVE *result)
     int tot = firstHit + secondHit + miss;
     cout << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
     cout << "Nodes: " << nodes << ", hit: " << trans_hit << " (" << (double) trans_hit / (double) (trans_hit + nodes) << ")" << endl;
+    trans.stat();
     return ret;
 }
 
 int Agent::id(Board &board, int side, MOVE *result, int depth)
 {
     int ret;
-    int move_history_index = 0;
-    memset(move_score[move_history_index], 0, sizeof(move_score[move_history_index]));
+    memset(move_score, 0, sizeof(move_score));
+    move_comparator.set(move_score);
     trans_hit = 0;
     nodes = 0;
-    for (int level = depth; level <= depth; ++level)
+    for (int level = 0; level <= depth; ++level)
     {
-        memset(move_score[move_history_index], 0, sizeof(move_score[move_history_index]));
-        move_comparator.set(move_score[move_history_index]);
-        ret = alpha_beta(board, side, result, level, -INF, INF, false, move_score[move_history_index]);
-        //move_history_index = 1 - move_history_index;
+        ret = alpha_beta(board, side, result, level, -INF, INF, false);
 
-        cout << "Level " << level << " ";
+        cout << "Level " << level << ": ";
         int score, exact, d, s = side, count = 0;
         MOVE t;
         while (trans.get(board.hash_code(s), &score, &exact, &t, &d))
         {
-            if (t != 0 && board.checked_move(t))
+            if (d >= level - count && (t == 0 || board.checked_move(t)))
             {
-                cout << move_string(t) << "(" << score;
-                if (exact != Transposition::EXACT)
-                   cout << "!";
-                cout << ") ";
-                ++count;
+                if (t == 0)
+                    cout << "null";
+                else
+                {
+                    ++count;
+                    cout << move_string(t);
+                }
+                cout << "(";
+                if (exact == Transposition::LOWER)
+                    cout << ">=";
+                else if (exact == Transposition::UPPER)
+                    cout << "<=";
+                cout << score << ") \t";
+
                 s = 1 - s;
             }
             else
@@ -78,9 +85,10 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 
 // Null-move heuristic: 40%
 // Transposition: 30%
+// Iterative deepening: less than 3%
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
-int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable, int *move_score_table)
+int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable)
 {
     int his_score, his_exact = 0, his_depth;
     MOVE his_move = 0;
@@ -110,7 +118,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     else
     {
         if (nullable)
-            ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, false, move_score_table);
+            ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, false);
         if (ans < beta)
         {
             ans = -INF;
@@ -134,7 +142,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 else
                 {
                     int current_alpha = max(alpha, ans);
-                    t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true, move_score_table);
+                    t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true);
                 }
                 board.unmove();
 
@@ -148,7 +156,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 if (t >= beta)
                 {
                     if (depth > 0)
-                        move_score_table[move] += depth * depth;
+                        move_score[move] += depth * depth;
                     break;
                 }
             }
