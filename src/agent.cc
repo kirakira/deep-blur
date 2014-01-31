@@ -59,7 +59,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
         cout << "# Level " << level << ": ";
         int score, exact, d, s = side, count = 0;
         MOVE t;
-        while (trans.get(board.hash_code(s), &score, &exact, &t, &d))
+        while (trans.get(board.hash_code(s), &score, &exact, &t, &d) && count < level)
         {
             if (d > 0 && d >= level - count && (t == 0 || board.checked_move(t)))
             {
