@@ -101,6 +101,8 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 // Transposition: 30%
 // Iterative deepening: less than 3%
 // Transposition move as move ordering: 5%
+// Internal iterative deepening: 10%
+// Not tring null-move if transposition table suggests it's unlikely to fail-high: 10%
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable)
@@ -108,27 +110,33 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     int his_score, his_exact = 0, his_depth;
     MOVE his_move = 0;
     if (trans.get(board.hash_code(side), &his_score, &his_exact, &his_move, &his_depth)
-            && his_depth >= depth &&
-            (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
-             || (his_exact == Transposition::LOWER && his_score >= beta))
-            && ((nullable && his_move == 0) || (his_move != 0 && board.checked_move(his_move))))
+            && (his_move == 0 || board.checked_move(his_move)))
     {
         if (his_move != 0)
             board.unmove();
 
-        ++trans_hit;
+        if (his_depth >= depth &&
+            (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
+             || (his_exact == Transposition::LOWER && his_score >= beta))
+            && (nullable || his_move != 0))
+        {
+            ++trans_hit;
 
-        if (result)
-            *result = his_move;
-        return his_score;
+            if (result)
+                *result = his_move;
+            return his_score;
+        }
+
+        if (his_exact == Transposition::UPPER && his_score <= beta - 1)
+            nullable = false;
     }
     ++nodes;
 
     int ans = -INF;
     MOVE best_move = 0;
-    /*
+
     if (depth > 2)
-        alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false);*/
+        alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false);
 
     if (depth == 0)
         ans = board.static_value(side);
