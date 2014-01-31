@@ -191,6 +191,25 @@ bool Board::checked_unmove()
     return true;
 }
 
+bool Board::is_capture(MOVE move, int *value)
+{
+    int src_i = position_rank(move_src(move)),
+        src_j = position_col(move_src(move)),
+        dst_i = position_rank(move_dst(move)),
+        dst_j = position_col(move_dst(move));
+    BoardEntry src = board[src_i][src_j],
+               dst = board[dst_i][dst_j];
+    if (dst.piece != 0)
+    {
+        if (value)
+            *value = capture_values[piece_type(dst.piece)] -
+                capture_values[piece_type(src.piece)];
+        return true;
+    }
+    return false;
+}
+
+const int Board::capture_values[8] = {0, 100, 1, 1, 5, 10, 5, 1};
 const int Board::static_values[16][H][W] =
     {{{0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},

@@ -18,9 +18,12 @@ class Agent
         class MoveComparator
         {
             int *score_table;
+            MOVE transp_move;
+
             public:
                 bool operator()(const MOVE &x, const MOVE &y) const;
                 void set(int *table);
+                void set(MOVE trans_move);
         };
         MoveComparator move_comparator;
 

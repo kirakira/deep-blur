@@ -8,12 +8,21 @@ using namespace std;
 
 bool Agent::MoveComparator::operator()(const MOVE &x, const MOVE &y) const
 {
+    if (x == transp_move)
+        return true;
+    if (y == transp_move)
+        return false;
     return score_table[x] > score_table[y];
 }
 
 void Agent::MoveComparator::set(int *table)
 {
     score_table = table;
+}
+
+void Agent::MoveComparator::set(MOVE trans_move)
+{
+    transp_move = trans_move;
 }
 
 Agent::Agent()
@@ -107,6 +116,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             *result = his_move;
         return his_score;
     }
+    move_comparator.set(his_move);
 
     ++nodes;
 

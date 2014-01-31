@@ -19,7 +19,9 @@ class Board
         void unmove();
         bool checked_unmove();
 
-        bool is_checked();
+        bool in_check(int side);
+        bool is_capture(MOVE move, int *value = NULL);
+
         uint64_t hash_code(int side);
         int static_value(int side);
 
@@ -56,6 +58,7 @@ class Board
         uint64_t hash;
 
         static const int static_values[16][H][W];
+        static const int capture_values[8];
         int current_static_value;
 
         std::vector<HistoryEntry> history;
