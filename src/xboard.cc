@@ -36,16 +36,13 @@ void go(Board &board, Agent &agent, int &side, int depth = 6)
 {
     MOVE res;
 
-    clock_t t = clock();
     int score = agent.search(board, side, &res, depth);
-    t = clock() - t;
     if (score > -Agent::INF)
     {
         board.move(res);
         side = 1 - side;
 
         cout << "move " << move_string(res) << endl;
-        cout << "# " << score << "(" << ((double) t) / CLOCKS_PER_SEC << " s)" << endl;
         debug_output("Sent a move: " + move_string(res));
     }
     else
