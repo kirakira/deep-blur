@@ -39,8 +39,8 @@ int Agent::search(Board &board, int side, MOVE *result)
     int ret = id(board, side, result, 6);
 
     int tot = firstHit + secondHit + miss;
-    cout << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
-    cout << "Nodes: " << nodes << ", hit: " << trans_hit << " (" << (double) trans_hit / (double) (trans_hit + nodes) << ")" << endl;
+    cout << "# move ordering: " << (double) firstHit / (double) tot << " " << (double) secondHit / (double) tot << " " << (double) miss / (double) tot << endl;
+    cout << "# nodes: " << nodes << ", transp hit: " << trans_hit << " (" << (double) trans_hit / (double) (trans_hit + nodes) << ")" << endl;
     trans.stat();
     return ret;
 }
@@ -56,7 +56,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
     {
         ret = alpha_beta(board, side, result, level, -INF, INF, false);
 
-        cout << "Level " << level << ": ";
+        cout << "# Level " << level << ": ";
         int score, exact, d, s = side, count = 0;
         MOVE t;
         while (trans.get(board.hash_code(s), &score, &exact, &t, &d))
@@ -95,6 +95,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 // Null-move heuristic: 40%
 // Transposition: 30%
 // Iterative deepening: less than 3%
+// Transposition move as move ordering: 5%
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable)

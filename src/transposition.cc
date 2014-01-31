@@ -65,7 +65,7 @@ bool Transposition::get(uint64_t key, int *score, int *exact, MOVE *move, int *d
 void Transposition::stat()
 {
     int tot = (1 << t_depth);
-    cout << "transposition collision rate: " << collision << "/" << access << " (" << (double) collision * 100 / (double) access << "%)" << endl;
-    cout << "transposition usage: " << used << " out of " << tot << ", "
+    cout << "# transposition collision rate: " << collision << "/" << access << " (" << (double) collision * 100 / (double) access << "%)" << endl;
+    cout << "# transposition usage: " << used << " out of " << tot << ", "
        << (double) used * 100 / (double) tot << "%" << endl;
 }
