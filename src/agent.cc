@@ -7,46 +7,6 @@
 
 using namespace std;
 
-bool Agent::MoveComparator::operator()(const MOVE &x, const MOVE &y) const
-{
-    if (move_dst(x) == king_pos)
-        return true;
-    if (move_dst(y) == king_pos)
-        return false;
-    if (x == transp_move)
-        return false;
-    if (y == transp_move)
-        return true;
-    int vx, vy;
-    bool bx = board->is_capture(x, &vx),
-         by = board->is_capture(y, &vy);
-    if (bx && !by)
-        return true;
-    if (by && !bx)
-        return false;
-    if (bx)
-    {
-        if (vx > 0 && vx > vy)
-            return true;
-        if (vy > 0 && vy >= vx)
-            return false;
-    }
-    return false;
-    //return score_table[x] > score_table[y];
-}
-
-void Agent::MoveComparator::set(Board *b, int *table)
-{
-    board = b;
-    score_table = table;
-}
-
-void Agent::MoveComparator::set(MOVE trans_move, POSITION king_p)
-{
-    transp_move = trans_move;
-    king_pos = king_p;
-}
-
 Agent::Agent()
     : trans(22)
 {
@@ -114,7 +74,6 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 {
     int ret;
     memset(move_score, 0, sizeof(move_score));
-    move_comparator.set(&board, move_score);
 
     for (int level = 0; level <= depth; ++level)
     {
