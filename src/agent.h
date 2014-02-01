@@ -28,7 +28,7 @@ class Agent
         };
         MoveComparator move_comparator;
 
-        int trans_hit, nodes, null_cut, first_cut, beta_cut, alpha_nodes, first_best;
+        int trans_hit, nodes, leaf, null_cut, first_cut, beta_cut, alpha_nodes, first_best;
         int move_score[1 << 16];
 
         Transposition trans;
