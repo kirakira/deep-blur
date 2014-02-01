@@ -120,8 +120,8 @@ int main()
             iss >> side;
 
             MOVE moves[120];
-            int moves_count;
-            board.generate_moves(side, moves, &moves_count);
+            int capture_scores[120], moves_count;
+            board.generate_moves(side, moves, capture_scores, &moves_count);
 
             for (int i = 0; i < moves_count; ++i)
                 cout << move_string(moves[i]) << " ";

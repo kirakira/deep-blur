@@ -416,10 +416,18 @@ bool Board::is_in_half(int side, int i, int j)
         return false;
 }
 
-bool Board::check_position(int side, int i, int j)
+bool Board::check_position(int side, int i, int j, int *target_capture_score)
 {
-    if (board[i][j].piece == 0 || piece_side(board[i][j].piece) != side)
+    if (board[i][j].piece == 0)
+    {
+        *target_capture_score = NON_CAPTURE;
         return true;
+    }
+    else if (piece_side(board[i][j].piece) != side)
+    {
+        *target_capture_score = capture_values[piece_type(board[i][j].piece)];
+        return true;
+    }
     else
         return false;
 }
@@ -601,13 +609,14 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
         }
 }
 
-void Board::add_move(MOVE *moves, int *moves_count, MOVE move_to_add)
+void Board::add_move(MOVE *moves, int *capture_scores, int *moves_count, MOVE move_to_add, int capture_score)
 {
     moves[*moves_count] = move_to_add;
+    capture_scores[*moves_count] = capture_score;
     ++*moves_count;
 }
 
-void Board::generate_moves(int side, MOVE *moves, int *moves_count)
+void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *moves_count)
 {
     int index;
     *moves_count = 0;
@@ -618,7 +627,7 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
         index += 16;
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
-            generate_rook_moves(index + i, moves, moves_count);
+            generate_rook_moves(index + i, moves, capture_scores, moves_count);
 
     // Horse
     index = 5;
@@ -626,7 +635,7 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
         index += 16;
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
-            generate_horse_moves(index + i, moves, moves_count);
+            generate_horse_moves(index + i, moves, capture_scores, moves_count);
 
     // Cannon
     index = 9;
@@ -634,7 +643,7 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
         index += 16;
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
-            generate_cannon_moves(index + i, moves, moves_count);
+            generate_cannon_moves(index + i, moves, capture_scores, moves_count);
 
     // Pawn
     index = 11;
@@ -642,7 +651,7 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
         index += 16;
     for (int i = 0; i < 5; ++i)
         if (pieces[index + i].piece != 0)
-            generate_pawn_moves(index + i, moves, moves_count);
+            generate_pawn_moves(index + i, moves, capture_scores, moves_count);
 
     // Assistant
     index = 1;
@@ -650,7 +659,7 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
         index += 16;
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
-            generate_assistant_moves(index + i, moves, moves_count);
+            generate_assistant_moves(index + i, moves, capture_scores, moves_count);
 
     // Elephant
     index = 3;
@@ -658,23 +667,24 @@ void Board::generate_moves(int side, MOVE *moves, int *moves_count)
         index += 16;
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
-            generate_elephant_moves(index + i, moves, moves_count);
+            generate_elephant_moves(index + i, moves, capture_scores, moves_count);
 
     // King
     index = 0;
     if (side != 0)
         index += 16;
-    generate_king_moves(index, moves, moves_count);
+    generate_king_moves(index, moves, capture_scores, moves_count);
 }
 
-void Board::generate_king_moves(int index, MOVE *moves, int *moves_count)
+void Board::generate_king_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
 {
     POSITION pos = pieces[index].position, other_king_pos = pieces[16 - index].position;
     int side = piece_side(pieces[index].piece);
     for (int i = 0; i < king_moves_count[pos]; ++i)
     {
         int oi = king_moves[pos][i][0], oj = king_moves[pos][i][1];
-        if (check_position(side, oi, oj))
+        int capture_value;
+        if (check_position(side, oi, oj, &capture_value))
         {
             bool face = false;
             if (oj != position_col(pos) && oj == position_col(other_king_pos))
@@ -696,24 +706,27 @@ void Board::generate_king_moves(int index, MOVE *moves, int *moves_count)
                         face = false;
             }
             if (!face)
-                add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+                add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
+                        capture_value - capture_values[PIECE_K]);
         }
     }
 }
 
-void Board::generate_assistant_moves(int index, MOVE *moves, int *moves_count)
+void Board::generate_assistant_moves(int index, MOVE *moves, int *capture_values, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
     for (int i = 0; i < assistant_moves_count[pos]; ++i)
     {
         int oi = assistant_moves[pos][i][0], oj = assistant_moves[pos][i][1];
-        if (check_position(side, oi, oj))
-            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+        int capture_value;
+        if (check_position(side, oi, oj, &capture_value))
+            add_move(moves, capture_values, moves_count, make_move(pos, make_position(oi, oj)),
+                    capture_value - capture_values[PIECE_A]);
     }
 }
 
-void Board::generate_rook_moves(int index, MOVE *moves, int *moves_count)
+void Board::generate_rook_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -731,18 +744,21 @@ void Board::generate_rook_moves(int index, MOVE *moves, int *moves_count)
                 break;
 
             if (board[oi][oj].piece == 0)
-                add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+                add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
+                        NON_CAPTURE);
             else
             {
-                if (check_position(side, oi, oj))
-                    add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+                int capture_value;
+                if (check_position(side, oi, oj, &capture_value))
+                    add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
+                            capture_value - capture_values[PIECE_R]);
                 break;
             }
         }
     }
 }
 
-void Board::generate_horse_moves(int index, MOVE *moves, int *moves_count)
+void Board::generate_horse_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -750,13 +766,15 @@ void Board::generate_horse_moves(int index, MOVE *moves, int *moves_count)
     for (int i = 0; i < horse_moves_count[pos]; ++i)
     {
         int oi = horse_moves[pos][i][0], oj = horse_moves[pos][i][1];
-        if (check_position(side, oi, oj) &&
+        int capture_value;
+        if (check_position(side, oi, oj, &capture_value) &&
                 board[horse_moves[pos][i][2]][horse_moves[pos][i][3]].piece == 0)
-            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+            add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
+                    capture_value - capture_values[PIECE_H]);
     }
 }
 
-void Board::generate_cannon_moves(int index, MOVE *moves, int *moves_count)
+void Board::generate_cannon_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -777,7 +795,7 @@ void Board::generate_cannon_moves(int index, MOVE *moves, int *moves_count)
             if (state == 0)
             {
                 if (board[oi][oj].piece == 0)
-                    add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+                    add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)), NON_CAPTURE);
                 else
                     state = 1;
             }
@@ -785,8 +803,10 @@ void Board::generate_cannon_moves(int index, MOVE *moves, int *moves_count)
             {
                 if (board[oi][oj].piece != 0)
                 {
-                    if (check_position(side, oi, oj))
-                        add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+                    int capture_value;
+                    if (check_position(side, oi, oj, &capture_value))
+                        add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
+                                capture_value - capture_values[PIECE_C]);
                     break;
                 }
             }
@@ -794,7 +814,7 @@ void Board::generate_cannon_moves(int index, MOVE *moves, int *moves_count)
     }
 }
 
-void Board::generate_elephant_moves(int index, MOVE *moves, int *moves_count)
+void Board::generate_elephant_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -802,13 +822,15 @@ void Board::generate_elephant_moves(int index, MOVE *moves, int *moves_count)
     for (int i = 0; i < elephant_moves_count[pos]; ++i)
     {
         int oi = elephant_moves[pos][i][0], oj = elephant_moves[pos][i][1];
-        if (check_position(side, oi, oj) &&
+        int capture_value;
+        if (check_position(side, oi, oj, &capture_value) &&
                 board[elephant_moves[pos][i][2]][elephant_moves[pos][i][3]].piece == 0)
-            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+            add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
+                    capture_value - capture_values[PIECE_E]);
     }
 }
 
-void Board::generate_pawn_moves(int index, MOVE *moves, int *moves_count)
+void Board::generate_pawn_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -816,7 +838,9 @@ void Board::generate_pawn_moves(int index, MOVE *moves, int *moves_count)
     for (int i = 0; i < pawn_moves_count[side][pos]; ++i)
     {
         int oi = pawn_moves[side][pos][i][0], oj = pawn_moves[side][pos][i][1];
-        if (check_position(side, oi, oj))
-            add_move(moves, moves_count, make_move(pos, make_position(oi, oj)));
+        int capture_value;
+        if (check_position(side, oi, oj, &capture_value))
+            add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
+                    capture_value - capture_values[PIECE_P]);
     }
 }

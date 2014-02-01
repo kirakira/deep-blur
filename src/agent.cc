@@ -17,11 +17,27 @@ bool Agent::MoveComparator::operator()(const MOVE &x, const MOVE &y) const
         return false;
     if (y == transp_move)
         return true;
-    return score_table[x] > score_table[y];
+    int vx, vy;
+    bool bx = board->is_capture(x, &vx),
+         by = board->is_capture(y, &vy);
+    if (bx && !by)
+        return true;
+    if (by && !bx)
+        return false;
+    if (bx)
+    {
+        if (vx > 0 && vx > vy)
+            return true;
+        if (vy > 0 && vy >= vx)
+            return false;
+    }
+    return false;
+    //return score_table[x] > score_table[y];
 }
 
-void Agent::MoveComparator::set(int *table)
+void Agent::MoveComparator::set(Board *b, int *table)
 {
+    board = b;
     score_table = table;
 }
 
@@ -34,6 +50,36 @@ void Agent::MoveComparator::set(MOVE trans_move, POSITION king_p)
 Agent::Agent()
     : trans(22)
 {
+}
+
+void Agent::order_moves(MOVE *moves, int *scores, int moves_count, int order_count)
+{
+    while (order_count > 0 && moves_count > 0)
+    {
+        int best = scores[0], besti = 0;
+        for (int i = 1; i < moves_count; ++i)
+            if (scores[i] > Board::NON_CAPTURE && scores[i] > best)
+            {
+                best = scores[i];
+                besti = i;
+            }
+        if (besti != 0)
+        {
+            MOVE t = moves[besti];
+            for (int i = besti; i > 0; --i)
+                moves[i] = moves[i - 1];
+            moves[0] = t;
+
+            int tt = scores[besti];
+            for (int i = besti; i > 0; --i)
+                scores[i] = scores[i - 1];
+            scores[0] = tt;
+        }
+        --moves_count;
+        --order_count;
+        ++moves;
+        ++scores;
+    }
 }
 
 int Agent::search(Board &board, int side, MOVE *result, int depth)
@@ -68,7 +114,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 {
     int ret;
     memset(move_score, 0, sizeof(move_score));
-    move_comparator.set(move_score);
+    move_comparator.set(&board, move_score);
 
     for (int level = 0; level <= depth; ++level)
     {
@@ -185,11 +231,16 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             if (ans < beta)
             {
                 MOVE moves[120];
-                int moves_count;
+                int capture_scores[120], moves_count;
 
-                board.generate_moves(side, moves, &moves_count);
-                move_comparator.set(his_move, board.king_position(1 - side));
-                sort(moves, moves + moves_count, move_comparator);
+                board.generate_moves(side, moves, capture_scores, &moves_count);
+                order_moves(moves, capture_scores, moves_count, 1);
+
+                int history_scores[120];
+                for (int i = 0; i < moves_count; ++i)
+                    history_scores[i] = move_score[moves[i]];
+
+                order_moves(moves + 1, history_scores + 1, moves_count - 1, 2);
 
                 for (int i = 0; i < moves_count; ++i)
                 {

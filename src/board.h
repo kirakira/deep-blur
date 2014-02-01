@@ -26,11 +26,11 @@ class Board
         uint64_t hash_code(int side);
         int static_value(int side);
 
-        void generate_moves(int side, MOVE *moves, int *moves_count);
+        void generate_moves(int side, MOVE *moves, int *capture_scores, int *moves_count);
 
         void print();
 
-        static const int H = 10, W = 9;
+        static const int H = 10, W = 9, NON_CAPTURE = -127;
 
     protected:
         typedef struct sBoardEntry
@@ -68,7 +68,7 @@ class Board
         static bool is_in_palace(int side, int i, int j);
         static bool is_in_half(int side, int i, int j);
         static bool is_on_board(int i, int j);
-        bool check_position(int side, int i, int j);
+        bool check_position(int side, int i, int j, int *target_capture_score);
 
         class BoardStaticFieldsInitializer
         {
@@ -87,12 +87,12 @@ class Board
         static int assistant_moves[256][4][2], assistant_moves_count[256];
         static int pawn_moves[2][256][3][2], pawn_moves_count[2][256];
 
-        void add_move(MOVE *moves, int *moves_count, MOVE move_to_add);
-        void generate_king_moves(int index, MOVE *moves, int *moves_count);
-        void generate_rook_moves(int index, MOVE *moves, int *moves_count);
-        void generate_horse_moves(int index, MOVE *moves, int *moves_count);
-        void generate_cannon_moves(int index, MOVE *moves, int *moves_count);
-        void generate_elephant_moves(int index, MOVE *moves, int *moves_count);
-        void generate_assistant_moves(int index, MOVE *moves, int *moves_count);
-        void generate_pawn_moves(int index, MOVE *moves, int *moves_count);
+        void add_move(MOVE *moves, int *capture_scores, int *moves_count, MOVE move_to_add, int capture_score);
+        void generate_king_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
+        void generate_rook_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
+        void generate_horse_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
+        void generate_cannon_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
+        void generate_elephant_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
+        void generate_assistant_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
+        void generate_pawn_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
 };

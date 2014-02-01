@@ -12,18 +12,20 @@ class Agent
         static const int INF = 2047;
 
     protected:
+        void order_moves(MOVE *moves, int *scores, int moves_count, int order_count);
         int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable);
         int id(Board &board, int side, MOVE *result, int depth);
 
         class MoveComparator
         {
+            Board *board;
             int *score_table;
             MOVE transp_move;
             POSITION king_pos;
 
             public:
                 bool operator()(const MOVE &x, const MOVE &y) const;
-                void set(int *table);
+                void set(Board *b, int *table);
                 void set(MOVE trans_move, POSITION king_p);
         };
         MoveComparator move_comparator;
