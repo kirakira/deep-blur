@@ -221,7 +221,14 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 else
                 {
                     int current_alpha = max(alpha, ans);
-                    t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true);
+                    if (i <= 2)
+                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true);
+                    else
+                    {
+                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1, -current_alpha, true);
+                        if (t > current_alpha)
+                            t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true);
+                    }
                 }
                 board.unmove();
 
