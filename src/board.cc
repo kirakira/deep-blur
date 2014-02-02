@@ -707,7 +707,7 @@ void Board::generate_king_moves(int index, MOVE *moves, int *capture_scores, int
             }
             if (!face)
                 add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
-                        capture_value * 8 + capture_values[PIECE_K]);
+                        capture_value * 8 - capture_values[PIECE_K]);
         }
     }
 }
@@ -722,7 +722,7 @@ void Board::generate_assistant_moves(int index, MOVE *moves, int *capture_values
         int capture_value;
         if (check_position(side, oi, oj, &capture_value))
             add_move(moves, capture_values, moves_count, make_move(pos, make_position(oi, oj)),
-                    capture_value * 8 + capture_values[PIECE_A]);
+                    capture_value * 8 - capture_values[PIECE_A]);
     }
 }
 
@@ -751,7 +751,7 @@ void Board::generate_rook_moves(int index, MOVE *moves, int *capture_scores, int
                 int capture_value;
                 if (check_position(side, oi, oj, &capture_value))
                     add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
-                            capture_value * 8 + capture_values[PIECE_R]);
+                            capture_value * 8 - capture_values[PIECE_R]);
                 break;
             }
         }
@@ -770,7 +770,7 @@ void Board::generate_horse_moves(int index, MOVE *moves, int *capture_scores, in
         if (check_position(side, oi, oj, &capture_value) &&
                 board[horse_moves[pos][i][2]][horse_moves[pos][i][3]].piece == 0)
             add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
-                    capture_value * 8 + capture_values[PIECE_H]);
+                    capture_value * 8 - capture_values[PIECE_H]);
     }
 }
 
@@ -806,7 +806,7 @@ void Board::generate_cannon_moves(int index, MOVE *moves, int *capture_scores, i
                     int capture_value;
                     if (check_position(side, oi, oj, &capture_value))
                         add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
-                                capture_value * 8 + capture_values[PIECE_C]);
+                                capture_value * 8 - capture_values[PIECE_C]);
                     break;
                 }
             }
@@ -826,7 +826,7 @@ void Board::generate_elephant_moves(int index, MOVE *moves, int *capture_scores,
         if (check_position(side, oi, oj, &capture_value) &&
                 board[elephant_moves[pos][i][2]][elephant_moves[pos][i][3]].piece == 0)
             add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
-                    capture_value * 8 + capture_values[PIECE_E]);
+                    capture_value * 8 - capture_values[PIECE_E]);
     }
 }
 
@@ -841,6 +841,6 @@ void Board::generate_pawn_moves(int index, MOVE *moves, int *capture_scores, int
         int capture_value;
         if (check_position(side, oi, oj, &capture_value))
             add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
-                    capture_value * 8 + capture_values[PIECE_P]);
+                    capture_value * 8 - capture_values[PIECE_P]);
     }
 }

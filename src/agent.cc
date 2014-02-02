@@ -206,7 +206,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
                     for (int i = 0; i < moves_count; ++i)
                         history_scores[i + start] = move_score[moves[i + start]];
-                    if (capture_scores[start] < 40)
+                    if (capture_scores[start] < 35)
                         order_moves(moves + start, history_scores + start, moves_count, 5);
 
                     moves_count += start;
