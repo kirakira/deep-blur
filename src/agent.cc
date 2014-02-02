@@ -157,8 +157,8 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     int ans = -INF, first_ans = ans;
     MOVE best_move = 0;
 
-    if (depth >= 2 && !(t_hit && his_depth >= depth / 2 && his_move != 0))
-        alpha_beta(board, side, &his_move, depth / 2, alpha, beta, false);
+    if (depth >= 3 && !(t_hit && his_depth >= depth - 2 && his_move != 0))
+        alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false);
 
     if (depth == 0)
     {
