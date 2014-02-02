@@ -134,9 +134,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 {
     int his_score, his_exact = 0, his_depth;
     MOVE his_move = 0;
-    bool t_hit = false;
+    bool t_hit = false, rep;
     if (trans.get(board.hash_code(side), &his_score, &his_exact, &his_move, &his_depth)
-            && (his_move == 0 || board.checked_move(his_move)))
+            && (his_move == 0 || board.checked_move(his_move, &rep)))
     {
         if (his_move != 0)
             board.unmove();
@@ -146,7 +146,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         if (his_depth >= depth &&
             (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
              || (his_exact == Transposition::LOWER && his_score >= beta))
-            && (nullable || his_move != 0))
+            && (nullable || (his_move != 0 && !rep)))
         {
             ++trans_hit;
 
@@ -163,7 +163,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     int ans = -INF, first_ans = ans;
     MOVE best_move = 0;
 
-    if (depth >= 3 && !(t_hit && his_depth >= depth - 2 && his_move != 0))
+    if (depth >= 3 && !(t_hit && his_depth >= depth - 2 && his_move != 0 && !rep))
         alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false);
 
     if (depth == 0)

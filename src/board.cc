@@ -101,7 +101,7 @@ uint64_t Board::hash_code(int side)
         return hash ^ hash_side;
 }
 
-bool Board::checked_move(MOVE move)
+bool Board::checked_move(MOVE move, bool *rep)
 {
     int src_i = position_rank(move_src(move)),
         src_j = position_col(move_src(move)),
@@ -113,7 +113,7 @@ bool Board::checked_move(MOVE move)
         return false;
     if (src_i == dst_i && src_j == dst_j)
         return false;
-    return this->move(move);
+    return this->move(move, NULL, rep);
 }
 
 bool Board::move(MOVE move, bool *game_end, bool *rep)
