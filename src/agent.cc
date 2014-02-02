@@ -12,17 +12,23 @@ Agent::Agent()
 {
 }
 
+int Agent::select_best_move(MOVE *moves, int *scores, int moves_count)
+{
+    int best = scores[0], besti = 0;
+    for (int i = 1; i < moves_count; ++i)
+        if (scores[i] > Board::NON_CAPTURE && scores[i] > best)
+        {
+            best = scores[i];
+            besti = i;
+        }
+    return besti;
+}
+
 void Agent::order_moves(MOVE *moves, int *scores, int moves_count, int order_count)
 {
     while (order_count > 0 && moves_count > 0)
     {
-        int best = scores[0], besti = 0;
-        for (int i = 1; i < moves_count; ++i)
-            if (scores[i] > Board::NON_CAPTURE && scores[i] > best)
-            {
-                best = scores[i];
-                besti = i;
-            }
+        int besti = select_best_move(moves, scores, moves_count);
         if (besti != 0)
         {
             MOVE t = moves[besti];
@@ -195,13 +201,12 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     int start = moves_count;
                     board.generate_moves(side, moves + start,
                             capture_scores + start, &moves_count);
+
                     order_moves(moves + start, capture_scores + start, moves_count, 1);
 
                     for (int i = 0; i < moves_count; ++i)
                         history_scores[i + start] = move_score[moves[i + start]];
-                    if (capture_scores[start] >= 50)
-                        order_moves(moves + start + 1, history_scores + start + 1, moves_count - 1, 5);
-                    else
+                    if (capture_scores[start] < 40)
                         order_moves(moves + start, history_scores + start, moves_count, 5);
 
                     moves_count += start;
