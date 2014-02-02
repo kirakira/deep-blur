@@ -166,15 +166,7 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
                     && piece_type(src.piece) != PIECE_K
                     && is_attacked(move_dst(history[history.size() - 1].move), true)
                )
-            {
-                cout << "repeated attack!!!" << endl;
-                print();
-                for (int i = history.size() - 4; i < history.size(); ++i)
-                    cout << move_string(history[i].move) << " ";
-                cout << move_string(move) << endl;
-
                 rep_side = my_side;
-            }
         }
     }
 
