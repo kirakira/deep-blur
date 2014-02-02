@@ -226,7 +226,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     else
                     {
                         t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1, -current_alpha, true);
-                        if (t > current_alpha)
+                        if (current_alpha < t && t < beta)
                             t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true);
                     }
                 }

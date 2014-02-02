@@ -1,5 +1,3 @@
-Move ordering: TR, capture, non-capture history
 PV list
 Repetition
-PV search
 QS: until not in check && no recaptures
