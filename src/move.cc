@@ -72,3 +72,8 @@ string move_string(MOVE move)
 {
     return position_string(move_src(move)) + position_string(move_dst(move));
 }
+
+bool are_inverse_moves(MOVE move1, MOVE move2)
+{
+    return move_src(move1) == move_dst(move2) && move_dst(move1) == move_src(move2);
+}

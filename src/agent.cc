@@ -180,19 +180,12 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         {
             ans = -INF;
 
-            bool game_end;
             bool moves_generated = false;
             MOVE moves[120];
             int moves_count = 0, capture_scores[120], history_scores[120];
 
-            if (his_move != 0 && board.move(his_move, &game_end))
-            {
-                if (game_end)
-                    ans = INF;
-                else
-                    moves[moves_count++] = his_move;
-                board.unmove();
-            }
+            if (his_move != 0)
+                moves[moves_count++] = his_move;
 
             for (int i = 0; ans < beta && (!moves_generated || i < moves_count); ++i)
             {
@@ -217,8 +210,13 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     continue;
 
                 MOVE move = moves[i];
-                if (!board.move(move, &game_end))
+                bool game_end, rep_attack;
+                if (!board.move(move, &game_end, &rep_attack) || rep_attack)
+                {
+                    if (rep_attack)
+                        board.unmove();
                     continue;
+                }
 
                 int t;
                 if (game_end)

@@ -116,7 +116,7 @@ bool Board::checked_move(MOVE move)
     return this->move(move);
 }
 
-bool Board::move(MOVE move, bool *game_end)
+bool Board::move(MOVE move, bool *game_end, bool *rep)
 {
     int src_i = position_rank(move_src(move)),
         src_j = position_col(move_src(move)),
@@ -146,10 +146,51 @@ bool Board::move(MOVE move, bool *game_end)
     hash ^= get_hash(src_i, src_j, src.piece);
     current_static_value -= static_values[src.piece][src_i][src_j];
 
+    uint8_t rep_side = NON_REP;
+    uint8_t my_side = piece_side(src.piece);
+    if (history.size() >= 4)
+    {
+        if (history[history.size() - 1].rep_side != NON_REP)
+        {
+            if (history[history.size() - 4].move == move)
+                rep_side = history[history.size() - 1].rep_side;
+        }
+        else
+        {
+            if (history[history.size() - 4].move == move
+                    && dst.piece == 0 && are_inverse_moves(move, history[history.size() - 2].move)
+                    && are_inverse_moves(history[history.size() - 1].move, history[history.size() - 3].move)
+                    && history[history.size() - 1].capture.piece == 0
+                    && history[history.size() - 2].capture.piece == 0
+                    && history[history.size() - 3].capture.piece == 0
+                    && piece_type(src.piece) != PIECE_K
+                    && is_attacked(move_dst(history[history.size() - 1].move), true)
+               )
+            {
+                cout << "repeated attack!!!" << endl;
+                print();
+                for (int i = history.size() - 4; i < history.size(); ++i)
+                    cout << move_string(history[i].move) << " ";
+                cout << move_string(move) << endl;
+
+                rep_side = my_side;
+            }
+        }
+    }
+
     HistoryEntry history_entry;
     history_entry.move = move;
     history_entry.capture = dst;
+    history_entry.rep_side = rep_side;
     history.push_back(history_entry);
+
+    if (rep)
+    {
+        if (rep_side == my_side)
+            *rep = true;
+        else
+            *rep = false;
+    }
 
     return true;
 }
@@ -219,7 +260,7 @@ POSITION Board::king_position(int side)
 
 const int Board::capture_values[8] = {0, 5, 2, 2, 3, 4, 3, 1};
 const int Board::static_values[16][H][W] =
-    {{{0, 0, 0, 0, 0, 0, 0, 0, 0},
+{{{0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -229,7 +270,7 @@ const int Board::static_values[16][H][W] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0}},
-    {{0, 0, 0, 11, 15, 11, 0, 0, 0},
+{{0, 0, 0, 11, 15, 11, 0, 0, 0},
     {0, 0, 0, 2, 2, 2, 0, 0, 0},
     {0, 0, 0, 1, 1, 1, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -239,7 +280,7 @@ const int Board::static_values[16][H][W] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0}},
-    {{0, 0, 0, 20, 0, 20, 0, 0, 0},
+{{0, 0, 0, 20, 0, 20, 0, 0, 0},
     {0, 0, 0, 0, 23, 0, 0, 0, 0},
     {0, 0, 0, 20, 0, 20, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -249,7 +290,7 @@ const int Board::static_values[16][H][W] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0}},
-    {{0, 0, 20, 0, 0, 0, 20, 0, 0},
+{{0, 0, 20, 0, 0, 0, 20, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {18, 0, 0, 0, 23, 0, 0, 0, 18},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -259,7 +300,7 @@ const int Board::static_values[16][H][W] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0}},
-    {{88, 85, 90, 88, 90, 88, 90, 85, 88},
+{{88, 85, 90, 88, 90, 88, 90, 85, 88},
     {85, 90, 92, 93, 78, 93, 92, 90, 85},
     {93, 92, 94, 95, 92, 95, 94, 92, 93},
     {92, 94, 98, 95, 98, 95, 98, 94, 92},
@@ -269,7 +310,7 @@ const int Board::static_values[16][H][W] =
     {92, 98, 99, 103, 99, 103, 99, 98, 92},
     {90, 96, 103, 97, 94, 97, 103, 96, 90},
     {90, 90, 90, 96, 90, 96, 90, 90, 90}},
-    {{194, 206, 204, 212, 200, 212, 204, 206, 194},
+{{194, 206, 204, 212, 200, 212, 204, 206, 194},
     {200, 208, 206, 212, 200, 212, 206, 208, 200},
     {198, 208, 204, 212, 212, 212, 204, 208, 198},
     {204, 209, 204, 212, 214, 212, 204, 209, 204},
@@ -279,7 +320,7 @@ const int Board::static_values[16][H][W] =
     {206, 208, 207, 214, 216, 214, 207, 208, 206},
     {206, 212, 209, 216, 233, 216, 209, 212, 206},
     {206, 208, 207, 213, 214, 213, 207, 208, 206}},
-    {{96, 96, 97, 99, 99, 99, 97, 96, 96},
+{{96, 96, 97, 99, 99, 99, 97, 96, 96},
     {96, 97, 98, 98, 98, 98, 98, 97, 96},
     {97, 96, 100, 99, 101, 99, 100, 96, 97},
     {96, 96, 96, 96, 96, 96, 96, 96, 96},
@@ -289,7 +330,7 @@ const int Board::static_values[16][H][W] =
     {97, 97, 96, 91, 92, 91, 96, 97, 97},
     {98, 98, 96, 92, 89, 92, 96, 98, 98},
     {100, 100, 96, 91, 90, 91, 96, 100, 100}},
-    {{0, 0, 0, 0, 0, 0, 0, 0, 0},
+{{0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {7, 0, 7, 0, 15, 0, 7, 0, 7},
@@ -299,7 +340,7 @@ const int Board::static_values[16][H][W] =
     {19, 24, 32, 37, 37, 37, 32, 24, 19},
     {19, 24, 34, 42, 44, 42, 34, 24, 19},
     {9, 9, 9, 11, 13, 11, 9, 9, 9}},
-    {{0, 0, 0, 0, 0, 0, 0, 0, 0},
+{{0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -309,7 +350,7 @@ const int Board::static_values[16][H][W] =
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0}},
-    {{0, 0, 0, 0, 0, 0, 0, 0, 0},
+{{0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -319,7 +360,7 @@ const int Board::static_values[16][H][W] =
     {0, 0, 0, -1, -1, -1, 0, 0, 0},
     {0, 0, 0, -2, -2, -2, 0, 0, 0},
     {0, 0, 0, -11, -15, -11, 0, 0, 0}},
-    {{0, 0, 0, 0, 0, 0, 0, 0, 0},
+{{0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -329,7 +370,7 @@ const int Board::static_values[16][H][W] =
     {0, 0, 0, -20, 0, -20, 0, 0, 0},
     {0, 0, 0, 0, -23, 0, 0, 0, 0},
     {0, 0, 0, -20, 0, -20, 0, 0, 0}},
-    {{0, 0, 0, 0, 0, 0, 0, 0, 0},
+{{0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -339,7 +380,7 @@ const int Board::static_values[16][H][W] =
     {-18, 0, 0, 0, -23, 0, 0, 0, -18},
     {0, 0, 0, 0, 0, 0, 0, 0, 0},
     {0, 0, -20, 0, 0, 0, -20, 0, 0}},
-    {{-90, -90, -90, -96, -90, -96, -90, -90, -90},
+{{-90, -90, -90, -96, -90, -96, -90, -90, -90},
     {-90, -96, -103, -97, -94, -97, -103, -96, -90},
     {-92, -98, -99, -103, -99, -103, -99, -98, -92},
     {-93, -108, -100, -107, -100, -107, -100, -108, -93},
@@ -349,7 +390,7 @@ const int Board::static_values[16][H][W] =
     {-93, -92, -94, -95, -92, -95, -94, -92, -93},
     {-85, -90, -92, -93, -78, -93, -92, -90, -85},
     {-88, -85, -90, -88, -90, -88, -90, -85, -88}},
-    {{-206, -208, -207, -213, -214, -213, -207, -208, -206},
+{{-206, -208, -207, -213, -214, -213, -207, -208, -206},
     {-206, -212, -209, -216, -233, -216, -209, -212, -206},
     {-206, -208, -207, -214, -216, -214, -207, -208, -206},
     {-206, -213, -213, -216, -216, -216, -213, -213, -206},
@@ -359,7 +400,7 @@ const int Board::static_values[16][H][W] =
     {-198, -208, -204, -212, -212, -212, -204, -208, -198},
     {-200, -208, -206, -212, -200, -212, -206, -208, -200},
     {-194, -206, -204, -212, -200, -212, -204, -206, -194}},
-    {{-100, -100, -96, -91, -90, -91, -96, -100, -100},
+{{-100, -100, -96, -91, -90, -91, -96, -100, -100},
     {-98, -98, -96, -92, -89, -92, -96, -98, -98},
     {-97, -97, -96, -91, -92, -91, -96, -97, -97},
     {-96, -99, -99, -98, -100, -98, -99, -99, -96},
@@ -369,7 +410,7 @@ const int Board::static_values[16][H][W] =
     {-97, -96, -100, -99, -101, -99, -100, -96, -97},
     {-96, -97, -98, -98, -98, -98, -98, -97, -96},
     {-96, -96, -97, -99, -99, -99, -97, -96, -96}},
-    {{-9, -9, -9, -11, -13, -11, -9, -9, -9},
+{{-9, -9, -9, -11, -13, -11, -9, -9, -9},
     {-19, -24, -34, -42, -44, -42, -34, -24, -19},
     {-19, -24, -32, -37, -37, -37, -32, -24, -19},
     {-19, -23, -27, -29, -30, -29, -27, -23, -19},
@@ -434,17 +475,17 @@ bool Board::check_position(int side, int i, int j, int *target_capture_score)
 
 int Board::c4di[4] = {0, 1, 0, -1}, Board::c4dj[4] = {1, 0, -1, 0};
 int Board::king_moves[256][4][2], Board::king_moves_count[256] = {0};
-int Board::horse_d[8][4] = {
-    {-2, 1, -1, 0},
-    {-1, 2, 0, 1},
-    {1, 2, 0, 1},
-    {2, 1, 1, 0},
-    {2, -1, 1, 0},
-    {1, -2, 0, -1},
-    {-1, -2, 0, -1},
-    {-2, -1, -1, 0}
+int Board::horse_d[8][6] = {
+    {-2, 1, -1, 0, -1, 1},
+    {-1, 2, 0, 1, -1, 1},
+    {1, 2, 0, 1, 1, 1},
+    {2, 1, 1, 0, 1, 1},
+    {2, -1, 1, 0, 1, -1},
+    {1, -2, 0, -1, 1, -1},
+    {-1, -2, 0, -1, -1, -1},
+    {-2, -1, -1, 0, -1, -1}
 };
-int Board::horse_moves[256][8][4], Board::horse_moves_count[256];
+int Board::horse_moves[256][8][6], Board::horse_moves_count[256];
 int Board::s4di[4] = {1, 1, -1, -1}, Board::s4dj[4] = {-1, 1, 1, -1};
 int Board::elephant_positions[7][2] = {{0, 2}, {0, 6}, {2, 0}, {2, 4}, {2, 8}, {4, 2}, {4, 6}};
 int Board::elephant_moves[256][4][4], Board::elephant_moves_count[256];
@@ -529,6 +570,8 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
                     horse_moves[p][index][1] = oj;
                     horse_moves[p][index][2] = i + horse_d[r][2];
                     horse_moves[p][index][3] = j + horse_d[r][3];
+                    horse_moves[p][index][4] = i + horse_d[r][4];
+                    horse_moves[p][index][5] = j + horse_d[r][5];
                 }
             }
         }
@@ -843,4 +886,96 @@ void Board::generate_pawn_moves(int index, MOVE *moves, int *capture_scores, int
             add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
                     capture_value * 8 - capture_values[PIECE_P]);
     }
+}
+
+bool Board::is_attacked(POSITION pos, bool test_all_attacks)
+{
+    int src_i = position_rank(pos), src_j = position_col(pos);
+    int side_to_attack = 1 - piece_side(board[src_i][src_j].piece);
+
+    // Detect attackings by rook, cannon, pawn, king
+    for (int r = 0; r < 4; ++r)
+    {
+        int oi = src_i, oj = src_j;
+        int len = 0;
+        bool ob = false;
+        while (true)
+        {
+            oi += c4di[r], oj += c4dj[r];
+            if (!is_on_board(oi, oj))
+                break;
+
+            ++len;
+
+            PIECE p = board[oi][oj].piece;
+            if (p == 0)
+                continue;
+
+            if (len == 1)
+            {
+                if (p == make_piece(side_to_attack, PIECE_P))
+                {
+                    POSITION pos = make_position(oi, oj);
+                    for (int j = 0; j < pawn_moves_count[side_to_attack][pos]; ++j)
+                        if (pawn_moves[side_to_attack][pos][j][0] == src_i
+                                && pawn_moves[side_to_attack][pos][j][1] == src_j)
+                            return true;
+                }
+                else if (test_all_attacks && p == make_piece(side_to_attack, PIECE_K))
+                {
+                    POSITION pos = make_position(oi, oj);
+                    for (int j = 0; j < king_moves_count[pos]; ++j)
+                        if (king_moves[pos][j][0] == src_i
+                                && king_moves[pos][j][1] == src_j)
+                            return true;
+                }
+            }
+
+            if (!ob)
+            {
+                if (p == make_piece(side_to_attack, PIECE_R))
+                    return true;
+                else
+                    ob = true;
+            }
+            else
+            {
+                if (p == make_piece(side_to_attack, PIECE_C))
+                    return true;
+                else
+                    break;
+            }
+        }
+    }
+
+    // Detect attackings by horse
+    for (int i = 0; i < horse_moves_count[pos]; ++i)
+    {
+        int oi = horse_moves[pos][i][0], oj = horse_moves[pos][i][1];
+        if (board[oi][oj].piece == make_piece(side_to_attack, PIECE_H)
+                && board[horse_moves[pos][i][4]][horse_moves[pos][i][5]].piece == 0)
+            return true;
+    }
+
+    if (!test_all_attacks)
+        return false;
+
+    // Detect attackings by elephant
+    for (int i = 0; i < elephant_moves_count[pos]; ++i)
+    {
+        int oi = elephant_moves[pos][i][0], oj = elephant_moves[pos][i][1];
+        if (board[oi][oj].piece == make_piece(side_to_attack, PIECE_E)
+                && board[elephant_moves[pos][i][2]][elephant_moves[pos][i][3]].piece == 0)
+            return true;
+    }
+
+    // Detect attackings by assistant
+    for (int i = 0; i < assistant_moves_count[pos]; ++i)
+    {
+        int oi = assistant_moves[pos][i][0], oj = assistant_moves[pos][i][1];
+        if (board[oi][oj].piece == make_piece(side_to_attack, PIECE_A))
+            return true;
+    }
+
+    return false;
 }

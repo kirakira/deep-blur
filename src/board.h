@@ -14,7 +14,7 @@ class Board
 
         void set(std::string fen);
 
-        bool move(MOVE m, bool *game_end = NULL);
+        bool move(MOVE m, bool *game_end = NULL, bool *rep = NULL);
         bool checked_move(MOVE m);
         void unmove();
         bool checked_unmove();
@@ -49,6 +49,7 @@ class Board
         {
             MOVE move;
             BoardEntry capture;
+            uint8_t rep_side;
         } HistoryEntry;
 
         BoardEntry board[H][W];
@@ -63,12 +64,14 @@ class Board
         int current_static_value;
 
         std::vector<HistoryEntry> history;
+        static const int NON_REP = 2;
 
         static bool is_valid_position(PIECE piece, int i, int j);
         static bool is_in_palace(int side, int i, int j);
         static bool is_in_half(int side, int i, int j);
         static bool is_on_board(int i, int j);
         bool check_position(int side, int i, int j, int *target_capture_score);
+        bool is_attacked(POSITION pos, bool test_all_attacks);
 
         class BoardStaticFieldsInitializer
         {
@@ -79,8 +82,8 @@ class Board
 
         static int c4di[4], c4dj[4];
         static int king_moves[256][4][2], king_moves_count[256];
-        static int horse_d[8][4];
-        static int horse_moves[256][8][4], horse_moves_count[256];
+        static int horse_d[8][6];
+        static int horse_moves[256][8][6], horse_moves_count[256];
         static int s4di[4], s4dj[4];
         static int elephant_positions[7][2];
         static int elephant_moves[256][4][4], elephant_moves_count[256];

@@ -17,3 +17,4 @@ MOVE make_move(std::string s);
 POSITION move_src(MOVE move);
 POSITION move_dst(MOVE move);
 std::string move_string(MOVE move);
+bool are_inverse_moves(MOVE move1, MOVE move2);
