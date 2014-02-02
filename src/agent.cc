@@ -169,81 +169,80 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     {
         if (nullable)
             ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, false);
-        bool game_end;
 
         if (ans < beta)
         {
             ans = -INF;
+
+            bool game_end;
+            bool moves_generated = false;
+            MOVE moves[120];
+            int moves_count = 0, capture_scores[120], history_scores[120];
 
             if (his_move != 0 && board.move(his_move, &game_end))
             {
                 if (game_end)
                     ans = INF;
                 else
-                    ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -alpha, true);
+                    moves[moves_count++] = his_move;
+                board.unmove();
+            }
+
+            for (int i = 0; ans < beta && (!moves_generated || i < moves_count); ++i)
+            {
+                if (i == moves_count)
+                {
+                    int start = moves_count;
+                    board.generate_moves(side, moves + start,
+                            capture_scores + start, &moves_count);
+                    order_moves(moves + start, capture_scores + start, moves_count, 1);
+
+                    for (int i = 0; i < moves_count; ++i)
+                        history_scores[i + start] = move_score[moves[i + start]];
+                    if (capture_scores[start] >= 50)
+                        order_moves(moves + start + 1, history_scores + start + 1, moves_count - 1, 5);
+                    else
+                        order_moves(moves + start, history_scores + start, moves_count, 5);
+
+                    moves_count += start;
+                    moves_generated = true;
+                }
+
+                if (moves_generated && moves[i] == his_move)
+                    continue;
+
+                MOVE move = moves[i];
+                if (!board.move(move, &game_end))
+                    continue;
+
+                int t;
+                if (game_end)
+                    t = INF;
+                else
+                {
+                    int current_alpha = max(alpha, ans);
+                    t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true);
+                }
                 board.unmove();
 
-                best_move = his_move;
-                first_ans = ans;
-            }
+                if (i == 0)
+                    first_ans = t;
 
-            if (ans < beta)
-            {
-                MOVE moves[120];
-                int capture_scores[120], moves_count;
-
-                board.generate_moves(side, moves, capture_scores, &moves_count);
-                order_moves(moves, capture_scores, moves_count, 1);
-
-                int history_scores[120];
-                for (int i = 0; i < moves_count; ++i)
-                    history_scores[i] = move_score[moves[i]];
-
-                if (capture_scores[0] >= 50)
-                    order_moves(moves + 1, history_scores + 1, moves_count - 1, 5);
-                else
-                    order_moves(moves, history_scores, moves_count, 5);
-
-                for (int i = 0; i < moves_count; ++i)
+                if (t > ans)
                 {
-                    if (moves[i] == his_move)
-                        continue;
+                    best_move = move;
+                    ans = t;
+                }
 
-                    MOVE move = moves[i];
-                    if (!board.move(move, &game_end))
-                        continue;
-
-                    int t;
-                    if (game_end)
-                        t = INF;
-                    else
-                    {
-                        int current_alpha = max(alpha, ans);
-                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true);
-                    }
-                    board.unmove();
-
-                    if (his_move == 0 && i == 0)
-                        first_ans = t;
-
-                    if (t > ans)
-                    {
-                        best_move = move;
-                        ans = t;
-                    }
-
-                    if (t >= beta)
-                    {
-                        if (depth > 0)
-                            move_score[move] += depth * depth;
-                        if (his_move == 0 && i == 0)
-                            ++first_cut;
-                        break;
-                    }
+                if (t >= beta)
+                {
+                    if (depth > 0 && move != his_move)
+                        move_score[move] += depth * depth;
+                    if (i == 0)
+                        ++first_cut;
+                    break;
                 }
             }
-            else
-                ++first_cut;
         }
         else
             ++null_cut;
