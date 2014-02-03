@@ -147,7 +147,7 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
     current_static_value -= static_values[src.piece][src_i][src_j];
 
     uint8_t rep_side = NON_REP;
-    uint8_t my_side = piece_side(src.piece);
+    int my_side = piece_side(src.piece);
     if (history.size() >= 4)
     {
         if (history[history.size() - 1].rep_side != NON_REP)
@@ -164,9 +164,9 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
                     && history[history.size() - 2].capture.piece == 0
                     && history[history.size() - 3].capture.piece == 0
                     && piece_type(src.piece) != PIECE_K
-                    && is_attacked(move_dst(history[history.size() - 1].move), true)
-               )
-                rep_side = my_side;
+                    && (is_attacked(move_dst(history[history.size() - 1].move), true)
+                        || in_check(1 - my_side)))
+                rep_side = (uint8_t) my_side;
         }
     }
 

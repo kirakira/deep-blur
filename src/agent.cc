@@ -288,8 +288,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 int Agent::quiescence(Board &board, int side, int alpha, int beta)
 {
     vector<uint64_t> rep[2];
+    vector<MOVE> va;
     int last_progress[2] = {-1, -1};
-    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), INVALID_POSITION);
+    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), INVALID_POSITION, 0, va);
 }
 
 bool Agent::is_winning_capture(Board &board, MOVE move, int score, int side)
@@ -349,11 +350,24 @@ int Agent::static_exchange_eval(Board &board, int side, POSITION pos)
     return max(ans, ret);
 }
 
-int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_pos)
+int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_pos, int ply, vector<MOVE> &va)
 {
+    uint64_t my_hash = board.hash_code(side);
     for (int i = last_progress[side] + 1; i < rep[side].size(); ++i)
         if (rep[side][i] == board.hash_code(side))
             return 0;
+
+    rep[side].push_back(my_hash);
+
+    /*
+    if (ply >= 10)
+    {
+        cout << "ply: " << ply << ", history size: " << rep[side].size() << endl;
+        for (int i = 0; i < va.size(); ++i)
+            cout << move_string(va[i]) << " ";
+        cout << endl;
+        //board.print();
+    }*/
 
     int ans;
     if (in_check)
@@ -361,72 +375,82 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
     else
         ans = board.static_value(side);
 
-    if (ans >= beta)
-        return ans;
-
-    MOVE moves[120];
-    int capture_scores[120], moves_count = 0;
-    board.generate_moves(side, moves, capture_scores, &moves_count);
-
-    if (!in_check)
+    if (ans < beta)
     {
-        int c = 0;
+        MOVE moves[120];
+        int capture_scores[120], moves_count = 0;
+        board.generate_moves(side, moves, capture_scores, &moves_count);
+
+        int cap = 0;
         for (int i = 0; i < moves_count; ++i)
             if (capture_scores[i] > Board::NON_CAPTURE)
+                ++cap;
+
+        if (!in_check)
+        {
+            int c = 0;
+            for (int i = 0; i < moves_count; ++i)
+                if (capture_scores[i] > Board::NON_CAPTURE)
+                {
+                    MOVE tm = moves[c];
+                    moves[c] = moves[i];
+                    moves[i] = tm;
+                    int t = capture_scores[c];
+                    capture_scores[c] = capture_scores[i];
+                    capture_scores[i] = t;
+
+                    ++c;
+                }
+            order_moves(moves, capture_scores, c, c);
+            moves_count = c;
+        }
+
+        for (int i = 0; ans < beta && i < moves_count; ++i)
+        {
+            bool game_end, rep_attack;
+            if (!board.move(moves[i], &game_end, &rep_attack))
+                continue;
+            if (rep_attack || board.in_check(side) || game_end)
             {
-                MOVE tm = moves[c];
-                moves[c] = moves[i];
-                moves[i] = tm;
-                int t = capture_scores[c];
-                capture_scores[c] = capture_scores[i];
-                capture_scores[i] = t;
-
-                ++c;
+                if (game_end)
+                    ans = INF;
+                board.unmove();
+                continue;
             }
-        moves_count = c;
-        order_moves(moves, capture_scores, moves_count, c);
-    }
 
-    for (int i = 0; ans < beta && i < moves_count; ++i)
-    {
-        bool game_end, rep_attack;
-        if (!board.move(moves[i], &game_end, &rep_attack))
-            continue;
-        if (rep_attack || board.in_check(side) || game_end)
-        {
-            if (game_end)
-                ans = INF;
-            board.unmove();
-            continue;
-        }
-
-        bool next_in_check = board.in_check(1 - side);
-        board.unmove();
-
-        if (in_check || next_in_check ||
-                (capture_scores[i] > Board::NON_CAPTURE
-                && ((move_dst(moves[i]) == last_pos)
-                || is_winning_capture(board, moves[i], capture_scores[i], side))))
-        {
-            board.move(moves[i]);
-            int saved_progress = last_progress[1 - side];
-            if (capture_scores[i] > Board::NON_CAPTURE)
-                last_progress[1 - side] = rep[1 - side].size();
-            rep[side].push_back(board.hash_code(side));
-
-            int current_alpha = max(alpha, ans);
-            int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep, last_progress, next_in_check, move_dst(moves[i]));
-
-            rep[side].pop_back();
-            last_progress[1 - side] = saved_progress;
-
+            bool next_in_check = board.in_check(1 - side);
             board.unmove();
 
-            if (t >= ans)
-                ans = t;
-        }
+            if (in_check || next_in_check ||
+                    (capture_scores[i] > Board::NON_CAPTURE
+                     && ((move_dst(moves[i]) == last_pos)
+                         || is_winning_capture(board, moves[i], capture_scores[i], side))))
+            {
+                board.move(moves[i]);
+                int saved_progress = last_progress[1 - side];
+                if (capture_scores[i] > Board::NON_CAPTURE)
+                    last_progress[1 - side] = rep[1 - side].size();
 
+                /*
+                board.print();
+                cout << "trying " << move_string(moves[i]) << " of score " << capture_scores[i] << endl;
+                va.push_back(moves[i]);*/
+
+                int current_alpha = max(alpha, ans);
+                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep, last_progress, next_in_check, move_dst(moves[i]), ply + 1, va);
+
+                va.pop_back();
+                last_progress[1 - side] = saved_progress;
+
+                board.unmove();
+
+                if (t >= ans)
+                    ans = t;
+            }
+
+        }
     }
+    rep[side].pop_back();
 
     return ans;
 }
