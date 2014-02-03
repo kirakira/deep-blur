@@ -11,7 +11,7 @@ Agent::Agent()
 {
 }
 
-int Agent::select_best_move(MOVE *moves, int *scores, int moves_count)
+int Agent::select_best_move(int *scores, int moves_count)
 {
     int best = scores[0], besti = 0;
     for (int i = 1; i < moves_count; ++i)
@@ -27,7 +27,7 @@ void Agent::order_moves(MOVE *moves, int *scores, int moves_count, int order_cou
 {
     while (order_count > 0 && moves_count > 0)
     {
-        int besti = select_best_move(moves, scores, moves_count);
+        int besti = select_best_move(scores, moves_count);
         if (besti != 0)
         {
             MOVE t = moves[besti];
@@ -91,13 +91,11 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
         {
             if (d > 0 && d >= level - count && (t == 0 || board.checked_move(t)))
             {
+                ++count;
                 if (t == 0)
                     cout << "null";
                 else
-                {
-                    ++count;
                     cout << move_string(t);
-                }
                 cout << "(" << d << ": ";
                 if (exact == Transposition::LOWER)
                     cout << ">=";
@@ -116,6 +114,9 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
             --count;
             board.unmove();
         }
+
+        if (ret >= INF)
+            break;
     }
     return ret;
 }
@@ -353,7 +354,7 @@ int Agent::static_exchange_eval(Board &board, int side, POSITION pos)
 int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_pos, int ply, vector<MOVE> &va)
 {
     uint64_t my_hash = board.hash_code(side);
-    for (int i = last_progress[side] + 1; i < rep[side].size(); ++i)
+    for (size_t i = last_progress[side] + 1; i < rep[side].size(); ++i)
         if (rep[side][i] == board.hash_code(side))
             return 0;
 

@@ -15,7 +15,7 @@ class Agent
         static const int INF = 2047;
 
     protected:
-        int select_best_move(MOVE *moves, int *scores, int moves_count);
+        int select_best_move(int *scores, int moves_count);
         void order_moves(MOVE *moves, int *scores, int moves_count, int order_count);
         int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable);
         int id(Board &board, int side, MOVE *result, int depth);
