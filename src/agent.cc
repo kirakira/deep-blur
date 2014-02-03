@@ -77,7 +77,7 @@ int Agent::search(Board &board, int side, MOVE *result, int depth)
 
 int Agent::id(Board &board, int side, MOVE *result, int depth)
 {
-    int ret;
+    int ret = 0;
     memset(move_score, 0, sizeof(move_score));
 
     for (int level = 1; level <= depth; ++level)
@@ -291,7 +291,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta)
     vector<uint64_t> rep[2];
     vector<MOVE> va;
     int last_progress[2] = {-1, -1};
-    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), INVALID_POSITION, 0, va);
+    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), INVALID_POSITION);
 }
 
 bool Agent::is_winning_capture(Board &board, MOVE move, int score, int side)
@@ -351,7 +351,7 @@ int Agent::static_exchange_eval(Board &board, int side, POSITION pos)
     return max(ans, ret);
 }
 
-int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_pos, int ply, vector<MOVE> &va)
+int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_pos)
 {
     uint64_t my_hash = board.hash_code(side);
     for (size_t i = last_progress[side] + 1; i < rep[side].size(); ++i)
@@ -359,16 +359,6 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
             return 0;
 
     rep[side].push_back(my_hash);
-
-    /*
-    if (ply >= 10)
-    {
-        cout << "ply: " << ply << ", history size: " << rep[side].size() << endl;
-        for (int i = 0; i < va.size(); ++i)
-            cout << move_string(va[i]) << " ";
-        cout << endl;
-        //board.print();
-    }*/
 
     int ans;
     if (in_check)
@@ -432,15 +422,9 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
                 if (capture_scores[i] > Board::NON_CAPTURE)
                     last_progress[1 - side] = rep[1 - side].size();
 
-                /*
-                board.print();
-                cout << "trying " << move_string(moves[i]) << " of score " << capture_scores[i] << endl;
-                va.push_back(moves[i]);*/
-
                 int current_alpha = max(alpha, ans);
-                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep, last_progress, next_in_check, move_dst(moves[i]), ply + 1, va);
+                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep, last_progress, next_in_check, move_dst(moves[i]));
 
-                va.pop_back();
                 last_progress[1 - side] = saved_progress;
 
                 board.unmove();

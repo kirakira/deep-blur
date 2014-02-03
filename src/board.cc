@@ -189,7 +189,6 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
 
     if (king_face_to_face())
     {
-        cout << "failed to move because king face to face" << endl;
         unmove();
         return false;
     }
@@ -666,11 +665,6 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
     int index;
     *moves_count = 0;
 
-    int cap = 0;
-    for (int i = 0; i < *moves_count; ++i)
-        if (capture_scores[i] > NON_CAPTURE)
-            ++cap;
-
     // Rook
     index = 7;
     if (side != 0)
@@ -678,10 +672,6 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_rook_moves(index + i, moves, capture_scores, moves_count);
-
-    for (int i = 0; i < *moves_count; ++i)
-        if (capture_scores[i] > NON_CAPTURE)
-            ++cap;
 
     // Horse
     index = 5;
@@ -691,10 +681,6 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
         if (pieces[index + i].piece != 0)
             generate_horse_moves(index + i, moves, capture_scores, moves_count);
 
-    for (int i = 0; i < *moves_count; ++i)
-        if (capture_scores[i] > NON_CAPTURE)
-            ++cap;
-
     // Cannon
     index = 9;
     if (side != 0)
@@ -702,10 +688,6 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_cannon_moves(index + i, moves, capture_scores, moves_count);
-
-    for (int i = 0; i < *moves_count; ++i)
-        if (capture_scores[i] > NON_CAPTURE)
-            ++cap;
 
     // Pawn
     index = 11;
@@ -715,10 +697,6 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
         if (pieces[index + i].piece != 0)
             generate_pawn_moves(index + i, moves, capture_scores, moves_count);
 
-    for (int i = 0; i < *moves_count; ++i)
-        if (capture_scores[i] > NON_CAPTURE)
-            ++cap;
-
     // Assistant
     index = 1;
     if (side != 0)
@@ -726,10 +704,6 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_assistant_moves(index + i, moves, capture_scores, moves_count);
-
-    for (int i = 0; i < *moves_count; ++i)
-        if (capture_scores[i] > NON_CAPTURE)
-            ++cap;
 
     // Elephant
     index = 3;
@@ -739,19 +713,11 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
         if (pieces[index + i].piece != 0)
             generate_elephant_moves(index + i, moves, capture_scores, moves_count);
 
-    for (int i = 0; i < *moves_count; ++i)
-        if (capture_scores[i] > NON_CAPTURE)
-            ++cap;
-
     // King
     index = 0;
     if (side != 0)
         index += 16;
     generate_king_moves(index, moves, capture_scores, moves_count);
-
-    for (int i = 0; i < *moves_count; ++i)
-        if (capture_scores[i] > NON_CAPTURE)
-            ++cap;
 }
 
 void Board::generate_king_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
@@ -768,7 +734,7 @@ void Board::generate_king_moves(int index, MOVE *moves, int *capture_scores, int
     }
 }
 
-void Board::generate_assistant_moves(int index, MOVE *moves, int *capture_values, int *moves_count)
+void Board::generate_assistant_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
@@ -777,7 +743,7 @@ void Board::generate_assistant_moves(int index, MOVE *moves, int *capture_values
         int oi = assistant_moves[pos][i][0], oj = assistant_moves[pos][i][1];
         int capture_value;
         if (check_position(side, oi, oj, &capture_value))
-            add_move(moves, capture_values, moves_count, make_move(pos, make_position(oi, oj)),
+            add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
                     capture_value * 8 - capture_values[PIECE_A]);
     }
 }
