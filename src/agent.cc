@@ -333,10 +333,16 @@ int Agent::static_exchange_eval(Board &board, int side, POSITION pos)
     }
 
     int ans = board.static_value(side);
-    if (besti == -1 || !board.move(moves[besti]))
+
+    bool game_end;
+    if (besti == -1 || !board.move(moves[besti], &game_end))
         return ans;
 
-    int ret = -static_exchange_eval(board, 1 - side, pos);
+    int ret;
+    if (game_end)
+        ret = INF;
+    else
+        ret = -static_exchange_eval(board, 1 - side, pos);
 
     board.unmove();
 
@@ -381,41 +387,45 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
         order_moves(moves, capture_scores, moves_count, c);
     }
 
-    for (int i = 0; i < moves_count; ++i)
+    for (int i = 0; ans < beta && i < moves_count; ++i)
     {
-        bool next_in_check;
-        if (!(in_check ||
-                (capture_scores[i] > Board::NON_CAPTURE
-                && ((move_dst(moves[i]) == last_pos)
-                || is_winning_capture(board, moves[i], capture_scores[i], side)))))
+        bool game_end, rep_attack;
+        if (!board.move(moves[i], &game_end, &rep_attack))
             continue;
-        if (!board.move(moves[i]))
-            continue;
-        if (board.in_check(side))
+        if (rep_attack || board.in_check(side) || game_end)
         {
+            if (game_end)
+                ans = INF;
             board.unmove();
             continue;
         }
 
-        next_in_check = board.in_check(1 - side);
-
-        int saved_progress = last_progress[1 - side];
-        if (capture_scores[i] > Board::NON_CAPTURE)
-            last_progress[1 - side] = rep[1 - side].size();
-        rep[side].push_back(board.hash_code(side));
-
-        int current_alpha = max(alpha, ans);
-        int t = -quiescence(board, side, -beta, -current_alpha, rep, last_progress, next_in_check, move_dst(moves[i]));
-
-        rep[side].pop_back();
-        last_progress[1 - side] = saved_progress;
+        bool next_in_check = board.in_check(1 - side);
         board.unmove();
 
-        if (t >= ans)
-            ans = t;
+        if (in_check || next_in_check ||
+                (capture_scores[i] > Board::NON_CAPTURE
+                && ((move_dst(moves[i]) == last_pos)
+                || is_winning_capture(board, moves[i], capture_scores[i], side))))
+        {
+            board.move(moves[i]);
+            int saved_progress = last_progress[1 - side];
+            if (capture_scores[i] > Board::NON_CAPTURE)
+                last_progress[1 - side] = rep[1 - side].size();
+            rep[side].push_back(board.hash_code(side));
 
-        if (t >= beta)
-            break;
+            int current_alpha = max(alpha, ans);
+            int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep, last_progress, next_in_check, move_dst(moves[i]));
+
+            rep[side].pop_back();
+            last_progress[1 - side] = saved_progress;
+
+            board.unmove();
+
+            if (t >= ans)
+                ans = t;
+        }
+
     }
 
     return ans;
