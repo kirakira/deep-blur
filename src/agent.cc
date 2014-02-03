@@ -1,5 +1,4 @@
 #include <iostream>
-#include <algorithm>
 #include <cstring>
 #include <ctime>
 
@@ -81,7 +80,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
     int ret;
     memset(move_score, 0, sizeof(move_score));
 
-    for (int level = 0; level <= depth; ++level)
+    for (int level = 1; level <= depth; ++level)
     {
         ret = alpha_beta(board, side, result, level, -INF, INF, false);
 
@@ -128,6 +127,9 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 // Internal iterative deepening: 10%
 // Not tring null-move if transposition table suggests it's unlikely to fail-high: 10%
 // Trying history move first, then if not cut-off, generate remaining moves
+//
+// We don't detect repetitions other than repeated attacks in Board::move
+// since an ordinary repetition detection is not compatible with transposition tables
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable)
@@ -169,7 +171,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     if (depth == 0)
     {
         ++leaf;
-        ans = board.static_value(side);
+        ans = quiescence(board, side, alpha, beta);
     }
     else
     {
@@ -280,5 +282,141 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     if (result)
         *result = best_move;
+    return ans;
+}
+
+int Agent::quiescence(Board &board, int side, int alpha, int beta)
+{
+    vector<uint64_t> rep[2];
+    int last_progress[2] = {-1, -1};
+    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), INVALID_POSITION);
+}
+
+bool Agent::is_winning_capture(Board &board, MOVE move, int score, int side)
+{
+    int captured = (score >> 3), capturing = 8 - (score & 7);
+    if (captured > capturing)
+        return true;
+
+    int v = board.static_value(side);
+
+    bool game_end;
+    if (!board.move(move, &game_end))
+        return false;
+    if (game_end)
+    {
+        board.unmove();
+        return true;
+    }
+
+    int ret = -static_exchange_eval(board, 1 - side, move_dst(move));
+
+    board.unmove();
+
+    return v < ret;
+}
+
+int Agent::static_exchange_eval(Board &board, int side, POSITION pos)
+{
+    MOVE moves[120];
+    int capture_scores[120], moves_count;
+    board.generate_moves(side, moves, capture_scores, &moves_count);
+
+    int besti = -1;
+    for (int i = 0; i < moves_count; ++i)
+    {
+        if (move_dst(moves[i]) == pos && capture_scores[i] > Board::NON_CAPTURE)
+        {
+            if (besti == -1 || capture_scores[i] > capture_scores[besti])
+                besti = i;
+        }
+    }
+
+    int ans = board.static_value(side);
+    if (besti == -1 || !board.move(moves[besti]))
+        return ans;
+
+    int ret = -static_exchange_eval(board, 1 - side, pos);
+
+    board.unmove();
+
+    return max(ans, ret);
+}
+
+int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_pos)
+{
+    for (int i = last_progress[side] + 1; i < rep[side].size(); ++i)
+        if (rep[side][i] == board.hash_code(side))
+            return 0;
+
+    int ans;
+    if (in_check)
+        ans = -INF;
+    else
+        ans = board.static_value(side);
+
+    if (ans >= beta)
+        return ans;
+
+    MOVE moves[120];
+    int capture_scores[120], moves_count = 0;
+    board.generate_moves(side, moves, capture_scores, &moves_count);
+
+    if (!in_check)
+    {
+        int c = 0;
+        for (int i = 0; i < moves_count; ++i)
+            if (capture_scores[i] > Board::NON_CAPTURE)
+            {
+                MOVE tm = moves[c];
+                moves[c] = moves[i];
+                moves[i] = tm;
+                int t = capture_scores[c];
+                capture_scores[c] = capture_scores[i];
+                capture_scores[i] = t;
+
+                ++c;
+            }
+        moves_count = c;
+        order_moves(moves, capture_scores, moves_count, c);
+    }
+
+    for (int i = 0; i < moves_count; ++i)
+    {
+        bool next_in_check;
+        if (!(in_check ||
+                (capture_scores[i] > Board::NON_CAPTURE
+                && ((move_dst(moves[i]) == last_pos)
+                || is_winning_capture(board, moves[i], capture_scores[i], side)))))
+            continue;
+        if (!board.move(moves[i]))
+            continue;
+        if (board.in_check(side))
+        {
+            board.unmove();
+            continue;
+        }
+
+        next_in_check = board.in_check(1 - side);
+
+        int saved_progress = last_progress[1 - side];
+        if (capture_scores[i] > Board::NON_CAPTURE)
+            last_progress[1 - side] = rep[1 - side].size();
+        rep[side].push_back(board.hash_code(side));
+
+        int current_alpha = max(alpha, ans);
+        int t = -quiescence(board, side, -beta, -current_alpha, rep, last_progress, next_in_check, move_dst(moves[i]));
+
+        rep[side].pop_back();
+        last_progress[1 - side] = saved_progress;
+        board.unmove();
+
+        if (t >= ans)
+            ans = t;
+
+        if (t >= beta)
+            break;
+    }
+
     return ans;
 }

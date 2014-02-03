@@ -6,6 +6,8 @@
 typedef uint8_t POSITION;
 typedef uint16_t MOVE;
 
+const POSITION INVALID_POSITION = 255;
+
 inline POSITION make_position(int rank, int col)
 {
     return (POSITION) ((rank << 4) | col);

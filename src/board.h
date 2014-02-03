@@ -71,6 +71,8 @@ class Board
         static bool is_in_half(int side, int i, int j);
         static bool is_on_board(int i, int j);
         bool check_position(int side, int i, int j, int *target_capture_score);
+
+        inline bool king_face_to_face();
         bool is_attacked(POSITION pos, bool test_all_attacks);
 
         class BoardStaticFieldsInitializer

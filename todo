@@ -1,2 +1,4 @@
 QS: until not in check && no recaptures
+Draw by repeptition
+is_attacked return a cheapest attacking piece
 PV list

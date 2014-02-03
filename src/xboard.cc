@@ -138,6 +138,10 @@ int main()
             else
                 go(board, agent, side);
         }
+        else if (command == "qs")
+        {
+            cout << agent.quiescence(board, side, -Agent::INF, Agent::INF) << endl;
+        }
         else if (command == "xboard" || command == "new" || command == "random" || command == "accepted" || command == "rejected" || command == "variant" || command == "post" || command == "hard")
         {
             // do nothing

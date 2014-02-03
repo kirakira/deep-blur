@@ -184,7 +184,13 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
             *rep = false;
     }
 
-    return true;
+    if (king_face_to_face())
+    {
+        unmove();
+        return false;
+    }
+    else
+        return true;
 }
 
 void Board::unmove()
@@ -713,37 +719,15 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
 
 void Board::generate_king_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
 {
-    POSITION pos = pieces[index].position, other_king_pos = pieces[16 - index].position;
+    POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
     for (int i = 0; i < king_moves_count[pos]; ++i)
     {
         int oi = king_moves[pos][i][0], oj = king_moves[pos][i][1];
         int capture_value;
         if (check_position(side, oi, oj, &capture_value))
-        {
-            bool face = false;
-            if (oj != position_col(pos) && oj == position_col(other_king_pos))
-            {
-                int start, end;
-                if (oi < position_rank(other_king_pos))
-                {
-                    start = oi + 1;
-                    end = position_rank(other_king_pos) - 1;
-                }
-                else
-                {
-                    start = position_rank(other_king_pos) + 1;
-                    end = oi - 1;
-                }
-                face = true;
-                for (int j = start; face && j <= end; ++j)
-                    if (board[j][oj].piece != 0)
-                        face = false;
-            }
-            if (!face)
-                add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
-                        capture_value * 8 - capture_values[PIECE_K]);
-        }
+            add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
+                    capture_value * 8 - capture_values[PIECE_K]);
     }
 }
 
@@ -970,4 +954,24 @@ bool Board::is_attacked(POSITION pos, bool test_all_attacks)
     }
 
     return false;
+}
+
+bool Board::in_check(int side)
+{
+    int index = 0;
+    if (side != 0)
+        index += 16;
+    POSITION pos = pieces[index].position;
+    return is_attacked(pos, false);
+}
+
+bool Board::king_face_to_face()
+{
+    POSITION pos1 = pieces[0].position, pos2 = pieces[16].position;
+    if (position_col(pos1) != position_col(pos2))
+        return false;
+    for (int i = position_rank(pos1) + 1; i <= position_rank(pos2) - 1; ++i)
+        if (board[i][position_col(pos1)].piece != 0)
+            return false;
+    return true;
 }
