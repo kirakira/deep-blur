@@ -101,7 +101,7 @@ uint64_t Board::hash_code(int side)
         return hash ^ hash_side;
 }
 
-bool Board::checked_move(MOVE move, bool *rep)
+bool Board::checked_move(int side, MOVE move, bool *rep)
 {
     int src_i = position_rank(move_src(move)),
         src_j = position_col(move_src(move)),
@@ -114,6 +114,54 @@ bool Board::checked_move(MOVE move, bool *rep)
         return false;
     if (src_i == dst_i && src_j == dst_j)
         return false;
+
+    PIECE src = board[src_i][src_j].piece;
+    if (piece_side(src) != side)
+        return false;
+    int index = board[src_i][src_j].index;
+
+    MOVE moves[120];
+    int scores[120], count = 0;
+    switch (piece_type(src))
+    {
+        case PIECE_K:
+            generate_king_moves(index, moves, scores, &count);
+            break;
+
+        case PIECE_A:
+            generate_assistant_moves(index, moves, scores, &count);
+            break;
+
+        case PIECE_E:
+            generate_elephant_moves(index, moves, scores, &count);
+            break;
+
+        case PIECE_H:
+            generate_horse_moves(index, moves, scores, &count);
+            break;
+
+        case PIECE_R:
+            generate_rook_moves(index, moves, scores, &count);
+            break;
+
+        case PIECE_C:
+            generate_cannon_moves(index, moves, scores, &count);
+            break;
+
+        case PIECE_P:
+            generate_pawn_moves(index, moves, scores, &count);
+            break;
+
+        default:
+            return false;
+    }
+    bool hit = false;
+    for (int i = 0; !hit && i < count; ++i)
+        if (moves[i] == move)
+            hit = true;
+    if (!hit)
+        return false;
+
     return this->move(move, NULL, rep);
 }
 

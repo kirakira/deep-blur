@@ -89,7 +89,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
         MOVE t;
         while (trans.get(board.hash_code(s), &score, &exact, &t, &d) && count < level)
         {
-            if (d > 0 && d >= level - count && (t == 0 || board.checked_move(t)))
+            if (d > 0 && d >= level - count && (t == 0 || board.checked_move(s, t)))
             {
                 ++count;
                 if (t == 0)
@@ -139,7 +139,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     MOVE his_move = 0;
     bool t_hit = false, rep;
     if (trans.get(board.hash_code(side), &his_score, &his_exact, &his_move, &his_depth)
-            && (his_move == 0 || board.checked_move(his_move, &rep)))
+            && (his_move == 0 || board.checked_move(side, his_move, &rep)))
     {
         if (his_move != 0)
             board.unmove();

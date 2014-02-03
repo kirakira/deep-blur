@@ -82,7 +82,7 @@ int main()
             side = 1;
         else if (is_move(command))
         {
-            if (!board.checked_move(make_move(command)))
+            if (!board.checked_move(side, make_move(command)))
                 cout << "Illegal move: " << command << endl;
             else
             {
