@@ -28,8 +28,34 @@ class Transposition
         Transposition(int table_depth);
         ~Transposition();
 
-        void put(uint64_t key, int score, int exact, MOVE move, int depth);
-        bool get(uint64_t key, int *score, int *exact, MOVE *move, int *depth);
+        inline void put(uint64_t key, int score, int exact, MOVE move, int depth)
+        {
+            int index = (int) (key & mask);
+            if (table[index].key == 0)
+                ++used;
+            table[index].key = (key & rev_mask) | (depth << 2) | exact;
+            table[index].value = (score << 16) | move;
+        }
+
+
+        inline bool get(uint64_t key, int *score, int *exact, MOVE *move, int *depth)
+        {
+            ++access;
+            int index = (int) (key & mask);
+            if (table[index].key == 0 || (table[index].key & rev_mask) != (key & rev_mask))
+            {
+                if (table[index].key != 0)
+                    ++collision;
+                return false;
+            }
+            int t = table[index].key & mask;
+            *depth = t >> 2;
+            *exact = t & 3;
+            *score = table[index].value >> 16;
+            *move = table[index].value & 0xffff;
+            return true;
+        }
+
 
         void clear();
 
