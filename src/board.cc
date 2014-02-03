@@ -109,6 +109,7 @@ bool Board::checked_move(MOVE move, bool *rep)
         dst_j = position_col(move_dst(move));
     if (!(is_on_board(src_i, src_j) && is_on_board(dst_i, dst_j)))
         return false;
+    if (!(is_on_board(src_i, src_j) && is_on_board(dst_i, dst_j)))
     if (board[src_i][src_j].piece == 0)
         return false;
     if (src_i == dst_i && src_j == dst_j)
@@ -188,6 +189,7 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
 
     if (king_face_to_face())
     {
+        cout << "failed to move because king face to face" << endl;
         unmove();
         return false;
     }
@@ -664,6 +666,11 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
     int index;
     *moves_count = 0;
 
+    int cap = 0;
+    for (int i = 0; i < *moves_count; ++i)
+        if (capture_scores[i] > NON_CAPTURE)
+            ++cap;
+
     // Rook
     index = 7;
     if (side != 0)
@@ -671,6 +678,10 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_rook_moves(index + i, moves, capture_scores, moves_count);
+
+    for (int i = 0; i < *moves_count; ++i)
+        if (capture_scores[i] > NON_CAPTURE)
+            ++cap;
 
     // Horse
     index = 5;
@@ -680,6 +691,10 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
         if (pieces[index + i].piece != 0)
             generate_horse_moves(index + i, moves, capture_scores, moves_count);
 
+    for (int i = 0; i < *moves_count; ++i)
+        if (capture_scores[i] > NON_CAPTURE)
+            ++cap;
+
     // Cannon
     index = 9;
     if (side != 0)
@@ -687,6 +702,10 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_cannon_moves(index + i, moves, capture_scores, moves_count);
+
+    for (int i = 0; i < *moves_count; ++i)
+        if (capture_scores[i] > NON_CAPTURE)
+            ++cap;
 
     // Pawn
     index = 11;
@@ -696,6 +715,10 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
         if (pieces[index + i].piece != 0)
             generate_pawn_moves(index + i, moves, capture_scores, moves_count);
 
+    for (int i = 0; i < *moves_count; ++i)
+        if (capture_scores[i] > NON_CAPTURE)
+            ++cap;
+
     // Assistant
     index = 1;
     if (side != 0)
@@ -703,6 +726,10 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
             generate_assistant_moves(index + i, moves, capture_scores, moves_count);
+
+    for (int i = 0; i < *moves_count; ++i)
+        if (capture_scores[i] > NON_CAPTURE)
+            ++cap;
 
     // Elephant
     index = 3;
@@ -712,11 +739,19 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
         if (pieces[index + i].piece != 0)
             generate_elephant_moves(index + i, moves, capture_scores, moves_count);
 
+    for (int i = 0; i < *moves_count; ++i)
+        if (capture_scores[i] > NON_CAPTURE)
+            ++cap;
+
     // King
     index = 0;
     if (side != 0)
         index += 16;
     generate_king_moves(index, moves, capture_scores, moves_count);
+
+    for (int i = 0; i < *moves_count; ++i)
+        if (capture_scores[i] > NON_CAPTURE)
+            ++cap;
 }
 
 void Board::generate_king_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)

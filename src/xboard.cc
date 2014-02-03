@@ -152,7 +152,7 @@ int main()
         else if (command == "time")
         {
         }
-        else if (command == "otime")
+        else if (command == "otim")
         {
         }
         else
