@@ -157,6 +157,7 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
         }
         else
         {
+            POSITION victim = move_dst(history[history.size() - 1].move);
             if (history[history.size() - 4].move == move
                     && dst.piece == 0 && are_inverse_moves(move, history[history.size() - 2].move)
                     && are_inverse_moves(history[history.size() - 1].move, history[history.size() - 3].move)
@@ -164,8 +165,9 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
                     && history[history.size() - 2].capture.piece == 0
                     && history[history.size() - 3].capture.piece == 0
                     && piece_type(src.piece) != PIECE_K
-                    && (is_attacked(move_dst(history[history.size() - 1].move), true)
-                        || in_check(1 - my_side)))
+                    && (is_attacked(victim, true)
+                        || (piece_type(board[position_rank(victim)][position_col(victim)].piece) != PIECE_K
+                            && in_check(1 - my_side))))
                 rep_side = (uint8_t) my_side;
         }
     }
