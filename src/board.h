@@ -89,7 +89,7 @@ class Board
         static int s4di[4], s4dj[4];
         static int elephant_positions[7][2];
         static int elephant_moves[256][4][4], elephant_moves_count[256];
-        static int assistant_moves[256][4][2], assistant_moves_count[256];
+        static int advisor_moves[256][4][2], advisor_moves_count[256];
         static int pawn_moves[2][256][3][2], pawn_moves_count[2][256];
 
         void add_move(MOVE *moves, int *capture_scores, int *moves_count, MOVE move_to_add, int capture_score);
@@ -98,6 +98,6 @@ class Board
         void generate_horse_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
         void generate_cannon_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
         void generate_elephant_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
-        void generate_assistant_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
+        void generate_advisor_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
         void generate_pawn_moves(int index, MOVE *moves, int *capture_scores, int *moves_count);
 };

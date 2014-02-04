@@ -129,7 +129,7 @@ bool Board::checked_move(int side, MOVE move, bool *rep)
             break;
 
         case PIECE_A:
-            generate_assistant_moves(index, moves, scores, &count);
+            generate_advisor_moves(index, moves, scores, &count);
             break;
 
         case PIECE_E:
@@ -538,7 +538,7 @@ int Board::horse_moves[256][8][6], Board::horse_moves_count[256];
 int Board::s4di[4] = {1, 1, -1, -1}, Board::s4dj[4] = {-1, 1, 1, -1};
 int Board::elephant_positions[7][2] = {{0, 2}, {0, 6}, {2, 0}, {2, 4}, {2, 8}, {4, 2}, {4, 6}};
 int Board::elephant_moves[256][4][4], Board::elephant_moves_count[256];
-int Board::assistant_moves[256][4][2], Board::assistant_moves_count[256];
+int Board::advisor_moves[256][4][2], Board::advisor_moves_count[256];
 int Board::pawn_moves[2][256][3][2], Board::pawn_moves_count[2][256];
 
 Board::BoardStaticFieldsInitializer Board::board_initializer;
@@ -584,17 +584,17 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
             for (int j = 3; j <= 5; ++j)
             {
                 POSITION p = make_position(i, j);
-                assistant_moves_count[p] = 0;
+                advisor_moves_count[p] = 0;
                 for (int r = 0; r < 4; ++r)
                 {
                     int oi = i + s4di[r], oj = j + s4dj[r];
                     if (is_in_palace(side, oi, oj))
                     {
-                        int index = assistant_moves_count[p];
-                        ++assistant_moves_count[p];
+                        int index = advisor_moves_count[p];
+                        ++advisor_moves_count[p];
 
-                        assistant_moves[p][index][0] = oi;
-                        assistant_moves[p][index][1] = oj;
+                        advisor_moves[p][index][0] = oi;
+                        advisor_moves[p][index][1] = oj;
                     }
                 }
             }
@@ -751,7 +751,7 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
         index += 16;
     for (int i = 0; i < 2; ++i)
         if (pieces[index + i].piece != 0)
-            generate_assistant_moves(index + i, moves, capture_scores, moves_count);
+            generate_advisor_moves(index + i, moves, capture_scores, moves_count);
 
     // Elephant
     index = 3;
@@ -782,13 +782,13 @@ void Board::generate_king_moves(int index, MOVE *moves, int *capture_scores, int
     }
 }
 
-void Board::generate_assistant_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
+void Board::generate_advisor_moves(int index, MOVE *moves, int *capture_scores, int *moves_count)
 {
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
-    for (int i = 0; i < assistant_moves_count[pos]; ++i)
+    for (int i = 0; i < advisor_moves_count[pos]; ++i)
     {
-        int oi = assistant_moves[pos][i][0], oj = assistant_moves[pos][i][1];
+        int oi = advisor_moves[pos][i][0], oj = advisor_moves[pos][i][1];
         int capture_value;
         if (check_position(side, oi, oj, &capture_value))
             add_move(moves, capture_scores, moves_count, make_move(pos, make_position(oi, oj)),
@@ -996,10 +996,10 @@ bool Board::is_attacked(POSITION pos, bool test_all_attacks)
             return true;
     }
 
-    // Detect attackings by assistant
-    for (int i = 0; i < assistant_moves_count[pos]; ++i)
+    // Detect attackings by advisor
+    for (int i = 0; i < advisor_moves_count[pos]; ++i)
     {
-        int oi = assistant_moves[pos][i][0], oj = assistant_moves[pos][i][1];
+        int oi = advisor_moves[pos][i][0], oj = advisor_moves[pos][i][1];
         if (board[oi][oj].piece == make_piece(side_to_attack, PIECE_A))
             return true;
     }
