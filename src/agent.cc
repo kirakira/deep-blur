@@ -85,7 +85,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
         ret = alpha_beta(board, side, result, level, -INF, INF, false);
 
         cout << "# Level " << level << ": ";
-        int score, exact, d, s = side, count = 0;
+        int score, exact, d, s = side, non_null_count = 0, count = 0;
         MOVE t;
         while (trans.get(board.hash_code(s), &score, &exact, &t, &d) && count < level)
         {
@@ -95,7 +95,10 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
                 if (t == 0)
                     cout << "null";
                 else
+                {
+                    ++non_null_count;
                     cout << move_string(t);
+                }
                 cout << "(" << d << ": ";
                 if (exact == Transposition::LOWER)
                     cout << ">=";
@@ -109,14 +112,11 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
                 break;
         }
         cout << endl;
-        while (count > 0)
+        while (non_null_count > 0)
         {
-            --count;
+            --non_null_count;
             board.unmove();
         }
-
-        if (ret >= INF)
-            break;
     }
     return ret;
 }

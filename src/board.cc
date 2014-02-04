@@ -155,6 +155,7 @@ bool Board::checked_move(int side, MOVE move, bool *rep)
         default:
             return false;
     }
+
     bool hit = false;
     for (int i = 0; !hit && i < count; ++i)
         if (moves[i] == move)

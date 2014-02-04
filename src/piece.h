@@ -33,7 +33,7 @@ inline PIECE make_piece(char letter)
         type = PIECE_A;
     else if (letter == 'e')
         type = PIECE_E;
-    else if (letter == 'h')
+    else if (letter == 'h' || letter == 'n')
         type = PIECE_H;
     else if (letter == 'r')
         type = PIECE_R;
