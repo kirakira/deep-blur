@@ -166,9 +166,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     int ans = -INF, first_ans = ans;
     MOVE best_move = 0;
 
-    if (depth >= 3 && !(t_hit && his_depth >= depth - 2 && his_move != 0 && !rep))
-        alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false);
-
     if (depth == 0)
     {
         ++leaf;
@@ -182,6 +179,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         if (ans < beta)
         {
             ans = -INF;
+
+            if (depth >= 3)
+                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false);
 
             bool moves_generated = false;
             MOVE moves[120];
