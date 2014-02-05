@@ -252,8 +252,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
                 if (t >= beta)
                 {
-                    if (move != his_move)
-                        move_score[move] += depth * depth;
+                    move_score[move] += depth * depth;
                     if (i == 0)
                         ++first_cut;
                     break;
