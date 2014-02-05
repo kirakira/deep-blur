@@ -291,7 +291,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta)
     vector<uint64_t> rep[2];
     vector<MOVE> va;
     int last_progress[2] = {-1, -1};
-    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), INVALID_POSITION);
+    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side));
 }
 
 bool Agent::is_winning_capture(Board &board, MOVE move, int score, int side)
@@ -351,7 +351,7 @@ int Agent::static_exchange_eval(Board &board, int side, POSITION pos)
     return max(ans, ret);
 }
 
-int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_pos)
+int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep, int *last_progress, bool in_check)
 {
     uint64_t my_hash = board.hash_code(side);
     for (size_t i = last_progress[side] + 1; i < rep[side].size(); ++i)
@@ -413,9 +413,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
             board.unmove();
 
             if (in_check || next_in_check ||
-                    (capture_scores[i] > Board::NON_CAPTURE
-                     && ((move_dst(moves[i]) == last_pos)
-                         || is_winning_capture(board, moves[i], capture_scores[i], side))))
+                    capture_scores[i] > Board::NON_CAPTURE)
             {
                 board.move(moves[i]);
                 int saved_progress = last_progress[1 - side];
@@ -423,7 +421,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
                     last_progress[1 - side] = rep[1 - side].size();
 
                 int current_alpha = max(alpha, ans);
-                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep, last_progress, next_in_check, move_dst(moves[i]));
+                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep, last_progress, next_in_check);
 
                 last_progress[1 - side] = saved_progress;
 
