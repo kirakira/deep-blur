@@ -163,7 +163,16 @@ bool Board::checked_move(int side, MOVE move, bool *rep)
     if (!hit)
         return false;
 
-    return this->move(move, NULL, rep);
+    if (!this->move(move, NULL, rep))
+        return false;
+
+    if (in_check(side))
+    {
+        unmove();
+        return false;
+    }
+
+    return true;
 }
 
 bool Board::move(MOVE move, bool *game_end, bool *rep)

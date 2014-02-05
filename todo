@@ -1,4 +1,4 @@
-QS: until not in check && no recaptures
+QS: test all checks to see if they are mate
 Draw by repeptition
 is_attacked return a cheapest attacking piece
 PV list
