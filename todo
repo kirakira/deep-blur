@@ -1,4 +1,5 @@
 QS: test all checks to see if they are mate
+Move ordering: using depth-based killer heuristic
 Draw by repeptition
 is_attacked return a cheapest attacking piece
 PV list
