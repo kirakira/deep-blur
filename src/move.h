@@ -29,7 +29,7 @@ inline int position_rank(POSITION p)
     return p >> 4;
 }
 
-inline int position_col(POSITION p)
+inline int position_file(POSITION p)
 {
     return p & 0xf;
 }
@@ -37,7 +37,7 @@ inline int position_col(POSITION p)
 inline std::string position_string(POSITION p)
 {
     std::string ret;
-    int rank = position_rank(p), col = position_col(p);
+    int rank = position_rank(p), col = position_file(p);
     ret += (char) (col + 'a');
     ret += (char) (9 - rank + '0');
     return ret;

@@ -104,9 +104,9 @@ uint64_t Board::hash_code(int side)
 bool Board::checked_move(int side, MOVE move, bool *rep)
 {
     int src_i = position_rank(move_src(move)),
-        src_j = position_col(move_src(move)),
+        src_j = position_file(move_src(move)),
         dst_i = position_rank(move_dst(move)),
-        dst_j = position_col(move_dst(move));
+        dst_j = position_file(move_dst(move));
     if (!(is_on_board(src_i, src_j) && is_on_board(dst_i, dst_j)))
         return false;
     if (!(is_on_board(src_i, src_j) && is_on_board(dst_i, dst_j)))
@@ -169,9 +169,9 @@ bool Board::checked_move(int side, MOVE move, bool *rep)
 bool Board::move(MOVE move, bool *game_end, bool *rep)
 {
     int src_i = position_rank(move_src(move)),
-        src_j = position_col(move_src(move)),
+        src_j = position_file(move_src(move)),
         dst_i = position_rank(move_dst(move)),
-        dst_j = position_col(move_dst(move));
+        dst_j = position_file(move_dst(move));
     BoardEntry src = board[src_i][src_j],
                dst = board[dst_i][dst_j];
 
@@ -216,7 +216,7 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
                     && history[history.size() - 3].capture.piece == 0
                     && piece_type(src.piece) != PIECE_K
                     && (is_attacked(victim, true)
-                        || (piece_type(board[position_rank(victim)][position_col(victim)].piece) != PIECE_K
+                        || (piece_type(board[position_rank(victim)][position_file(victim)].piece) != PIECE_K
                             && in_check(1 - my_side))))
                 rep_side = (uint8_t) my_side;
         }
@@ -251,9 +251,9 @@ void Board::unmove()
     history.pop_back();
 
     int src_i = position_rank(move_src(history_entry.move)),
-        src_j = position_col(move_src(history_entry.move)),
+        src_j = position_file(move_src(history_entry.move)),
         dst_i = position_rank(move_dst(history_entry.move)),
-        dst_j = position_col(move_dst(history_entry.move));
+        dst_j = position_file(move_dst(history_entry.move));
 
     BoardEntry src = board[dst_i][dst_j], dst = history_entry.capture;
 
@@ -285,9 +285,9 @@ bool Board::checked_unmove()
 bool Board::is_capture(MOVE move, int *value)
 {
     int src_i = position_rank(move_src(move)),
-        src_j = position_col(move_src(move)),
+        src_j = position_file(move_src(move)),
         dst_i = position_rank(move_dst(move)),
-        dst_j = position_col(move_dst(move));
+        dst_j = position_file(move_dst(move));
     BoardEntry src = board[src_i][src_j],
                dst = board[dst_i][dst_j];
     if (dst.piece != 0)
@@ -802,7 +802,7 @@ void Board::generate_rook_moves(int index, MOVE *moves, int *capture_scores, int
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
 
-    int i = position_rank(pos), j = position_col(pos);
+    int i = position_rank(pos), j = position_file(pos);
     for (int r = 0; r < 4; ++r)
     {
         int oi = i, oj = j;
@@ -850,7 +850,7 @@ void Board::generate_cannon_moves(int index, MOVE *moves, int *capture_scores, i
     POSITION pos = pieces[index].position;
     int side = piece_side(pieces[index].piece);
 
-    int i = position_rank(pos), j = position_col(pos);
+    int i = position_rank(pos), j = position_file(pos);
     for (int r = 0; r < 4; ++r)
     {
         int oi = i, oj = j;
@@ -918,7 +918,7 @@ void Board::generate_pawn_moves(int index, MOVE *moves, int *capture_scores, int
 
 bool Board::is_attacked(POSITION pos, bool test_all_attacks)
 {
-    int src_i = position_rank(pos), src_j = position_col(pos);
+    int src_i = position_rank(pos), src_j = position_file(pos);
     int side_to_attack = 1 - piece_side(board[src_i][src_j].piece);
 
     // Detect attackings by rook, cannon, pawn, king
@@ -1020,10 +1020,10 @@ bool Board::in_check(int side)
 bool Board::king_face_to_face()
 {
     POSITION pos1 = pieces[0].position, pos2 = pieces[16].position;
-    if (position_col(pos1) != position_col(pos2))
+    if (position_file(pos1) != position_file(pos2))
         return false;
     for (int i = position_rank(pos1) + 1; i <= position_rank(pos2) - 1; ++i)
-        if (board[i][position_col(pos1)].piece != 0)
+        if (board[i][position_file(pos1)].piece != 0)
             return false;
     return true;
 }
