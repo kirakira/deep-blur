@@ -24,7 +24,7 @@ class Agent
         int static_exchange_eval(Board &board, int side, POSITION pos);
         int quiescence(Board &board, int side, int alpha, int beta, std::vector<uint64_t> *rep, int *last_progress, bool in_check);
 
-        int trans_hit, nodes, leaf, null_cut, first_cut, beta_cut, alpha_nodes, first_best;
+        int trans_hit, nodes, leaf, null_cut, first_cut, beta_nodes, alpha_nodes, first_best;
         int move_score[1 << 16];
 
         Transposition trans;

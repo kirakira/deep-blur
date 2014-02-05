@@ -54,7 +54,7 @@ int Agent::search(Board &board, int side, MOVE *result, int depth)
     leaf = 0;
     null_cut = 0;
     first_cut = 0;
-    beta_cut = 0;
+    beta_nodes = 0;
     alpha_nodes = 0;
     first_best = 0;
 
@@ -65,12 +65,14 @@ int Agent::search(Board &board, int side, MOVE *result, int depth)
     double sec = (double) t / (double) CLOCKS_PER_SEC;
     cout << "# transposition hit rate: " << (double) trans_hit * 100 / (double) (trans_hit + nodes) << "%" << endl;
     cout << "# null-move cutoff: " << (double) null_cut * 100 / (double) (nodes - leaf)
-        << "%, first-move cutoff: " << (double) first_cut * 100 / (double) (nodes - leaf)
-        << "%, beta cutoff: " << (double) beta_cut * 100 / (double) (nodes - leaf)
-        << "%, alpha nodes: " << (double) alpha_nodes * 100/ (double) (nodes - leaf) << "%" << endl;
+        << "%, first-move cutoff: " << (double) first_cut * 100 / (double) (nodes - leaf) << "%" << endl;
+    cout << "# beta nodes: " << (double) beta_nodes * 100 / (double) (nodes)
+        << "%, alpha nodes: " << (double) alpha_nodes * 100/ (double) (nodes)
+        << "%, leafs: " << (double) leaf * 100 / (double) (nodes) << "%" << endl;
     cout << "# first-move-best rate: " << (double) first_best * 100 / (double) (nodes - null_cut - leaf) << "%" << endl;
     trans.stat();
-    cout << "# total nodes: " << nodes << ", NPS: " << (double) nodes / sec / 1000000. << "m in " << sec << "s" << endl;
+    cout << "# total nodes: " << (double) nodes / 1e6
+        << "m, NPS: " << (double) nodes / sec / 1000000. << "m in " << sec << "s" << endl;
 
     return ret;
 }
@@ -161,6 +163,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         if (his_exact == Transposition::UPPER && his_score <= beta - 1)
             nullable = false;
     }
+
     ++nodes;
 
     int ans = -INF, first_ans = ans;
@@ -249,7 +252,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
                 if (t >= beta)
                 {
-                    if (depth > 0 && move != his_move)
+                    if (move != his_move)
                         move_score[move] += depth * depth;
                     if (i == 0)
                         ++first_cut;
@@ -271,15 +274,12 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         trans.put(board.hash_code(side), ans, e, best_move, depth);
     }
 
-    if (depth > 0)
-    {
-        if (ans >= beta)
-            ++beta_cut;
-        else if (ans <= alpha)
-            ++alpha_nodes;
-        if (first_ans == ans)
-            ++first_best;
-    }
+    if (ans >= beta)
+        ++beta_nodes;
+    else if (ans <= alpha)
+        ++alpha_nodes;
+    if (first_ans == ans)
+        ++first_best;
 
     if (result)
         *result = best_move;
