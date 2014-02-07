@@ -84,7 +84,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 
     for (int level = 1; level <= depth; ++level)
     {
-        ret = alpha_beta(board, side, result, level, -INF, INF, false);
+        ret = alpha_beta(board, side, result, level, -INF, INF, false, INVALID_POSITION);
 
         cout << "# Level " << level << ": ";
         int score, exact, d, s = side, non_null_count = 0, count = 0;
@@ -135,7 +135,8 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 // since an ordinary repetition detection is not compatible with transposition tables
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
-int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, bool nullable)
+int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
+        bool nullable, POSITION last_square)
 {
     int his_score, his_exact = 0, his_depth;
     MOVE his_move = 0;
@@ -172,19 +173,19 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     if (depth == 0)
     {
         ++leaf;
-        ans = quiescence(board, side, alpha, beta);
+        ans = quiescence(board, side, alpha, beta, last_square);
     }
     else
     {
         if (nullable)
-            ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, false);
+            ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, false, INVALID_POSITION);
 
         if (ans < beta)
         {
             ans = -INF;
 
             if (depth >= 3)
-                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false);
+                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false, last_square);
 
             bool moves_generated = false;
             MOVE moves[120];
@@ -230,13 +231,14 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 else
                 {
                     int current_alpha = max(alpha, ans);
+                    POSITION dst = move_dst(move);
                     if (i <= 2)
-                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true);
+                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true, dst);
                     else
                     {
-                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1, -current_alpha, true);
+                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1, -current_alpha, true, dst);
                         if (current_alpha < t && t < beta)
-                            t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true);
+                            t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true, dst);
                     }
                 }
                 board.unmove();
@@ -285,12 +287,12 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     return ans;
 }
 
-int Agent::quiescence(Board &board, int side, int alpha, int beta)
+int Agent::quiescence(Board &board, int side, int alpha, int beta, POSITION last_square)
 {
     vector<uint64_t> rep[2];
     vector<MOVE> va;
     int last_progress[2] = {-1, -1};
-    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side));
+    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), last_square);
 }
 
 bool Agent::is_winning_capture(Board &board, MOVE move, int score, int side)
@@ -350,7 +352,8 @@ int Agent::static_exchange_eval(Board &board, int side, POSITION pos)
     return max(ans, ret);
 }
 
-int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep, int *last_progress, bool in_check)
+int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep,
+        int *last_progress, bool in_check, POSITION last_square)
 {
     uint64_t my_hash = board.hash_code(side);
     for (size_t i = last_progress[side] + 1; i < rep[side].size(); ++i)
@@ -359,11 +362,11 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
 
     rep[side].push_back(my_hash);
 
-    int ans;
+    int ans, sv = board.static_value(side);
     if (in_check)
         ans = -INF;
     else
-        ans = board.static_value(side);
+        ans = sv;
 
     if (ans < beta)
     {
@@ -371,16 +374,15 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
         int capture_scores[120], moves_count = 0;
         board.generate_moves(side, moves, capture_scores, &moves_count);
 
-        int cap = 0;
-        for (int i = 0; i < moves_count; ++i)
-            if (capture_scores[i] > Board::NON_CAPTURE)
-                ++cap;
-
         if (!in_check)
         {
             int c = 0;
             for (int i = 0; i < moves_count; ++i)
-                if (capture_scores[i] > Board::NON_CAPTURE)
+            {
+                if (move_dst(moves[i]) == last_square)
+                    capture_scores[i] = max(capture_scores[i], 34);
+                if (capture_scores[i] > Board::NON_CAPTURE
+                        && is_winning_capture(board, moves[i], capture_scores[i], side))
                 {
                     MOVE tm = moves[c];
                     moves[c] = moves[i];
@@ -391,6 +393,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
 
                     ++c;
                 }
+            }
             order_moves(moves, capture_scores, c, c);
             moves_count = c;
         }
@@ -400,7 +403,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
             bool game_end, rep_attack;
             if (!board.move(moves[i], &game_end, &rep_attack))
                 continue;
-            if (rep_attack || board.in_check(side) || game_end)
+            if (rep_attack || game_end || (in_check && board.in_check(side)))
             {
                 if (game_end)
                     ans = INF;
@@ -411,8 +414,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
             bool next_in_check = board.in_check(1 - side);
             board.unmove();
 
-            if (in_check || next_in_check ||
-                    capture_scores[i] > Board::NON_CAPTURE)
+            if (in_check || capture_scores[i] > Board::NON_CAPTURE)
             {
                 board.move(moves[i]);
                 int saved_progress = last_progress[1 - side];
@@ -420,7 +422,8 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
                     last_progress[1 - side] = rep[1 - side].size();
 
                 int current_alpha = max(alpha, ans);
-                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep, last_progress, next_in_check);
+                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep,
+                        last_progress, next_in_check, move_dst(moves[i]));
 
                 last_progress[1 - side] = saved_progress;
 
@@ -429,7 +432,6 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
                 if (t >= ans)
                     ans = t;
             }
-
         }
     }
     rep[side].pop_back();
