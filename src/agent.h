@@ -17,7 +17,7 @@ class Agent
     protected:
         int select_best_move(int *scores, int moves_count);
         void order_moves(MOVE *moves, int *scores, int moves_count, int order_count);
-        int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
+        int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, int ply,
                 bool nullable, POSITION last_square = INVALID_POSITION);
         int id(Board &board, int side, MOVE *result, int depth);
 
@@ -27,6 +27,8 @@ class Agent
 
         int trans_hit, nodes, leaf, null_cut, first_cut, beta_nodes, alpha_nodes, first_best;
         int move_score[1 << 16];
+
+        static const int FULL_DEPTH_PLY = 3;
 
         Transposition trans;
 };

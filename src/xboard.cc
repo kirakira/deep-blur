@@ -32,7 +32,7 @@ bool is_move(string s)
             && is_rank(s[1]) && is_square(s[2]) && is_rank(s[3]));
 }
 
-void go(Board &board, Agent &agent, int &side, int depth = 6)
+void go(Board &board, Agent &agent, int &side, int depth = 9)
 {
     MOVE res;
 

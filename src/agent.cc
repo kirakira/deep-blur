@@ -84,7 +84,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 
     for (int level = 1; level <= depth; ++level)
     {
-        ret = alpha_beta(board, side, result, level, -INF, INF, false, INVALID_POSITION);
+        ret = alpha_beta(board, side, result, level, -INF, INF, 0, false, INVALID_POSITION);
 
         cout << "# Level " << level << ": ";
         int score, exact, d, s = side, non_null_count = 0, count = 0;
@@ -136,7 +136,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
-        bool nullable, POSITION last_square)
+        int ply, bool nullable, POSITION last_square)
 {
     int his_score, his_exact = 0, his_depth;
     MOVE his_move = 0;
@@ -149,10 +149,10 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
         t_hit = true;
 
-        if (his_depth >= depth &&
+        if (his_depth >= depth && !rep &&
             (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
              || (his_exact == Transposition::LOWER && his_score >= beta))
-            && (nullable || (his_move != 0 && !rep)))
+            && (nullable || his_move != 0))
         {
             ++trans_hit;
 
@@ -178,14 +178,14 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     else
     {
         if (nullable)
-            ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, false, INVALID_POSITION);
+            ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, ply, false, INVALID_POSITION);
 
         if (ans < beta)
         {
             ans = -INF;
 
             if (depth >= 3)
-                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, false, last_square);
+                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, false, last_square);
 
             bool moves_generated = false;
             MOVE moves[120];
@@ -232,13 +232,22 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 {
                     int current_alpha = max(alpha, ans);
                     POSITION dst = move_dst(move);
+
                     if (i <= 2)
-                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true, dst);
+                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, ply + 1, true, dst);
                     else
                     {
-                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1, -current_alpha, true, dst);
+                        t = current_alpha + 1;
+                        /*
+                        if (depth > FULL_DEPTH_PLY && capture_scores[i] <= Board::NON_CAPTURE)
+                            t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
+                                    -current_alpha, ply + 1, true, dst);*/
+                        if (t > current_alpha)
+                            t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
+                                    -current_alpha, ply + 1, true, dst);
                         if (current_alpha < t && t < beta)
-                            t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, true, dst);
+                            t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
+                                    ply + 1, true, dst);
                     }
                 }
                 board.unmove();
