@@ -1028,7 +1028,7 @@ bool Board::in_check(int side)
 
 bool Board::king_face_to_face()
 {
-    if (pieces[0].piece == 0 == pieces[16].piece == 0)
+    if (pieces[0].piece == 0 || pieces[16].piece == 0)
         return false;
     POSITION pos1 = pieces[0].position, pos2 = pieces[16].position;
     if (position_file(pos1) != position_file(pos2))
