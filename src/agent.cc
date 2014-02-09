@@ -434,7 +434,8 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
                 }
             }
             order_moves(moves, capture_scores, c, c);
-            moves_count = c;
+            if (!CHECKS_IN_QUIESCENCE)
+                moves_count = c;
         }
 
         for (int i = 0; ans < beta && i < moves_count; ++i)
@@ -453,7 +454,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
             bool next_in_check = board.in_check(1 - side);
             board.unmove();
 
-            if (in_check || capture_scores[i] > Board::NON_CAPTURE)
+            if (in_check || capture_scores[i] > Board::NON_CAPTURE || next_in_check)
             {
                 board.move(moves[i]);
                 int saved_progress = last_progress[1 - side];

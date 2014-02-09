@@ -25,6 +25,7 @@ class Agent
         static const bool USE_KILLER = false;
         static const bool USE_LMR = false;
         static const int LMR_NODES = 3, LMR_PLY = 6;
+        static const bool CHECKS_IN_QUIESCENCE = false;
 
         int select_best_move(int *scores, int moves_count);
         void order_moves(MOVE *moves, int *scores, int moves_count, int order_count);
