@@ -925,10 +925,13 @@ void Board::generate_pawn_moves(int index, MOVE *moves, int *capture_scores, int
     }
 }
 
-bool Board::is_attacked(POSITION pos, bool test_all_attacks)
+bool Board::is_attacked(POSITION pos, bool test_all_attacks, MOVE *best_attack)
 {
     int src_i = position_rank(pos), src_j = position_file(pos);
     int side_to_attack = 1 - piece_side(board[src_i][src_j].piece);
+
+    MOVE best_response = 0;
+    int least_response_value = -1;
 
     // Detect attackings by rook, cannon, pawn, king
     for (int r = 0; r < 4; ++r)
@@ -952,35 +955,73 @@ bool Board::is_attacked(POSITION pos, bool test_all_attacks)
             {
                 if (p == make_piece(side_to_attack, PIECE_P))
                 {
-                    POSITION pos = make_position(oi, oj);
-                    for (int j = 0; j < pawn_moves_count[side_to_attack][pos]; ++j)
-                        if (pawn_moves[side_to_attack][pos][j][0] == src_i
-                                && pawn_moves[side_to_attack][pos][j][1] == src_j)
+                    POSITION dst = make_position(oi, oj);
+                    for (int j = 0; j < pawn_moves_count[side_to_attack][dst]; ++j)
+                        if (pawn_moves[side_to_attack][dst][j][0] == src_i
+                                && pawn_moves[side_to_attack][dst][j][1] == src_j)
+                        {
+                            if (best_attack)
+                                *best_attack = make_move(dst, pos);
                             return true;
+                        }
                 }
                 else if (test_all_attacks && p == make_piece(side_to_attack, PIECE_K))
                 {
-                    POSITION pos = make_position(oi, oj);
-                    for (int j = 0; j < king_moves_count[pos]; ++j)
-                        if (king_moves[pos][j][0] == src_i
-                                && king_moves[pos][j][1] == src_j)
-                            return true;
+                    POSITION dst = make_position(oi, oj);
+                    for (int j = 0; j < king_moves_count[dst]; ++j)
+                        if (king_moves[dst][j][0] == src_i
+                                && king_moves[dst][j][1] == src_j)
+                        {
+                            if (best_attack)
+                            {
+                                if (least_response_value == -1
+                                        || capture_values[PIECE_K] < least_response_value)
+                                {
+                                    least_response_value = capture_values[PIECE_K];
+                                    best_response = make_move(dst, pos);
+                                }
+                            }
+                            else
+                                return true;
+                        }
                 }
             }
 
             if (!ob)
             {
                 if (p == make_piece(side_to_attack, PIECE_R))
-                    return true;
-                else
-                    ob = true;
+                {
+                    if (best_attack)
+                    {
+                        if (least_response_value == -1 ||
+                                capture_values[PIECE_R] < least_response_value)
+                        {
+                            least_response_value = capture_values[PIECE_R];
+                            best_response = make_move(make_position(oi, oj), pos);
+                        }
+                    }
+                    else
+                        return true;
+                }
+                ob = true;
             }
             else
             {
                 if (p == make_piece(side_to_attack, PIECE_C))
-                    return true;
-                else
-                    break;
+                {
+                    if (best_attack)
+                    {
+                        if (least_response_value == -1 ||
+                                capture_values[PIECE_C] < least_response_value)
+                        {
+                            least_response_value = capture_values[PIECE_C];
+                            best_response = make_move(make_position(oi, oj), pos);
+                        }
+                    }
+                    else
+                        return true;
+                }
+                break;
             }
         }
     }
@@ -991,29 +1032,55 @@ bool Board::is_attacked(POSITION pos, bool test_all_attacks)
         int oi = horse_moves[pos][i][0], oj = horse_moves[pos][i][1];
         if (board[oi][oj].piece == make_piece(side_to_attack, PIECE_H)
                 && board[horse_moves[pos][i][4]][horse_moves[pos][i][5]].piece == 0)
-            return true;
+        {
+            if (best_attack)
+            {
+                if (least_response_value == -1 ||
+                        capture_values[PIECE_H] < least_response_value)
+                {
+                    least_response_value = capture_values[PIECE_H];
+                    best_response = make_move(make_position(oi, oj), pos);
+                }
+            }
+            else
+                return true;
+        }
     }
 
-    if (!test_all_attacks)
+    if (test_all_attacks)
+    {
+        // Detect attackings by elephant
+        for (int i = 0; i < elephant_moves_count[pos]; ++i)
+        {
+            int oi = elephant_moves[pos][i][0], oj = elephant_moves[pos][i][1];
+            if (board[oi][oj].piece == make_piece(side_to_attack, PIECE_E)
+                    && board[elephant_moves[pos][i][2]][elephant_moves[pos][i][3]].piece == 0)
+            {
+                if (best_attack)
+                    *best_attack = make_move(make_position(oi, oj), pos);
+                return true;
+            }
+        }
+
+        // Detect attackings by advisor
+        for (int i = 0; i < advisor_moves_count[pos]; ++i)
+        {
+            int oi = advisor_moves[pos][i][0], oj = advisor_moves[pos][i][1];
+            if (board[oi][oj].piece == make_piece(side_to_attack, PIECE_A))
+            {
+                if (best_attack)
+                    *best_attack = make_move(make_position(oi, oj), pos);
+                return true;
+            }
+        }
+    }
+
+    if (least_response_value == -1)
         return false;
 
-    // Detect attackings by elephant
-    for (int i = 0; i < elephant_moves_count[pos]; ++i)
-    {
-        int oi = elephant_moves[pos][i][0], oj = elephant_moves[pos][i][1];
-        if (board[oi][oj].piece == make_piece(side_to_attack, PIECE_E)
-                && board[elephant_moves[pos][i][2]][elephant_moves[pos][i][3]].piece == 0)
-            return true;
-    }
-
-    // Detect attackings by advisor
-    for (int i = 0; i < advisor_moves_count[pos]; ++i)
-    {
-        int oi = advisor_moves[pos][i][0], oj = advisor_moves[pos][i][1];
-        if (board[oi][oj].piece == make_piece(side_to_attack, PIECE_A))
-            return true;
-    }
-
+    if (best_attack)
+        *best_attack = best_response;
+    return true;
     return false;
 }
 

@@ -81,6 +81,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 {
     int ret = 0;
     memset(move_score, 0, sizeof(move_score));
+    memset(killer, 0, sizeof(killer));
 
     for (int level = 1; level <= depth; ++level)
     {
@@ -138,18 +139,16 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
         int ply, bool nullable, POSITION last_square)
 {
-    int his_score, his_exact = 0, his_depth;
+    int his_score, his_exact = 0, his_depth = 0;
     MOVE his_move = 0;
-    bool t_hit = false, rep;
-    if (trans.get(board.hash_code(side), &his_score, &his_exact, &his_move, &his_depth)
+    bool rep;
+    if (USE_TRANS_TABLE && trans.get(board.hash_code(side), &his_score, &his_exact, &his_move, &his_depth)
             && (his_move == 0 || board.checked_move(side, his_move, &rep)))
     {
         if (his_move != 0)
             board.unmove();
 
-        t_hit = true;
-
-        if (his_depth >= depth && !rep &&
+        if (his_depth >= depth && (his_move == 0 || !rep) &&
             (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
              || (his_exact == Transposition::LOWER && his_score >= beta))
             && (nullable || his_move != 0))
@@ -178,14 +177,14 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     }
     else
     {
-        if (nullable && !isPV)
+        if (USE_NULL_MOVE && nullable && !isPV)
             ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, ply, false, INVALID_POSITION);
 
         if (ans < beta)
         {
             ans = -INF;
 
-            if (depth >= 3)
+            if (USE_IID && depth >= 6)
                 alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, false, last_square);
 
             bool moves_generated = false;
@@ -203,17 +202,30 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     board.generate_moves(side, moves + start,
                             capture_scores + start, &moves_count);
 
-                    for (int i = 0; i < moves_count; ++i)
-                        if (!(capture_scores[i] > Board::NON_CAPTURE
-                                && is_winning_capture(board, moves[i], capture_scores[i], side)))
-                            capture_scores[i] = Board::NON_CAPTURE;
-
+                    for (int j = start; j < moves_count; ++j)
+                        if (!(capture_scores[j] > Board::NON_CAPTURE
+                                && is_winning_capture(board, moves[j], capture_scores[j], side)))
+                            capture_scores[j] = Board::NON_CAPTURE;
                     order_moves(moves + start, capture_scores + start, moves_count, moves_count);
+
                     int c = start;
                     while (c < moves_count && capture_scores[c] > Board::NON_CAPTURE)
                         ++c;
+
                     for (int j = c; j < moves_count; ++j)
-                        history_scores[j] = move_score[moves[j]];
+                    {
+                        if (USE_KILLER)
+                        {
+                            if (moves[j] == killer[ply][0])
+                                history_scores[j] = 1000000;
+                            else if (moves[j] == killer[ply][1])
+                                history_scores[j] = 999999;
+                            else
+                                history_scores[j] = move_score[moves[j]];
+                        }
+                        else
+                            history_scores[j] = move_score[moves[j]];
+                    }
                     order_moves(moves + c, history_scores + c, moves_count - c, moves_count - c);
 
                     moves_count += start;
@@ -245,27 +257,24 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     else
                     {
                         t = current_alpha + 1;
-                        /*
-                        if (depth > FULL_DEPTH_PLY && capture_scores[i] <= Board::NON_CAPTURE)
+
+                        if (USE_LMR && ply > LMR_PLY && i > LMR_NODES &&
+                                capture_scores[i] <= Board::NON_CAPTURE)
                             t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
                                     -current_alpha, ply + 1, true, dst);
-                        int t2;
-                        if (depth > FULL_DEPTH_PLY && capture_scores[i] <= Board::NON_CAPTURE)
-                            t2 = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
-                                    -current_alpha, ply + 1, true, dst);
-                        else
-                            t2 = -INF;*/
 
                         if (t > current_alpha)
                             t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
                                     -current_alpha, ply + 1, true, dst);
                         if (current_alpha < t && t < beta)
                         {
+#ifdef DEBUG_OUTPUT
                             int t0 = t;
+#endif
                             t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
                                     ply + 1, true, dst);
 
-                            /*
+#ifdef DEBUG_OUTPUT
                             board.print();
                             cout << "(alpha, beta) =(" << current_alpha << ", " << beta << ")" << endl;
                             cout << "move index: " << i << ", " << move_string(moves[i]) << endl;
@@ -273,21 +282,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                             cout << "second returned: " << t << endl;
                             for (int j = 0; j < i; ++j)
                                 cout << move_string(moves[j]) << "(" << move_score[moves[j]] << ") ";
-                            cout << endl << endl;*/
+                            cout << endl << endl;
+#endif
                         }
-
-                        /*
-                        if (t2 != -INF && t2 > current_alpha && t > current_alpha)
-                        {
-                            cout << "index: " << i << ", ans: " << ans
-                                << ", alpha: " << current_alpha << ", t2: " << t2 << ", t: " << t << endl;
-                            cout << "depth: " << depth << ", move: " << move_string(moves[i]) << endl;
-                            for (int j = 0; j < i; ++j)
-                                cout << move_string(moves[j]) << " ";
-                            cout << endl;
-                            board.print();
-                            cout << endl;
-                        }*/
                     }
                 }
                 board.unmove();
@@ -303,6 +300,11 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
                 if (t >= beta)
                 {
+                    if (USE_KILLER && killer[ply][0] != move)
+                    {
+                        killer[ply][1] = killer[ply][0];
+                        killer[ply][0] = move;
+                    }
                     if (i == 0)
                         ++first_cut;
                     break;
@@ -313,7 +315,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             ++null_cut;
     }
 
-    if (his_exact != Transposition::EXACT || his_depth <= depth)
+    if (USE_TRANS_TABLE && (his_exact != Transposition::EXACT || his_depth <= depth))
     {
         int e = Transposition::EXACT;
         if (ans <= alpha)
@@ -372,24 +374,11 @@ bool Agent::is_winning_capture(Board &board, MOVE move, int score, int side)
 
 int Agent::static_exchange_eval(Board &board, int side, POSITION pos)
 {
-    MOVE moves[120];
-    int capture_scores[120], moves_count;
-    board.generate_moves(side, moves, capture_scores, &moves_count);
-
-    int besti = -1;
-    for (int i = 0; i < moves_count; ++i)
-    {
-        if (move_dst(moves[i]) == pos && capture_scores[i] > Board::NON_CAPTURE)
-        {
-            if (besti == -1 || capture_scores[i] > capture_scores[besti])
-                besti = i;
-        }
-    }
-
     int ans = board.static_value(side);
 
+    MOVE response;
     bool game_end;
-    if (besti == -1 || !board.move(moves[besti], &game_end))
+    if (!board.is_attacked(pos, true, &response) || !board.move(response, &game_end))
         return ans;
 
     int ret;

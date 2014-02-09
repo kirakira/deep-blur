@@ -22,6 +22,7 @@ class Board
         bool in_check(int side);
         bool is_capture(MOVE move, int *value = NULL);
         POSITION king_position(int side);
+        bool is_attacked(POSITION pos, bool test_all_attacks, MOVE *best_attack = NULL);
 
         uint64_t hash_code(int side);
         int static_value(int side);
@@ -73,7 +74,6 @@ class Board
         bool check_position(int side, int i, int j, int *target_capture_score);
 
         inline bool king_face_to_face();
-        bool is_attacked(POSITION pos, bool test_all_attacks);
 
         class BoardStaticFieldsInitializer
         {
