@@ -169,6 +169,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     int ans = -INF, first_ans = ans;
     MOVE best_move = 0;
+    bool isPV = (beta > alpha + 1);
 
     if (depth == 0)
     {
@@ -177,7 +178,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     }
     else
     {
-        if (nullable)
+        if (nullable && !isPV)
             ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, ply, false, INVALID_POSITION);
 
         if (ans < beta)
@@ -202,12 +203,18 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     board.generate_moves(side, moves + start,
                             capture_scores + start, &moves_count);
 
-                    order_moves(moves + start, capture_scores + start, moves_count, 1);
-
                     for (int i = 0; i < moves_count; ++i)
-                        history_scores[i + start] = move_score[moves[i + start]];
-                    if (capture_scores[start] < 35)
-                        order_moves(moves + start, history_scores + start, moves_count, 5);
+                        if (!(capture_scores[i] > Board::NON_CAPTURE
+                                && is_winning_capture(board, moves[i], capture_scores[i], side)))
+                            capture_scores[i] = Board::NON_CAPTURE;
+
+                    order_moves(moves + start, capture_scores + start, moves_count, moves_count);
+                    int c = start;
+                    while (c < moves_count && capture_scores[c] > Board::NON_CAPTURE)
+                        ++c;
+                    for (int j = c; j < moves_count; ++j)
+                        history_scores[j] = move_score[moves[j]];
+                    order_moves(moves + c, history_scores + c, moves_count - c, moves_count - c);
 
                     moves_count += start;
                     moves_generated = true;
@@ -233,7 +240,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     int current_alpha = max(alpha, ans);
                     POSITION dst = move_dst(move);
 
-                    if (i <= 2)
+                    if (i <= 0)
                         t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, ply + 1, true, dst);
                     else
                     {
@@ -241,13 +248,46 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                         /*
                         if (depth > FULL_DEPTH_PLY && capture_scores[i] <= Board::NON_CAPTURE)
                             t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
-                                    -current_alpha, ply + 1, true, dst);*/
+                                    -current_alpha, ply + 1, true, dst);
+                        int t2;
+                        if (depth > FULL_DEPTH_PLY && capture_scores[i] <= Board::NON_CAPTURE)
+                            t2 = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
+                                    -current_alpha, ply + 1, true, dst);
+                        else
+                            t2 = -INF;*/
+
                         if (t > current_alpha)
                             t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
                                     -current_alpha, ply + 1, true, dst);
                         if (current_alpha < t && t < beta)
+                        {
+                            int t0 = t;
                             t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
                                     ply + 1, true, dst);
+
+                            /*
+                            board.print();
+                            cout << "(alpha, beta) =(" << current_alpha << ", " << beta << ")" << endl;
+                            cout << "move index: " << i << ", " << move_string(moves[i]) << endl;
+                            cout << "first returned: " << t0 << endl;
+                            cout << "second returned: " << t << endl;
+                            for (int j = 0; j < i; ++j)
+                                cout << move_string(moves[j]) << "(" << move_score[moves[j]] << ") ";
+                            cout << endl << endl;*/
+                        }
+
+                        /*
+                        if (t2 != -INF && t2 > current_alpha && t > current_alpha)
+                        {
+                            cout << "index: " << i << ", ans: " << ans
+                                << ", alpha: " << current_alpha << ", t2: " << t2 << ", t: " << t << endl;
+                            cout << "depth: " << depth << ", move: " << move_string(moves[i]) << endl;
+                            for (int j = 0; j < i; ++j)
+                                cout << move_string(moves[j]) << " ";
+                            cout << endl;
+                            board.print();
+                            cout << endl;
+                        }*/
                     }
                 }
                 board.unmove();
@@ -263,7 +303,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
                 if (t >= beta)
                 {
-                    move_score[move] += depth * depth;
                     if (i == 0)
                         ++first_cut;
                     break;
@@ -290,6 +329,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         ++alpha_nodes;
     if (first_ans == ans)
         ++first_best;
+
+    if (best_move != 0)
+        move_score[best_move] += depth * depth;
 
     if (result)
         *result = best_move;
