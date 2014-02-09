@@ -343,7 +343,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 int Agent::quiescence(Board &board, int side, int alpha, int beta, POSITION last_square)
 {
     vector<uint64_t> rep[2];
-    vector<MOVE> va;
     int last_progress[2] = {-1, -1};
     return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), last_square);
 }
