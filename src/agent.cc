@@ -333,7 +333,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         ++first_best;
 
     if (best_move != 0)
-        move_score[best_move] += depth * depth;
+        move_score[best_move] += 1;
 
     if (result)
         *result = best_move;
