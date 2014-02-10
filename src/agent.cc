@@ -188,7 +188,8 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     else
     {
         if (USE_NULL_MOVE && nullable && !isPV)
-            ans = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -beta + 1, ply, false, INVALID_POSITION);
+            ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - 3),
+                    -beta, -beta + 1, ply, false, INVALID_POSITION);
 
         if (ans < beta)
         {
