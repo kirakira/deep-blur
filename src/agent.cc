@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstring>
 #include <ctime>
+#include <cmath>
 
 #include "agent.h"
 
@@ -47,6 +48,14 @@ void Agent::order_moves(MOVE *moves, int *scores, int moves_count, int order_cou
     }
 }
 
+double Agent::ebf(int nodes, int depth)
+{
+    double t = pow((double) nodes, 1.f / (double) depth);
+    t = pow(((t - 1) * nodes / t + 1), 1.f / (double) depth);
+    t = pow(((t - 1) * nodes / t + 1), 1.f / (double) depth);
+    return t;
+}
+
 int Agent::search(Board &board, int side, MOVE *result, int depth)
 {
     trans_hit = 0;
@@ -73,6 +82,7 @@ int Agent::search(Board &board, int side, MOVE *result, int depth)
     trans.stat();
     cout << "# total nodes: " << (double) nodes / 1e6
         << "m, NPS: " << (double) nodes / sec / 1000000. << "m in " << sec << "s" << endl;
+    cout << "# EBF: " << ebf(nodes, depth) << endl;
 
     return ret;
 }

@@ -41,5 +41,7 @@ class Agent
         int move_score[1 << 16];
         int killer[MAX_DEPTH][2];
 
+        double ebf(int nodes, int depth);
+
         Transposition trans;
 };

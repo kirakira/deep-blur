@@ -14,7 +14,7 @@ class Transposition
         typedef struct sTranspositionEntry
         {
             uint64_t key;
-            int32_t value;
+            int64_t value;
         } TranspositionEntry;
 
         uint64_t mask, rev_mask;
