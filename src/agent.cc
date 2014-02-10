@@ -81,8 +81,8 @@ int Agent::search(Board &board, int side, MOVE *result, int depth)
     cout << "# first-move-best rate: " << (double) first_best * 100 / (double) (nodes - null_cut - leaf) << "%" << endl;
     trans.stat();
     cout << "# total nodes: " << (double) nodes / 1e6
-        << "m, NPS: " << (double) nodes / sec / 1000000. << "m in " << sec << "s" << endl;
-    cout << "# EBF: " << ebf(nodes, depth) << endl;
+        << "m, EBF: " << ebf(nodes, depth)
+        << ", NPS: " << (double) nodes / sec / 1000000. << "m in " << sec << "s" << endl;
 
     return ret;
 }

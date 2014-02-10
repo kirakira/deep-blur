@@ -1,3 +1,9 @@
+PV list
+Time control
+SearchRoot
+Lazy move ordering
+Generate checks in the first ply of qsearch
+Check extensions
 Delta pruning
 Repetition check based on hash; Draw by repeptition
-PV list
+More decent evalutions
