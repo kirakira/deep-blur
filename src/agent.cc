@@ -361,7 +361,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, POSITION last
 bool Agent::is_winning_capture(Board &board, MOVE move, int score, int side)
 {
     int captured = (score >> 3), capturing = 8 - (score & 7);
-    if (captured >= capturing)
+    if (captured > capturing)
         return true;
 
     int v = board.static_value(side);
