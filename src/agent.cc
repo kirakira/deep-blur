@@ -56,7 +56,7 @@ double Agent::ebf(int nodes, int depth)
     return t;
 }
 
-int Agent::search(Board &board, int side, MOVE *result, int depth)
+int Agent::search(Board &board, int side, MOVE *result, int time_limit, int depth)
 {
     trans_hit = 0;
     nodes = 0;
@@ -67,8 +67,8 @@ int Agent::search(Board &board, int side, MOVE *result, int depth)
     alpha_nodes = 0;
     first_best = 0;
 
-    clock_t t = clock();
-    int ret = id(board, side, result, depth);
+    clock_t t = clock(), deadline = t + (double) time_limit / 1000. * (double) CLOCKS_PER_SEC;
+    int ret = id(board, side, result, deadline, &depth);
     t = clock() - t;
 
     double sec = (double) t / (double) CLOCKS_PER_SEC;
@@ -87,17 +87,26 @@ int Agent::search(Board &board, int side, MOVE *result, int depth)
     return ret;
 }
 
-int Agent::id(Board &board, int side, MOVE *result, int depth)
+int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth)
 {
     int ret = 0;
     memset(move_score, 0, sizeof(move_score));
     memset(killer, 0, sizeof(killer));
 
-    for (int level = 1; level <= depth; ++level)
+    for (int level = 1; level <= *depth; ++level)
     {
-        ret = alpha_beta(board, side, result, level, -INF, INF, 0, false, INVALID_POSITION);
-
         cout << "# Level " << level << ": ";
+
+        int tmp = alpha_beta(board, side, result, level, -INF, INF, 0, deadline, false, INVALID_POSITION);
+        if (tmp == ABORTED)
+        {
+            *depth = level;
+            cout << "aborted" << endl;
+            break;
+        }
+
+        ret = tmp;
+
         int score, exact, d, s = side, non_null_count = 0, count = 0;
         MOVE t;
         while (trans.get(board.hash_code(s), &score, &exact, &t, &d) && count < level)
@@ -147,7 +156,7 @@ int Agent::id(Board &board, int side, MOVE *result, int depth)
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
-        int ply, bool nullable, POSITION last_square)
+        int ply, clock_t deadline, bool nullable, POSITION last_square)
 {
     int his_score, his_exact = 0, his_depth = 0;
     MOVE his_move = 0;
@@ -176,6 +185,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     ++nodes;
 
+    if (nodes % CHECK_TIME_NODES == 0 && clock() >= deadline)
+        return ABORTED;
+
     int ans = -INF, first_ans = ans;
     MOVE best_move = 0;
     bool isPV = (beta > alpha + 1);
@@ -189,14 +201,17 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     {
         if (USE_NULL_MOVE && nullable && !isPV)
             ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - 3),
-                    -beta, -beta + 1, ply, false, INVALID_POSITION);
+                    -beta, -beta + 1, ply, deadline, false, INVALID_POSITION);
+
+        if (ans == -ABORTED)
+            return ABORTED;
 
         if (ans < beta)
         {
             ans = -INF;
 
             if (USE_IID && depth >= 6)
-                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, false, last_square);
+                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline, false, last_square);
 
             bool moves_generated = false;
             MOVE moves[120];
@@ -264,7 +279,8 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     POSITION dst = move_dst(move);
 
                     if (i <= 0)
-                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha, ply + 1, true, dst);
+                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
+                                ply + 1, deadline, true, dst);
                     else
                     {
                         t = current_alpha + 1;
@@ -272,18 +288,18 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                         if (USE_LMR && ply > LMR_PLY && i > LMR_NODES &&
                                 capture_scores[i] <= Board::NON_CAPTURE)
                             t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
-                                    -current_alpha, ply + 1, true, dst);
+                                    -current_alpha, ply + 1, deadline, true, dst);
 
                         if (t > current_alpha)
                             t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
-                                    -current_alpha, ply + 1, true, dst);
+                                    -current_alpha, ply + 1, deadline, true, dst);
                         if (current_alpha < t && t < beta)
                         {
 #ifdef DEBUG_OUTPUT
                             int t0 = t;
 #endif
                             t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
-                                    ply + 1, true, dst);
+                                    ply + 1, deadline, true, dst);
 
 #ifdef DEBUG_OUTPUT
                             board.print();
@@ -299,6 +315,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     }
                 }
                 board.unmove();
+
+                if (t == -ABORTED)
+                    return ABORTED;
 
                 if (i == 0)
                     first_ans = t;

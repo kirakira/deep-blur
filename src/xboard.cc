@@ -9,12 +9,8 @@
 using namespace std;
 
 string feature_string = "feature myname=\"Deep Blur\" setboard=1 analyze=0 sigint=0 sigterm=0 reuse=0 variants=\"xiangqi\" nps=0 debug=1 done=1";
-ofstream fdebug("/tmp/output");
 
-void debug_output(string s)
-{
-    fdebug << "" << s << endl;
-}
+const int move_time = 5000;
 
 bool is_square(char c)
 {
@@ -32,25 +28,24 @@ bool is_move(string s)
             && is_rank(s[1]) && is_square(s[2]) && is_rank(s[3]));
 }
 
-void go(Board &board, Agent &agent, int &side, int depth = 8)
+void go(Board &board, Agent &agent, int &side, int time_limit, int depth = 128)
 {
     MOVE res;
 
-    int score = agent.search(board, side, &res, depth);
+    int score = agent.search(board, side, &res, time_limit, depth);
     if (score > -Agent::INF)
     {
         board.move(res);
         side = 1 - side;
 
         cout << "move " << move_string(res) << endl;
-        debug_output("Sent a move: " + move_string(res));
     }
     else
     {
         if (side == 0)
-            cout << "1-0 {White mates}" << endl;
+            cout << "1-0 {Black resigns}" << endl;
         else
-            cout << "0-1 {Black mates}" << endl;
+            cout << "0-1 {White resigns}" << endl;
     }
 }
 
@@ -62,12 +57,11 @@ int main()
     string s;
     string line;
     int side = 1;
+    int remaining_time = 5000;
     bool force = false;
 
     while (getline(cin, line))
     {
-        debug_output("Received: " + line);
-
         istringstream iss(line);
         string command;
         iss >> command;
@@ -89,7 +83,7 @@ int main()
                 side = 1 - side;
 
                 if (!force)
-                    go(board, agent, side);
+                    go(board, agent, side, min(move_time, remaining_time));
             }
         }
         else if (command == "print")
@@ -134,9 +128,9 @@ int main()
             force = false;
             int depth;
             if (iss >> depth)
-                go(board, agent, side, depth);
+                go(board, agent, side, 10 * 3600 * 1000, depth);
             else
-                go(board, agent, side);
+                go(board, agent, side, min(move_time, remaining_time));
         }
         else if (command == "qs")
         {
@@ -152,6 +146,9 @@ int main()
         }
         else if (command == "time")
         {
+            int t;
+            iss >> t;
+            remaining_time = t * 10;
         }
         else if (command == "otim")
         {
@@ -159,7 +156,6 @@ int main()
         else
             cout << "Error (unknown command): " << line << endl;
     }
-    debug_output("quitting");
 
     return 0;
 }

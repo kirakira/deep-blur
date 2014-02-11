@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <ctime>
 
 #include "board.h"
 #include "transposition.h"
@@ -11,7 +12,7 @@ class Agent
 {
     public:
         Agent();
-        int search(Board &board, int side, MOVE *result, int depth);
+        int search(Board &board, int side, MOVE *result, int time_limit, int depth);
         int quiescence(Board &board, int side, int alpha, int beta, POSITION last_square = INVALID_POSITION);
 
         static const int INF = 2047;
@@ -26,12 +27,15 @@ class Agent
         static const bool USE_LMR = false;
         static const int LMR_NODES = 3, LMR_PLY = 6;
         static const bool CHECKS_IN_QUIESCENCE = false;
+        static const int CHECK_TIME_NODES = 32768;
+
+        static const int ABORTED = -INF - 1;
 
         int select_best_move(int *scores, int moves_count);
         void order_moves(MOVE *moves, int *scores, int moves_count, int order_count);
         int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, int ply,
-                bool nullable, POSITION last_square = INVALID_POSITION);
-        int id(Board &board, int side, MOVE *result, int depth);
+                clock_t deadline, bool nullable, POSITION last_square = INVALID_POSITION);
+        int id(Board &board, int side, MOVE *result, clock_t deadline, int *depth);
 
         bool is_winning_capture(Board &board, MOVE move, int score, int side);
         int static_exchange_eval(Board &board, int side, POSITION pos);
