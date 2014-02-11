@@ -31,7 +31,7 @@ class Board
 
         void print();
 
-        static const int H = 10, W = 9, NON_CAPTURE = 0;
+        static const int H = 10, W = 9, NON_CAPTURE = 0, KING_CAPTURE = 35;
 
     protected:
         typedef struct sBoardEntry

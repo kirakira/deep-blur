@@ -430,7 +430,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
             for (int i = 0; i < moves_count; ++i)
             {
                 if (move_dst(moves[i]) == last_square)
-                    capture_scores[i] = max(capture_scores[i], 34);
+                    capture_scores[i] = max(capture_scores[i], Board::KING_CAPTURE - 1);
                 if (capture_scores[i] > Board::NON_CAPTURE
                         && is_winning_capture(board, moves[i], capture_scores[i], side))
                 {
@@ -454,6 +454,8 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
             bool game_end, rep_attack;
             if (!board.move(moves[i], &game_end, &rep_attack))
                 continue;
+
+            // it is faster to refute suicide here
             if (rep_attack || game_end || (in_check && board.in_check(side)))
             {
                 if (game_end)
@@ -463,11 +465,9 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
             }
 
             bool next_in_check = board.in_check(1 - side);
-            board.unmove();
 
             if (in_check || capture_scores[i] > Board::NON_CAPTURE || next_in_check)
             {
-                board.move(moves[i]);
                 int saved_progress = last_progress[1 - side];
                 if (capture_scores[i] > Board::NON_CAPTURE)
                     last_progress[1 - side] = rep[1 - side].size();
@@ -478,11 +478,11 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
 
                 last_progress[1 - side] = saved_progress;
 
-                board.unmove();
-
                 if (t >= ans)
                     ans = t;
             }
+
+            board.unmove();
         }
     }
     rep[side].pop_back();
