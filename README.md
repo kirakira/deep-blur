@@ -1,4 +1,4 @@
-Deep Blur Has Evolved!
+Blur Has Evolved!
 =========
 
 Deep Blur is a Chinese chess (Xiangqi) engine that can easily beat me.
