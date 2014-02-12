@@ -583,7 +583,7 @@ Board::BoardStaticFieldsInitializer::BoardStaticFieldsInitializer()
         }
     }
 
-    // Assistant
+    // Advisor
     for (int side = 0; side <= 1; ++side)
     {
         for (int ii = 0; ii <= 2; ++ii)
@@ -755,7 +755,7 @@ void Board::generate_moves(int side, MOVE *moves, int *capture_scores, int *move
         if (pieces[index + i].piece != 0)
             generate_pawn_moves(index + i, moves, capture_scores, moves_count);
 
-    // Assistant
+    // Advisor
     index = 1;
     if (side != 0)
         index += 16;
