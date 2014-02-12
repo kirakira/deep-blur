@@ -188,7 +188,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     if (nodes % CHECK_TIME_NODES == 0 && clock() >= deadline)
         return ABORTED;
 
-    int ans = -INF, first_ans = ans;
+    int ans = -INF, first_ans = ABORTED;
     MOVE best_move = 0;
     bool isPV = (beta > alpha + 1);
 
