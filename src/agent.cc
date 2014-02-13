@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "agent.h"
+#include "see.h"
 
 using namespace std;
 
@@ -143,14 +144,6 @@ int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth
     return ret;
 }
 
-// Null-move heuristic: 40%
-// Transposition: 30%
-// Iterative deepening: less than 3%
-// Transposition move as move ordering: 5%
-// Internal iterative deepening: 10%
-// Not tring null-move if transposition table suggests it's unlikely to fail-high: 10%
-// Trying history move first, then if not cut-off, generate remaining moves
-//
 // We don't detect repetitions other than repeated attacks in Board::move
 // since an ordinary repetition detection is not compatible with transposition tables
 
@@ -230,7 +223,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
                     for (int j = start; j < moves_count; ++j)
                         if (!(capture_scores[j] > Board::NON_CAPTURE
-                                && is_winning_capture(board, moves[j], capture_scores[j], side)))
+                                && is_winning_capture(&board, moves[j], capture_scores[j], side)))
                             capture_scores[j] = Board::NON_CAPTURE;
                     order_moves(moves + start, capture_scores + start, moves_count, moves_count);
 
@@ -377,50 +370,6 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, POSITION last
     return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), last_square);
 }
 
-bool Agent::is_winning_capture(Board &board, MOVE move, int score, int side)
-{
-    int captured = (score >> 3), capturing = 8 - (score & 7);
-    if (captured > capturing)
-        return true;
-
-    int v = board.static_value(side);
-
-    bool game_end;
-    if (!board.move(move, &game_end))
-        return false;
-    if (game_end)
-    {
-        board.unmove();
-        return true;
-    }
-
-    int ret = -static_exchange_eval(board, 1 - side, move_dst(move));
-
-    board.unmove();
-
-    return v <= ret;
-}
-
-int Agent::static_exchange_eval(Board &board, int side, POSITION pos)
-{
-    int ans = board.static_value(side);
-
-    MOVE response;
-    bool game_end;
-    if (!board.is_attacked(pos, true, &response) || !board.move(response, &game_end))
-        return ans;
-
-    int ret;
-    if (game_end)
-        ret = INF;
-    else
-        ret = -static_exchange_eval(board, 1 - side, pos);
-
-    board.unmove();
-
-    return max(ans, ret);
-}
-
 int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep,
         int *last_progress, bool in_check, POSITION last_square)
 {
@@ -451,7 +400,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
                 if (move_dst(moves[i]) == last_square)
                     capture_scores[i] = max(capture_scores[i], Board::KING_CAPTURE - 1);
                 if (capture_scores[i] > Board::NON_CAPTURE
-                        && is_winning_capture(board, moves[i], capture_scores[i], side))
+                        && is_winning_capture(&board, moves[i], capture_scores[i], side))
                 {
                     MOVE tm = moves[c];
                     moves[c] = moves[i];

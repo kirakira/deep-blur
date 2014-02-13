@@ -4,6 +4,7 @@
 #include <string>
 #include <ctime>
 
+#include "common.h"
 #include "agent.h"
 
 using namespace std;
@@ -33,7 +34,7 @@ void go(Board &board, Agent &agent, int &side, int time_limit, int depth = 128)
     MOVE res;
 
     int score = agent.search(board, side, &res, time_limit, depth);
-    if (score > -Agent::INF)
+    if (score > -INF)
     {
         board.move(res);
         side = 1 - side;
@@ -134,7 +135,7 @@ int main()
         }
         else if (command == "qs")
         {
-            cout << agent.quiescence(board, side, -Agent::INF, Agent::INF) << endl;
+            cout << agent.quiescence(board, side, -INF, INF) << endl;
         }
         else if (command == "xboard" || command == "new" || command == "random" || command == "accepted" || command == "rejected"
                 || command == "variant" || command == "post" || command == "hard" || command == "computer")

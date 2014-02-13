@@ -3,6 +3,7 @@
 #include <vector>
 #include <ctime>
 
+#include "common.h"
 #include "board.h"
 #include "transposition.h"
 
@@ -14,8 +15,6 @@ class Agent
         Agent();
         int search(Board &board, int side, MOVE *result, int time_limit, int depth);
         int quiescence(Board &board, int side, int alpha, int beta, POSITION last_square = INVALID_POSITION);
-
-        static const int INF = 2047;
 
     protected:
         static const int MAX_DEPTH = 80;
@@ -37,8 +36,6 @@ class Agent
                 clock_t deadline, bool nullable, POSITION last_square = INVALID_POSITION);
         int id(Board &board, int side, MOVE *result, clock_t deadline, int *depth);
 
-        bool is_winning_capture(Board &board, MOVE move, int score, int side);
-        int static_exchange_eval(Board &board, int side, POSITION pos);
         int quiescence(Board &board, int side, int alpha, int beta, std::vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_square);
 
         int trans_hit, nodes, leaf, null_cut, first_cut, beta_nodes, alpha_nodes, first_best;
