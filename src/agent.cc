@@ -5,6 +5,7 @@
 
 #include "agent.h"
 #include "see.h"
+#include "movelist.h"
 
 using namespace std;
 
@@ -206,55 +207,10 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             if (USE_IID && depth >= 6)
                 alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline, false, last_square);
 
-            bool moves_generated = false;
-            MOVE moves[120];
-            int moves_count = 0, capture_scores[120], history_scores[120];
-
-            if (his_move != 0)
-                moves[moves_count++] = his_move;
-
-            for (int i = 0; ans < beta && (!moves_generated || i < moves_count); ++i)
+            MoveList ml(&board, side, his_move, move_score);
+            MOVE move;
+            for (int i = 0; ans < beta && (move = ml.next_move()); ++i)
             {
-                if (i == moves_count)
-                {
-                    int start = moves_count;
-                    board.generate_moves(side, moves + start,
-                            capture_scores + start, &moves_count);
-
-                    for (int j = start; j < moves_count; ++j)
-                        if (!(capture_scores[j] > Board::NON_CAPTURE
-                                && is_winning_capture(&board, moves[j], capture_scores[j], side)))
-                            capture_scores[j] = Board::NON_CAPTURE;
-                    order_moves(moves + start, capture_scores + start, moves_count, moves_count);
-
-                    int c = start;
-                    while (c < moves_count && capture_scores[c] > Board::NON_CAPTURE)
-                        ++c;
-
-                    for (int j = c; j < moves_count; ++j)
-                    {
-                        if (USE_KILLER)
-                        {
-                            if (moves[j] == killer[ply][0])
-                                history_scores[j] = 1000000;
-                            else if (moves[j] == killer[ply][1])
-                                history_scores[j] = 999999;
-                            else
-                                history_scores[j] = move_score[moves[j]];
-                        }
-                        else
-                            history_scores[j] = move_score[moves[j]];
-                    }
-                    order_moves(moves + c, history_scores + c, moves_count - c, moves_count - c);
-
-                    moves_count += start;
-                    moves_generated = true;
-                }
-
-                if (moves_generated && moves[i] == his_move)
-                    continue;
-
-                MOVE move = moves[i];
                 bool game_end, rep_attack;
                 if (!board.move(move, &game_end, &rep_attack) || rep_attack)
                 {
@@ -278,8 +234,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     {
                         t = current_alpha + 1;
 
-                        if (USE_LMR && ply > LMR_PLY && i > LMR_NODES &&
-                                capture_scores[i] <= Board::NON_CAPTURE)
+                        if (USE_LMR && ply > LMR_PLY && i > LMR_NODES && !board.is_capture(move))
                             t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
                                     -current_alpha, ply + 1, deadline, true, dst);
 
