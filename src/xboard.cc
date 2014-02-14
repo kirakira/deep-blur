@@ -77,10 +77,14 @@ int main()
             side = 1;
         else if (is_move(command))
         {
-            if (!board.checked_move(side, make_move(command)))
+            bool rep;
+            if (!board.checked_move(side, make_move(command), &rep))
                 cout << "Illegal move: " << command << endl;
             else
             {
+                if (rep)
+                    cout << "# Warning: repeated attack" << endl;
+
                 side = 1 - side;
 
                 if (!force)

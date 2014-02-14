@@ -1,9 +1,8 @@
 PV list
-Time control
-SearchRoot
-Lazy move ordering
+SearchRoot: return current best move
+Repetition check based on hash; Draw by repeptition
 Generate checks in the first ply of qsearch
 Check extensions
 Delta pruning
-Repetition check based on hash; Draw by repeptition
+Bitboard
 More decent evalutions
