@@ -99,7 +99,7 @@ int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth
     {
         cout << "# Level " << level << ": ";
 
-        int tmp = alpha_beta(board, side, result, level, -INF, INF, 0, deadline, false, INVALID_POSITION);
+        int tmp = alpha_beta(board, side, result, level, -INF, INF, 0, deadline, false, INVALID_POSITION, true);
         if (tmp == ABORTED)
         {
             *depth = level;
@@ -150,7 +150,7 @@ int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
-        int ply, clock_t deadline, bool nullable, POSITION last_square)
+        int ply, clock_t deadline, bool nullable, POSITION last_square, bool isPV)
 {
     int his_score, his_exact = 0, his_depth = 0;
     MOVE his_move = 0;
@@ -184,7 +184,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     int ans = -INF, first_ans = ABORTED;
     MOVE best_move = 0;
-    bool isPV = (beta > alpha + 1);
 
     if (depth == 0)
     {
@@ -195,7 +194,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     {
         if (USE_NULL_MOVE && nullable && !isPV)
             ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - 3),
-                    -beta, -beta + 1, ply, deadline, false, INVALID_POSITION);
+                    -beta, -beta + 1, ply, deadline, false, INVALID_POSITION, isPV);
 
         if (ans == -ABORTED)
             return ABORTED;
@@ -205,7 +204,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             ans = -INF;
 
             if (USE_IID && depth >= 6)
-                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline, false, last_square);
+                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline, false, last_square, isPV);
 
             MoveList ml(&board, side, his_move, move_score, killer[ply][0], killer[ply][1]);
             MOVE move;
@@ -227,27 +226,27 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     int current_alpha = max(alpha, ans);
                     POSITION dst = move_dst(move);
 
-                    if (i <= 0)
+                    if (i == 0)
                         t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
-                                ply + 1, deadline, true, dst);
+                                ply + 1, deadline, true, dst, isPV);
                     else
                     {
                         t = current_alpha + 1;
 
                         if (USE_LMR && ply > LMR_PLY && i > LMR_NODES && !board.is_capture(move))
                             t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
-                                    -current_alpha, ply + 1, deadline, true, dst);
+                                    -current_alpha, ply + 1, deadline, true, dst, false);
 
                         if (t > current_alpha)
                             t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
-                                    -current_alpha, ply + 1, deadline, true, dst);
+                                    -current_alpha, ply + 1, deadline, true, dst, false);
                         if (current_alpha < t && t < beta)
                         {
 #ifdef DEBUG_OUTPUT
                             int t0 = t;
 #endif
                             t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
-                                    ply + 1, deadline, true, dst);
+                                    ply + 1, deadline, true, dst, isPV);
 
 #ifdef DEBUG_OUTPUT
                             board.print();

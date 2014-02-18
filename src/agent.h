@@ -33,7 +33,7 @@ class Agent
         int select_best_move(int *scores, int moves_count);
         void order_moves(MOVE *moves, int *scores, int moves_count, int order_count);
         int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, int ply,
-                clock_t deadline, bool nullable, POSITION last_square = INVALID_POSITION);
+                clock_t deadline, bool nullable, POSITION last_square, bool isPV);
         int id(Board &board, int side, MOVE *result, clock_t deadline, int *depth);
 
         int quiescence(Board &board, int side, int alpha, int beta, std::vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_square);
