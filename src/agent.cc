@@ -207,7 +207,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             if (USE_IID && depth >= 6)
                 alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline, false, last_square);
 
-            MoveList ml(&board, side, his_move, move_score);
+            MoveList ml(&board, side, his_move, move_score, killer[ply][0], killer[ply][1]);
             MOVE move;
             for (int i = 0; ans < beta && (move = ml.next_move()); ++i)
             {
@@ -310,8 +310,8 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     if (first_ans == ans)
         ++first_best;
 
-    if (best_move != 0)
-        move_score[best_move] += 1;
+    if (best_move != 0 && !board.is_capture(best_move))
+        move_score[best_move] += depth * depth;
 
     if (result)
         *result = best_move;

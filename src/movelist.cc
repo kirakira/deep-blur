@@ -38,10 +38,12 @@ int select_best(int *scores, int from, int end)
     return ret;
 }
 
-MoveList::MoveList(Board *b, int s, MOVE fm, int *hs)
+MoveList::MoveList(Board *b, int s, MOVE fm, int *hs, MOVE k1, MOVE k2)
     : board(b)
     , side(s)
     , first_move(fm)
+    , killer1(k1)
+    , killer2(k2)
     , state(FIRST_MOVE)
     , history_scores(hs)
 {
@@ -88,7 +90,14 @@ MOVE MoveList::next_move()
             if (first_move != 0)
                 remove_move(moves, scores, c, moves_count, first_move);
             for (int i = c; i < moves_count; ++i)
-                scores[i] = history_scores[moves[i]];
+            {
+                if (moves[i] == killer1)
+                    scores[i] = KILLER1_SCORE;
+                else if (moves[i] == killer2)
+                    scores[i] = KILLER2_SCORE;
+                else
+                    scores[i] = history_scores[moves[i]];
+            }
             state = OTHERS;
 
         case OTHERS:

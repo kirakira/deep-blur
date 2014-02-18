@@ -22,7 +22,7 @@ class Agent
         static const bool USE_NULL_MOVE = true;
         static const bool USE_TRANS_TABLE = true;
         static const bool USE_IID = true;
-        static const bool USE_KILLER = false;
+        static const bool USE_KILLER = true;
         static const bool USE_LMR = false;
         static const int LMR_NODES = 3, LMR_PLY = 6;
         static const bool CHECKS_IN_QUIESCENCE = false;
