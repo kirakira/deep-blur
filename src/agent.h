@@ -46,4 +46,7 @@ class Agent
         double ebf(int nodes, int depth);
 
         Transposition trans;
+
+        clock_t search_start_time;
+        void output_thinking(int ply, int score, PV *pv);
 };

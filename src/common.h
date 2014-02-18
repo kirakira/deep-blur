@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include "move.h"
 
 static const int INF = 2047;
@@ -12,3 +13,5 @@ typedef struct sPV
 } PV;
 
 void catPV(PV *main, PV *cat);
+
+std::string readable_number(int x);

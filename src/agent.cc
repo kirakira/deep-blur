@@ -69,9 +69,10 @@ int Agent::search(Board &board, int side, MOVE *result, int time_limit, int dept
     alpha_nodes = 0;
     first_best = 0;
 
-    clock_t t = clock(), deadline = t + (double) time_limit / 1000. * (double) CLOCKS_PER_SEC;
+    search_start_time = clock();
+    clock_t deadline = search_start_time + (double) time_limit / 1000. * (double) CLOCKS_PER_SEC;
     int ret = id(board, side, result, deadline, &depth);
-    t = clock() - t;
+    clock_t t = clock() - search_start_time;
 
     double sec = (double) t / (double) CLOCKS_PER_SEC;
     cout << "# transposition hit rate: " << (double) trans_hit * 100 / (double) (trans_hit + nodes) << "%" << endl;
@@ -89,6 +90,18 @@ int Agent::search(Board &board, int side, MOVE *result, int time_limit, int dept
     return ret;
 }
 
+void Agent::output_thinking(int ply, int score, PV *pv)
+{
+    int t = (int) ((double) (clock() - search_start_time) / (double) CLOCKS_PER_SEC * 100);
+    cout << ply << "\t" << score << "\t" << t << "\t" << readable_number(nodes) << "\t";
+    if (pv)
+    {
+        for (int i = 0; i < pv->count; ++i)
+            cout << move_string(pv->moves[i]) << " ";
+    }
+    cout << endl;
+}
+
 int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth)
 {
     int ret = 0;
@@ -97,22 +110,24 @@ int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth
 
     for (int level = 1; level <= *depth; ++level)
     {
-        cout << "# Level " << level << ": ";
-
         PV pv;
         pv.count = 0;
+
         bool aborted;
-        ret = search_root(board, side, result, level, deadline, &pv, &aborted);
-        if (aborted)
+        MOVE current_move;
+
+        int t = search_root(board, side, &current_move, level, deadline, &pv, &aborted);
+        if (t != ABORTED)
         {
-            *depth = level;
-            cout << "aborted" << endl;
-            break;
+            ret = t;
+            *result = current_move;
         }
 
-        for (int i = 0; i < pv.count; ++i)
-            cout << move_string(pv.moves[i]) << " ";
-        cout << endl;
+        if (aborted)
+        {
+            *depth = level - 1;
+            break;
+        }
     }
     return ret;
 }
@@ -136,7 +151,7 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
     *aborted = false;
     MOVE move, best_move = 0;
-    int ans = -INF;
+    int ans = ABORTED;
 
     for (int i = 0; ans < INF && (move = ml.next_move()); ++i)
     {
@@ -187,6 +202,8 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
                 pv->count = 0;
                 catPV(pv, &newPV);
             }
+
+            output_thinking(depth, ans, pv);
         }
     }
 
