@@ -101,21 +101,111 @@ int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth
 
         PV pv;
         pv.count = 0;
-        int tmp = alpha_beta(board, side, result, level, -INF, INF, 0, deadline, false, INVALID_POSITION, true, &pv);
-        if (tmp == ABORTED)
+        bool aborted;
+        ret = search_root(board, side, result, level, deadline, &pv, &aborted);
+        if (aborted)
         {
             *depth = level;
             cout << "aborted" << endl;
             break;
         }
 
-        ret = tmp;
-
         for (int i = 0; i < pv.count; ++i)
             cout << move_string(pv.moves[i]) << " ";
         cout << endl;
     }
     return ret;
+}
+
+int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t deadline, PV *pv, bool *aborted)
+{
+    int his_score, his_exact = 0, his_depth = 0;
+    MOVE his_move = 0;
+    bool rep;
+    if (USE_TRANS_TABLE && trans.get(board.hash_code(side), &his_score, &his_exact, &his_move, &his_depth)
+            && (his_move == 0 || board.checked_move(side, his_move, &rep)))
+    {
+        if (his_move != 0)
+            board.unmove();
+    }
+
+    if (USE_IID && depth >= 6)
+        alpha_beta(board, side, &his_move, depth - 2, -INF, INF, 1, deadline, false, INVALID_POSITION, true, NULL);
+
+    MoveList ml(&board, side, his_move, move_score, 0, 0);
+
+    *aborted = false;
+    MOVE move, best_move = 0;
+    int ans = -INF;
+
+    for (int i = 0; ans < INF && (move = ml.next_move()); ++i)
+    {
+        bool game_end, rep_attack;
+        if (!board.move(move, &game_end, &rep_attack) || rep_attack)
+        {
+            if (rep_attack)
+                board.unmove();
+            continue;
+        }
+
+        PV newPV;
+        newPV.moves[0] = move;
+        newPV.count = 1;
+        int t;
+        if (game_end)
+            t = INF;
+        else
+        {
+            POSITION dst = move_dst(move);
+
+            if (i == 0)
+                t = -alpha_beta(board, 1 - side, NULL, depth - 1, -INF, -ans,
+                        1, deadline, true, dst, true, &newPV);
+            else
+            {
+                t = -alpha_beta(board, 1 - side, NULL, depth - 1, -ans - 1,
+                        -ans, 1, deadline, true, dst, false, NULL);
+                if (ans < t)
+                    t = -alpha_beta(board, 1 - side, NULL, depth - 1, -INF, -ans,
+                            1, deadline, true, dst, true, &newPV);
+            }
+        }
+        board.unmove();
+
+        if (t == -ABORTED)
+        {
+            *aborted = true;
+            break;
+        }
+
+        if (t > ans)
+        {
+            best_move = move;
+            ans = t;
+            if (pv)
+            {
+                pv->count = 0;
+                catPV(pv, &newPV);
+            }
+        }
+    }
+
+    if (USE_TRANS_TABLE)
+    {
+        int e;
+        if (*aborted)
+            e = Transposition::LOWER;
+        else
+            e = Transposition::EXACT;
+        trans.put(board.hash_code(side), ans, e, best_move, depth);
+    }
+
+    if (best_move != 0 && !board.is_capture(best_move))
+        move_score[best_move] += depth * depth;
+
+    if (result)
+        *result = best_move;
+    return ans;
 }
 
 // We don't detect repetitions other than repeated attacks in Board::move
@@ -135,9 +225,9 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             board.unmove();
 
         if (his_depth >= depth && (his_move == 0 || !rep) &&
-            (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
-             || (his_exact == Transposition::LOWER && his_score >= beta))
-            && (nullable || his_move != 0))
+                (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
+                 || (his_exact == Transposition::LOWER && his_score >= beta))
+                && (nullable || his_move != 0))
         {
             ++trans_hit;
 
