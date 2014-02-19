@@ -264,6 +264,8 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     int ans = -INF, first_ans = ABORTED;
     MOVE best_move = 0;
+    MOVE searched_moves[120];
+    int searched_moves_count = 0;
 
     if (depth == 0)
     {
@@ -298,6 +300,8 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                         board.unmove();
                     continue;
                 }
+
+                searched_moves[searched_moves_count++] = move;
 
                 PV newPV;
                 newPV.moves[0] = move;
@@ -398,8 +402,16 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     if (first_ans == ans)
         ++first_best;
 
-    if (best_move != 0 && !board.is_capture(best_move))
-        move_score[best_move] += depth * depth;
+    if (ans >= beta && best_move != 0 && !board.is_capture(best_move))
+    {
+        for (int i = 0; i < searched_moves_count; ++i)
+        {
+            if (searched_moves[i] == best_move)
+                move_score[best_move] += depth * depth;
+            else
+                move_score[searched_moves[i]] -= depth * depth;
+        }
+    }
 
     if (result)
         *result = best_move;
