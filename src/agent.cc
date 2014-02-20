@@ -62,7 +62,6 @@ int Agent::search(Board &board, int side, MOVE *result, int time_limit, int dept
 {
     trans_hit = 0;
     nodes = 0;
-    leaf = 0;
     null_cut = 0;
     first_cut = 0;
     beta_nodes = 0;
@@ -76,12 +75,12 @@ int Agent::search(Board &board, int side, MOVE *result, int time_limit, int dept
 
     double sec = (double) t / (double) CLOCKS_PER_SEC;
     cout << "# transposition hit rate: " << (double) trans_hit * 100 / (double) (trans_hit + nodes) << "%" << endl;
-    cout << "# null-move cutoff: " << (double) null_cut * 100 / (double) (nodes - leaf)
-        << "%, first-move cutoff: " << (double) first_cut * 100 / (double) (nodes - leaf) << "%" << endl;
+    cout << "# null-move cutoff: " << (double) null_cut * 100 / (double) nodes
+        << "%, first-move cutoff: " << (double) first_cut * 100 / (double) nodes << "%" << endl;
     cout << "# beta nodes: " << (double) beta_nodes * 100 / (double) (nodes)
         << "%, alpha nodes: " << (double) alpha_nodes * 100/ (double) (nodes)
-        << "%, leafs: " << (double) leaf * 100 / (double) (nodes) << "%" << endl;
-    cout << "# first-move-best rate: " << (double) first_best * 100 / (double) (nodes - null_cut - leaf) << "%" << endl;
+        << "%" << endl;
+    cout << "# first-move-best rate: " << (double) first_best * 100 / (double) (nodes - null_cut) << "%" << endl;
     trans.stat();
     cout << "# total nodes: " << (double) nodes / 1e6
         << "m, EBF: " << ebf(nodes, depth)
@@ -118,8 +117,9 @@ int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth
 
         bool aborted;
         MOVE current_move;
+        HashSet rep_table(8);
 
-        int t = search_root(board, side, &current_move, level, deadline, &pv, &aborted);
+        int t = search_root(board, side, &current_move, level, deadline, &rep_table, &pv, &aborted);
         if (t != ABORTED)
         {
             ret = t;
@@ -135,7 +135,8 @@ int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth
     return ret;
 }
 
-int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t deadline, PV *pv, bool *aborted)
+int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t deadline,
+        HashSet *rep_table, PV *pv, bool *aborted)
 {
     int his_score, his_exact = 0, his_depth = 0;
     MOVE his_move = 0;
@@ -147,8 +148,12 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
             board.unmove();
     }
 
+    uint64_t my_hash = board.hash_code(side);
+    rep_table->put(my_hash);
+
     if (USE_IID && depth >= 6)
-        alpha_beta(board, side, &his_move, depth - 2, -INF, INF, 1, deadline, false, INVALID_POSITION, true, NULL);
+        alpha_beta(board, side, &his_move, depth - 2, -INF, INF, 1, deadline,
+                rep_table, false, INVALID_POSITION, true, NULL);
 
     MoveList ml(&board, side, his_move, move_score, 0, 0);
 
@@ -178,14 +183,14 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
             if (i == 0)
                 t = -alpha_beta(board, 1 - side, NULL, depth - 1, -INF, -ans,
-                        1, deadline, true, dst, true, &newPV);
+                        1, deadline, rep_table, true, dst, true, &newPV);
             else
             {
                 t = -alpha_beta(board, 1 - side, NULL, depth - 1, -ans - 1,
-                        -ans, 1, deadline, true, dst, false, NULL);
+                        -ans, 1, deadline, rep_table, true, dst, false, NULL);
                 if (ans < t)
                     t = -alpha_beta(board, 1 - side, NULL, depth - 1, -INF, -ans,
-                            1, deadline, true, dst, true, &newPV);
+                            1, deadline, rep_table, true, dst, true, &newPV);
             }
         }
         board.unmove();
@@ -210,6 +215,8 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
         }
     }
 
+    rep_table->remove(my_hash);
+
     if (USE_TRANS_TABLE)
     {
         int e;
@@ -217,7 +224,7 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
             e = Transposition::LOWER;
         else
             e = Transposition::EXACT;
-        trans.put(board.hash_code(side), ans, e, best_move, depth);
+        trans.put(my_hash, ans, e, best_move, depth);
     }
 
     if (best_move != 0 && !board.is_capture(best_move))
@@ -228,13 +235,17 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
     return ans;
 }
 
-// We don't detect repetitions other than repeated attacks in Board::move
-// since an ordinary repetition detection is not compatible with transposition tables
-
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
-        int ply, clock_t deadline, bool nullable, POSITION last_square, bool isPV, PV *pv)
+        int ply, clock_t deadline, HashSet *rep_table, bool nullable, POSITION last_square, bool isPV, PV *pv)
 {
+    if (depth == 0)
+        return quiescence(board, side, alpha, beta, rep_table, board.in_check(side), last_square);
+
+    uint64_t my_hash = board.hash_code(side);
+    if (rep_table->contains(my_hash))
+        return 0;
+
     int his_score, his_exact = 0, his_depth = 0;
     MOVE his_move = 0;
     bool rep;
@@ -260,133 +271,137 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             nullable = false;
     }
 
-    ++nodes;
-
     if (nodes % CHECK_TIME_NODES == 0 && clock() >= deadline)
         return ABORTED;
+
+    ++nodes;
+
+    rep_table->put(my_hash);
 
     int ans = -INF, first_ans = ABORTED;
     MOVE best_move = 0;
     MOVE searched_moves[120];
     int searched_moves_count = 0;
+    bool aborted = false;
 
-    if (depth == 0)
+    if (USE_NULL_MOVE && nullable && !isPV)
+        ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - 3),
+                -beta, -beta + 1, ply, deadline, rep_table, false, INVALID_POSITION, isPV, NULL);
+
+    if (ans == -ABORTED)
+        aborted = true;
+
+    if (!aborted && ans < beta)
     {
-        ++leaf;
-        ans = quiescence(board, side, alpha, beta, last_square);
-    }
-    else
-    {
-        if (USE_NULL_MOVE && nullable && !isPV)
-            ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - 3),
-                    -beta, -beta + 1, ply, deadline, false, INVALID_POSITION, isPV, NULL);
+        ans = -INF;
 
-        if (ans == -ABORTED)
-            return ABORTED;
+        if (USE_IID && depth >= 6)
+            alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline,
+                    rep_table, false, last_square, isPV, NULL);
 
-        if (ans < beta)
+        int original_pv_count = pv ? pv->count : 0;
+        MoveList ml(&board, side, his_move, move_score, killer[ply][0], killer[ply][1]);
+        MOVE move;
+        for (int i = 0; ans < beta && (move = ml.next_move()); ++i)
         {
-            ans = -INF;
-
-            if (USE_IID && depth >= 6)
-                alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline, false, last_square, isPV, NULL);
-
-            int original_pv_count = pv ? pv->count : 0;
-            MoveList ml(&board, side, his_move, move_score, killer[ply][0], killer[ply][1]);
-            MOVE move;
-            for (int i = 0; ans < beta && (move = ml.next_move()); ++i)
+            bool game_end, rep_attack;
+            if (!board.move(move, &game_end, &rep_attack) || rep_attack)
             {
-                bool game_end, rep_attack;
-                if (!board.move(move, &game_end, &rep_attack) || rep_attack)
-                {
-                    if (rep_attack)
-                        board.unmove();
-                    continue;
-                }
+                if (rep_attack)
+                    board.unmove();
+                continue;
+            }
 
-                searched_moves[searched_moves_count++] = move;
+            searched_moves[searched_moves_count++] = move;
 
-                PV newPV;
-                newPV.moves[0] = move;
-                newPV.count = 1;
-                int t;
-                if (game_end)
-                    t = INF;
-                else
-                {
-                    int current_alpha = max(alpha, ans);
-                    POSITION dst = move_dst(move);
-
-                    if (i == 0)
-                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
-                                ply + 1, deadline, true, dst, isPV, &newPV);
-                    else
-                    {
-                        t = current_alpha + 1;
-
-                        if (USE_LMR && ply > LMR_PLY && i > LMR_NODES && !board.is_capture(move))
-                            t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
-                                    -current_alpha, ply + 1, deadline, true, dst, false, NULL);
-
-                        if (t > current_alpha)
-                            t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
-                                    -current_alpha, ply + 1, deadline, true, dst, false, NULL);
-                        if (current_alpha < t && t < beta)
-                        {
-#ifdef DEBUG_OUTPUT
-                            int t0 = t;
-#endif
-                            t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
-                                    ply + 1, deadline, true, dst, isPV, &newPV);
-
-#ifdef DEBUG_OUTPUT
-                            board.print();
-                            cout << "(alpha, beta) =(" << current_alpha << ", " << beta << ")" << endl;
-                            cout << "move index: " << i << ", " << move_string(moves[i]) << endl;
-                            cout << "first returned: " << t0 << endl;
-                            cout << "second returned: " << t << endl;
-                            for (int j = 0; j < i; ++j)
-                                cout << move_string(moves[j]) << "(" << move_score[moves[j]] << ") ";
-                            cout << endl << endl;
-#endif
-                        }
-                    }
-                }
-                board.unmove();
-
-                if (t == -ABORTED)
-                    return ABORTED;
+            PV newPV;
+            newPV.moves[0] = move;
+            newPV.count = 1;
+            int t;
+            if (game_end)
+                t = INF;
+            else
+            {
+                int current_alpha = max(alpha, ans);
+                POSITION dst = move_dst(move);
 
                 if (i == 0)
-                    first_ans = t;
-
-                if (t > ans)
+                    t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
+                            ply + 1, deadline, rep_table, true, dst, isPV, &newPV);
+                else
                 {
-                    best_move = move;
-                    ans = t;
-                    if (isPV && pv)
-                    {
-                        pv->count = original_pv_count;
-                        catPV(pv, &newPV);
-                    }
-                }
+                    t = current_alpha + 1;
 
-                if (t >= beta)
-                {
-                    if (USE_KILLER && killer[ply][0] != move)
+                    if (USE_LMR && ply > LMR_PLY && i > LMR_NODES && !board.is_capture(move))
+                        t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
+                                -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL);
+
+                    if (t > current_alpha)
+                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
+                                -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL);
+                    if (current_alpha < t && t < beta)
                     {
-                        killer[ply][1] = killer[ply][0];
-                        killer[ply][0] = move;
+#ifdef DEBUG_OUTPUT
+                        int t0 = t;
+#endif
+                        t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
+                                ply + 1, deadline, rep_table, true, dst, isPV, &newPV);
+
+#ifdef DEBUG_OUTPUT
+                        board.print();
+                        cout << "(alpha, beta) =(" << current_alpha << ", " << beta << ")" << endl;
+                        cout << "move index: " << i << ", " << move_string(moves[i]) << endl;
+                        cout << "first returned: " << t0 << endl;
+                        cout << "second returned: " << t << endl;
+                        for (int j = 0; j < i; ++j)
+                            cout << move_string(moves[j]) << "(" << move_score[moves[j]] << ") ";
+                        cout << endl << endl;
+#endif
                     }
-                    if (i == 0)
-                        ++first_cut;
-                    break;
                 }
             }
+            board.unmove();
+
+            if (t == -ABORTED)
+            {
+                aborted = true;
+                break;
+            }
+
+            if (i == 0)
+                first_ans = t;
+
+            if (t > ans)
+            {
+                best_move = move;
+                ans = t;
+                if (isPV && pv)
+                {
+                    pv->count = original_pv_count;
+                    catPV(pv, &newPV);
+                }
+            }
+
+            if (t >= beta)
+            {
+                if (USE_KILLER && killer[ply][0] != move)
+                {
+                    killer[ply][1] = killer[ply][0];
+                    killer[ply][0] = move;
+                }
+                if (i == 0)
+                    ++first_cut;
+                break;
+            }
         }
-        else
-            ++null_cut;
     }
+    else
+        ++null_cut;
+
+    rep_table->remove(my_hash);
+
+    if (aborted)
+        return ABORTED;
 
     if (USE_TRANS_TABLE && (his_exact != Transposition::EXACT || his_depth <= depth))
     {
@@ -395,7 +410,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             e = Transposition::UPPER;
         else if (ans >= beta)
             e = Transposition::LOWER;
-        trans.put(board.hash_code(side), ans, e, best_move, depth);
+        trans.put(my_hash, ans, e, best_move, depth);
     }
 
     if (ans >= beta)
@@ -427,14 +442,14 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, POSITION last
     return quiescence(board, side, alpha, beta, &hs, board.in_check(side), last_square);
 }
 
-int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep,
+int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep_table,
         bool in_check, POSITION last_square)
 {
     uint64_t my_hash = board.hash_code(side);
-    if (rep->contains(my_hash))
+    if (rep_table->contains(my_hash))
         return 0;
 
-    rep->put(my_hash);
+    rep_table->put(my_hash);
 
     int ans, sv = board.static_value(side);
     if (in_check)
@@ -493,7 +508,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep,
             if (in_check || capture_scores[i] > Board::NON_CAPTURE || next_in_check)
             {
                 int current_alpha = max(alpha, ans);
-                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep,
+                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep_table,
                         next_in_check, move_dst(moves[i]));
 
                 if (t >= ans)
@@ -503,7 +518,8 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep,
             board.unmove();
         }
     }
-    rep->remove(my_hash);
+
+    rep_table->remove(my_hash);
 
     return ans;
 }

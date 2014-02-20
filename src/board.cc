@@ -175,7 +175,7 @@ bool Board::checked_move(int side, MOVE move, bool *rep)
     return true;
 }
 
-bool Board::move(MOVE move, bool *game_end, bool *rep)
+bool Board::move(MOVE move, bool *game_end, bool *rep, bool force)
 {
     int src_i = position_rank(move_src(move)),
         src_j = position_file(move_src(move)),
@@ -205,37 +205,50 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
     hash ^= get_hash(src_i, src_j, src.piece);
     current_static_value -= static_values[src.piece][src_i][src_j];
 
+    HistoryEntry history_entry;
+    history_entry.move = move;
+    history_entry.capture = dst;
+    history_entry.rep_side = NON_REP;
+    history.push_back(history_entry);
+
     uint8_t rep_side = NON_REP;
     int my_side = piece_side(src.piece);
-    if (history.size() >= 4)
+    if (!force && history.size() >= 4)
     {
-        if (history[history.size() - 1].rep_side != NON_REP)
+        if (history[history.size() - 2].rep_side != NON_REP)
         {
-            if (history[history.size() - 4].move == move)
-                rep_side = history[history.size() - 1].rep_side;
+            // if repeated attack already exists, then history.size() must be at least 5
+            if (history[history.size() - 5].move == move)
+                rep_side = history[history.size() - 2].rep_side;
         }
         else
         {
-            POSITION victim = move_dst(history[history.size() - 1].move);
-            if (history[history.size() - 4].move == move
-                    && dst.piece == 0 && are_inverse_moves(move, history[history.size() - 2].move)
-                    && are_inverse_moves(history[history.size() - 1].move, history[history.size() - 3].move)
-                    && history[history.size() - 1].capture.piece == 0
+            POSITION victim = move_dst(history[history.size() - 2].move);
+            if (dst.piece == 0 && are_inverse_moves(move, history[history.size() - 3].move)
+                    && are_inverse_moves(history[history.size() - 2].move, history[history.size() - 4].move)
                     && history[history.size() - 2].capture.piece == 0
                     && history[history.size() - 3].capture.piece == 0
+                    && history[history.size() - 4].capture.piece == 0
                     && piece_type(src.piece) != PIECE_K
                     && (is_attacked(victim, true)
                         || (piece_type(board[position_rank(victim)][position_file(victim)].piece) != PIECE_K
                             && in_check(1 - my_side))))
-                rep_side = (uint8_t) my_side;
+            {
+                MOVE victim_move = history[history.size() - 2].move;
+                unmove();
+                unmove();
+                victim = move_dst(history[history.size() - 2].move);
+                if (is_attacked(victim, true)
+                        || (piece_type(board[position_rank(victim)][position_file(victim)].piece) != PIECE_K
+                            && in_check(1 - my_side)))
+                    rep_side = (uint8_t) my_side;
+                this->move(victim_move, NULL, NULL, true);
+                this->move(move, NULL, NULL, true);
+            }
         }
+        if (rep_side != NON_REP)
+            history[history.size() - 1].rep_side = rep_side;
     }
-
-    HistoryEntry history_entry;
-    history_entry.move = move;
-    history_entry.capture = dst;
-    history_entry.rep_side = rep_side;
-    history.push_back(history_entry);
 
     if (rep)
     {
@@ -245,7 +258,7 @@ bool Board::move(MOVE move, bool *game_end, bool *rep)
             *rep = false;
     }
 
-    if (king_face_to_face())
+    if (!force && king_face_to_face())
     {
         unmove();
         return false;

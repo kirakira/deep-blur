@@ -1,4 +1,6 @@
-Repetition: board should detect repeated attackings for more than 4 plies; search routine should eliminate repeated positions with hashing
+Output fen string in state
+Repetition: board should detect repeated attackings for more than 4 plies
+Repeated attacking detection: examine the attacking list of the moving piece, instead of the evasion piece
 Generate checks in the first ply of qsearch
 Check extensions
 Delta pruning
