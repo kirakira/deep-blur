@@ -30,6 +30,7 @@ class Board
         void generate_moves(int side, MOVE *moves, int *capture_scores, int *moves_count);
 
         void print();
+        std::string fen_string(int side);
 
         static const int H = 10, W = 9, NON_CAPTURE = 0, KING_CAPTURE = 35;
 

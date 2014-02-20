@@ -1,9 +1,7 @@
-Output fen string in state
-Don't save to transposition table if draw score was due to repetition
+Check extensions
 Repetition: board should detect repeated attackings for more than 4 plies
 Repeated attacking detection: examine the attacking list of the moving piece, instead of the evasion piece
 Generate checks in the first ply of qsearch
-Check extensions
 Delta pruning
 Bitboard
-More decent evalutions
+More decent evalutions: king safety, score of cannon and horse should vary with remain pieces on board

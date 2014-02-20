@@ -1118,3 +1118,33 @@ bool Board::king_face_to_face()
             return false;
     return true;
 }
+
+string Board::fen_string(int side)
+{
+    string s;
+    for (int i = 0; i < H; ++i)
+    {
+        int c = 0;
+        for (int j = 0; j < W; ++j)
+        {
+            if (board[i][j].piece == 0)
+                ++c;
+            else
+            {
+                if (c != 0)
+                    s += ('0' + c);
+                s += piece_letter(board[i][j].piece);
+                c = 0;
+            }
+        }
+        if (c != 0)
+            s += ('0' + c);
+        if (i != H - 1)
+            s += "/";
+    }
+    if (side == 0)
+        s += " b";
+    else
+        s += " w";
+    return s;
+}

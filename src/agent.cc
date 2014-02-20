@@ -85,6 +85,7 @@ int Agent::search(Board &board, int side, MOVE *result, int time_limit, int dept
     cout << "# total nodes: " << (double) nodes / 1e6
         << "m, EBF: " << ebf(nodes, depth)
         << ", NPS: " << (double) nodes / sec / 1000000. << "m in " << sec << "s" << endl;
+    cout << "# " << board.fen_string(side) << endl;
 
     return ret;
 }
