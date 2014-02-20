@@ -50,4 +50,6 @@ class Agent
 
         clock_t search_start_time;
         void output_thinking(int ply, int score, PV *pv);
+
+        void update_history(int depth, MOVE best_move, MOVE *searched_moves, int count);
 };

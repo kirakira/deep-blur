@@ -150,10 +150,11 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
     uint64_t my_hash = board.hash_code(side);
     rep_table->put(my_hash);
+    bool propagated_store, store_tt = true;
 
     if (USE_IID && depth >= 6)
         alpha_beta(board, side, &his_move, depth - 2, -INF, INF, 1, deadline,
-                rep_table, false, INVALID_POSITION, true, NULL);
+                rep_table, false, INVALID_POSITION, true, NULL, &propagated_store);
 
     MoveList ml(&board, side, his_move, move_score, 0, 0);
 
@@ -183,14 +184,14 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
             if (i == 0)
                 t = -alpha_beta(board, 1 - side, NULL, depth - 1, -INF, -ans,
-                        1, deadline, rep_table, true, dst, true, &newPV);
+                        1, deadline, rep_table, true, dst, true, &newPV, &propagated_store);
             else
             {
                 t = -alpha_beta(board, 1 - side, NULL, depth - 1, -ans - 1,
-                        -ans, 1, deadline, rep_table, true, dst, false, NULL);
+                        -ans, 1, deadline, rep_table, true, dst, false, NULL, &propagated_store);
                 if (ans < t)
                     t = -alpha_beta(board, 1 - side, NULL, depth - 1, -INF, -ans,
-                            1, deadline, rep_table, true, dst, true, &newPV);
+                            1, deadline, rep_table, true, dst, true, &newPV, &propagated_store);
             }
         }
         board.unmove();
@@ -205,6 +206,7 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
         {
             best_move = move;
             ans = t;
+            store_tt = propagated_store;
             if (pv)
             {
                 pv->count = 0;
@@ -213,11 +215,13 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
             output_thinking(depth, ans, pv);
         }
+        else if (t == ans)
+            store_tt = store_tt || propagated_store;
     }
 
     rep_table->remove(my_hash);
 
-    if (USE_TRANS_TABLE)
+    if (USE_TRANS_TABLE && store_tt)
     {
         int e;
         if (*aborted)
@@ -227,9 +231,6 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
         trans.put(my_hash, ans, e, best_move, depth);
     }
 
-    if (best_move != 0 && !board.is_capture(best_move))
-        move_score[best_move] += depth * depth;
-
     if (result)
         *result = best_move;
     return ans;
@@ -237,14 +238,20 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
-        int ply, clock_t deadline, HashSet *rep_table, bool nullable, POSITION last_square, bool isPV, PV *pv, bool *store_tt)
+        int ply, clock_t deadline, HashSet *rep_table, bool nullable, POSITION last_square,
+        bool isPV, PV *pv, bool *store_tt)
 {
     if (depth == 0)
         return quiescence(board, side, alpha, beta, rep_table, board.in_check(side), last_square, store_tt);
 
     uint64_t my_hash = board.hash_code(side);
     if (rep_table->contains(my_hash))
+    {
+        *store_tt = false;
         return 0;
+    }
+
+    *store_tt = true;
 
     int his_score, his_exact = 0, his_depth = 0;
     MOVE his_move = 0;
@@ -286,12 +293,10 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     if (USE_NULL_MOVE && nullable && !isPV)
         ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - 3),
-                -beta, -beta + 1, ply, deadline, rep_table, false, INVALID_POSITION, isPV, NULL);
+                -beta, -beta + 1, ply, deadline, rep_table, false, INVALID_POSITION, isPV, NULL, &propagated_store);
 
     if (ans == -ABORTED)
         aborted = true;
-
-    *store_tt = true;
 
     if (!aborted && ans < beta)
     {
@@ -299,7 +304,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
         if (USE_IID && depth >= 6)
             alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline,
-                    rep_table, false, last_square, isPV, NULL, propagated_store);
+                    rep_table, false, last_square, isPV, NULL, &propagated_store);
 
         int original_pv_count = pv ? pv->count : 0;
         MoveList ml(&board, side, his_move, move_score, killer[ply][0], killer[ply][1]);
@@ -339,18 +344,18 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
                     if (USE_LMR && ply > LMR_PLY && i > LMR_NODES && !board.is_capture(move))
                         t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
-                                -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL);
+                                -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL, &propagated_store);
 
                     if (t > current_alpha)
                         t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
-                                -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL);
+                                -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL, &propagated_store);
                     if (current_alpha < t && t < beta)
                     {
 #ifdef DEBUG_OUTPUT
                         int t0 = t;
 #endif
                         t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
-                                ply + 1, deadline, rep_table, true, dst, isPV, &newPV);
+                                ply + 1, deadline, rep_table, true, dst, isPV, &newPV, &propagated_store);
 
 #ifdef DEBUG_OUTPUT
                         board.print();
@@ -380,12 +385,15 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             {
                 best_move = move;
                 ans = t;
+                *store_tt = propagated_store;
                 if (isPV && pv)
                 {
                     pv->count = original_pv_count;
                     catPV(pv, &newPV);
                 }
             }
+            else if (t == ans)
+                *store_tt = *store_tt || propagated_store;
 
             if (t >= beta)
             {
@@ -408,7 +416,8 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     if (aborted)
         return ABORTED;
 
-    if (USE_TRANS_TABLE && (his_exact != Transposition::EXACT || his_depth <= depth))
+    if (USE_TRANS_TABLE && *store_tt
+            && (his_exact != Transposition::EXACT || his_depth <= depth))
     {
         int e = Transposition::EXACT;
         if (ans <= alpha)
@@ -426,15 +435,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         ++first_best;
 
     if (ans >= beta && best_move != 0 && !board.is_capture(best_move))
-    {
-        for (int i = 0; i < searched_moves_count; ++i)
-        {
-            if (searched_moves[i] == best_move)
-                move_score[best_move] += depth * depth;
-            else
-                move_score[searched_moves[i]] -= depth * depth;
-        }
-    }
+        update_history(depth, best_move, searched_moves, searched_moves_count);
 
     if (result)
         *result = best_move;
@@ -444,17 +445,22 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 int Agent::quiescence(Board &board, int side, int alpha, int beta, POSITION last_square)
 {
     HashSet hs(8);
-    return quiescence(board, side, alpha, beta, &hs, board.in_check(side), last_square);
+    bool store_tt;
+    return quiescence(board, side, alpha, beta, &hs, board.in_check(side), last_square, &store_tt);
 }
 
 int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep_table,
-        bool in_check, POSITION last_square)
+        bool in_check, POSITION last_square, bool *store_tt)
 {
     uint64_t my_hash = board.hash_code(side);
     if (rep_table->contains(my_hash))
+    {
+        *store_tt = false;
         return 0;
+    }
 
     rep_table->put(my_hash);
+    *store_tt = true;
 
     int ans, sv = board.static_value(side);
     if (in_check)
@@ -513,11 +519,17 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep_
             if (in_check || capture_scores[i] > Board::NON_CAPTURE || next_in_check)
             {
                 int current_alpha = max(alpha, ans);
+                bool propagated_store;
                 int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep_table,
-                        next_in_check, move_dst(moves[i]));
+                        next_in_check, move_dst(moves[i]), &propagated_store);
 
-                if (t >= ans)
+                if (t > ans)
+                {
+                    *store_tt = propagated_store;
                     ans = t;
+                }
+                else if (t == ans)
+                    *store_tt = *store_tt || propagated_store;
             }
 
             board.unmove();
@@ -527,4 +539,16 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep_
     rep_table->remove(my_hash);
 
     return ans;
+}
+
+void Agent::update_history(int depth, MOVE best_move, MOVE *searched_moves, int count)
+{
+    int delta = depth * depth;
+    for (int i = 0; i < count; ++i)
+    {
+        if (searched_moves[i] != best_move)
+            move_score[searched_moves[i]] -= delta;
+        else
+            move_score[searched_moves[i]] += delta;
+    }
 }
