@@ -237,10 +237,10 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
-        int ply, clock_t deadline, HashSet *rep_table, bool nullable, POSITION last_square, bool isPV, PV *pv)
+        int ply, clock_t deadline, HashSet *rep_table, bool nullable, POSITION last_square, bool isPV, PV *pv, bool *store_tt)
 {
     if (depth == 0)
-        return quiescence(board, side, alpha, beta, rep_table, board.in_check(side), last_square);
+        return quiescence(board, side, alpha, beta, rep_table, board.in_check(side), last_square, store_tt);
 
     uint64_t my_hash = board.hash_code(side);
     if (rep_table->contains(my_hash))
@@ -282,7 +282,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     MOVE best_move = 0;
     MOVE searched_moves[120];
     int searched_moves_count = 0;
-    bool aborted = false;
+    bool aborted = false, propagated_store;
 
     if (USE_NULL_MOVE && nullable && !isPV)
         ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - 3),
@@ -291,13 +291,15 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     if (ans == -ABORTED)
         aborted = true;
 
+    *store_tt = true;
+
     if (!aborted && ans < beta)
     {
         ans = -INF;
 
         if (USE_IID && depth >= 6)
             alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline,
-                    rep_table, false, last_square, isPV, NULL);
+                    rep_table, false, last_square, isPV, NULL, propagated_store);
 
         int original_pv_count = pv ? pv->count : 0;
         MoveList ml(&board, side, his_move, move_score, killer[ply][0], killer[ply][1]);
@@ -319,7 +321,10 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             newPV.count = 1;
             int t;
             if (game_end)
+            {
                 t = INF;
+                *store_tt = true;
+            }
             else
             {
                 int current_alpha = max(alpha, ans);
@@ -327,7 +332,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
                 if (i == 0)
                     t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
-                            ply + 1, deadline, rep_table, true, dst, isPV, &newPV);
+                            ply + 1, deadline, rep_table, true, dst, isPV, &newPV, &propagated_store);
                 else
                 {
                     t = current_alpha + 1;
