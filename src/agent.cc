@@ -423,20 +423,18 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
 int Agent::quiescence(Board &board, int side, int alpha, int beta, POSITION last_square)
 {
-    vector<uint64_t> rep[2];
-    int last_progress[2] = {-1, -1};
-    return quiescence(board, side, alpha, beta, rep, last_progress, board.in_check(side), last_square);
+    HashSet hs(8);
+    return quiescence(board, side, alpha, beta, &hs, board.in_check(side), last_square);
 }
 
-int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64_t> *rep,
-        int *last_progress, bool in_check, POSITION last_square)
+int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep,
+        bool in_check, POSITION last_square)
 {
     uint64_t my_hash = board.hash_code(side);
-    for (size_t i = last_progress[side] + 1; i < rep[side].size(); ++i)
-        if (rep[side][i] == board.hash_code(side))
-            return 0;
+    if (rep->contains(my_hash))
+        return 0;
 
-    rep[side].push_back(my_hash);
+    rep->put(my_hash);
 
     int ans, sv = board.static_value(side);
     if (in_check)
@@ -494,15 +492,9 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
 
             if (in_check || capture_scores[i] > Board::NON_CAPTURE || next_in_check)
             {
-                int saved_progress = last_progress[1 - side];
-                if (capture_scores[i] > Board::NON_CAPTURE)
-                    last_progress[1 - side] = rep[1 - side].size();
-
                 int current_alpha = max(alpha, ans);
                 int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep,
-                        last_progress, next_in_check, move_dst(moves[i]));
-
-                last_progress[1 - side] = saved_progress;
+                        next_in_check, move_dst(moves[i]));
 
                 if (t >= ans)
                     ans = t;
@@ -511,7 +503,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, vector<uint64
             board.unmove();
         }
     }
-    rep[side].pop_back();
+    rep->remove(my_hash);
 
     return ans;
 }

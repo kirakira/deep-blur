@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vector>
 #include <ctime>
 
 #include "common.h"
 #include "board.h"
 #include "transposition.h"
+#include "hash.h"
 
 //#define DEBUG_OUTPUT
 
@@ -37,7 +37,7 @@ class Agent
         int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, int ply,
                 clock_t deadline, bool nullable, POSITION last_square, bool isPV, PV *pv);
 
-        int quiescence(Board &board, int side, int alpha, int beta, std::vector<uint64_t> *rep, int *last_progress, bool in_check, POSITION last_square);
+        int quiescence(Board &board, int side, int alpha, int beta, HashSet *rep, bool in_check, POSITION last_square);
 
         int trans_hit, nodes, leaf, null_cut, first_cut, beta_nodes, alpha_nodes, first_best;
         int move_score[1 << 16];
