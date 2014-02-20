@@ -93,7 +93,10 @@ int Agent::search(Board &board, int side, MOVE *result, int time_limit, int dept
 void Agent::output_thinking(int ply, int score, PV *pv)
 {
     int t = (int) ((double) (clock() - search_start_time) / (double) CLOCKS_PER_SEC * 100);
-    cout << ply << "\t" << score << "\t" << t << "\t" << readable_number(nodes) << "\t";
+    string sign;
+    if (score > 0)
+        sign = "+";
+    cout << ply << "\t" << sign << score << "\t" << t << "\t" << readable_number(nodes) << "\t";
     if (pv)
     {
         for (int i = 0; i < pv->count; ++i)

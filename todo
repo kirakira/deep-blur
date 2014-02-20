@@ -1,4 +1,4 @@
-Repetition check based on hash; Draw by repeptition
+Repetition: board should detect repeated attackings for more than 4 plies; search routine should eliminate repeated positions with hashing
 Generate checks in the first ply of qsearch
 Check extensions
 Delta pruning

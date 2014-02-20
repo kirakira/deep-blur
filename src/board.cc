@@ -85,7 +85,7 @@ void Board::print()
     }
     cout << endl << "   a b c d e f g h i" << endl;
     cout << "Hash code: " << hash_code(0) << ", " << hash_code(1) <<  endl;
-    cout << "Static value: " << static_value(0) << endl;
+    cout << "Static value: " << static_value(1) << endl;
 }
 
 uint64_t Board::get_hash(int rank, int col, PIECE piece)
