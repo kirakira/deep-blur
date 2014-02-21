@@ -241,7 +241,10 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     if (rep_table->contains(my_hash))
     {
         *store_tt = false;
-        return 0;
+        if (board.will_repeat_attack(side))
+            return -INF;
+        else
+            return 0;
     }
 
     *store_tt = true;
@@ -452,7 +455,10 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep_
     if (rep_table->contains(my_hash))
     {
         *store_tt = false;
-        return 0;
+        if (board.will_repeat_attack(side))
+            return -INF;
+        else
+            return 0;
     }
 
     rep_table->put(my_hash);

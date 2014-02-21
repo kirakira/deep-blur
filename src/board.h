@@ -24,6 +24,8 @@ class Board
         POSITION king_position(int side);
         bool is_attacked(POSITION pos, bool test_all_attacks, MOVE *best_attack = NULL);
 
+        bool will_repeat_attack(int side);
+
         uint64_t hash_code(int side);
         int static_value(int side);
 

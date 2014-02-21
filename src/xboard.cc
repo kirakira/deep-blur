@@ -92,7 +92,10 @@ int main()
             }
         }
         else if (command == "print")
+        {
             board.print();
+            cout << board.fen_string(side) << endl;
+        }
         else if (command == "undo")
         {
             board.checked_unmove();

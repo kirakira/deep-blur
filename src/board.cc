@@ -1148,3 +1148,14 @@ string Board::fen_string(int side)
         s += " w";
     return s;
 }
+
+bool Board::will_repeat_attack(int side)
+{
+    if (history.size() < 4)
+        return false;
+    bool rep;
+    if (!checked_move(side, history[history.size() - 4].move, &rep))
+        return false;
+    unmove();
+    return rep;
+}
