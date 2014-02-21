@@ -196,7 +196,7 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
             break;
         }
 
-        if (t > ans || (t == ans && !store_tt && propagated_store))
+        if (t > ans)
         {
             best_move = move;
             ans = t;
@@ -209,6 +209,8 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
             output_thinking(depth, ans, pv);
         }
+        else if (t == ans && !store_tt && propagated_store)
+            store_tt = true;
     }
 
     rep_table->remove(my_hash);
@@ -381,17 +383,19 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             if (i == 0)
                 first_ans = t;
 
-            if (t > ans || (t == ans && !*store_tt && propagated_store))
+            if (t > ans)
             {
-                best_move = move;
                 ans = t;
                 *store_tt = propagated_store;
+                best_move = move;
                 if (isPV && pv)
                 {
                     pv->count = original_pv_count;
                     catPV(pv, &newPV);
                 }
             }
+            else if (t == ans && !*store_tt && propagated_store)
+                *store_tt = true;
 
             if (t >= beta)
             {
