@@ -235,7 +235,10 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         bool isPV, PV *pv, bool *store_tt)
 {
     if (depth == 0)
+    {
+        ++nodes;
         return quiescence(board, side, alpha, beta, rep_table, board.in_check(side), last_square, store_tt);
+    }
 
     uint64_t my_hash = board.hash_code(side);
     if (rep_table->contains(my_hash))
