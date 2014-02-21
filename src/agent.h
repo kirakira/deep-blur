@@ -34,7 +34,7 @@ class Agent
 
         int id(Board &board, int side, MOVE *result, clock_t deadline, int *depth);
         int search_root(Board &board, int side, MOVE *result, int depth, clock_t deadline,
-                HashSet *rep_table, PV *pv, bool *aborted);
+                MOVE first_move, HashSet *rep_table, PV *pv, bool *aborted);
         int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, int ply,
                 clock_t deadline, HashSet *rep_table, bool nullable, POSITION last_square, bool isPV, PV *pv, bool *store_tt);
 
