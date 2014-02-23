@@ -312,6 +312,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         for (int i = 0; ans < beta && (move = ml.next_move()); ++i)
         {
             bool game_end, rep_attack;
+            bool is_good_capture = board.is_capture(move) && is_winning_capture(&board, move, side);
             if (!board.move(move, &game_end, &rep_attack) || rep_attack)
             {
                 if (rep_attack)
@@ -345,9 +346,11 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 {
                     t = current_alpha + 1;
 
-                    if (USE_LMR && ply > LMR_PLY && i > LMR_NODES && !board.is_capture(move))
+                    if (USE_LMR && !isPV && depth > LMR_DEPTH && i > LMR_NODES && !is_good_capture)
+                    {
                         t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
                                 -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL, &propagated_store);
+                    }
 
                     if (t > current_alpha)
                         t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
