@@ -290,10 +290,17 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     int searched_moves_count = 0;
     bool aborted = false;
     bool not_save_tt = false, propagated_store;
+    int eval = board.static_value(side);
 
-    if (USE_NULL_MOVE && nullable && !isPV)
-        ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - 3),
-                -beta, -beta + 1, ply, deadline, rep_table, false, INVALID_POSITION, isPV, NULL, &propagated_store);
+    if (USE_NULL_MOVE && nullable && !isPV/* && eval >= beta*/)
+    {
+        int R = 3;
+        ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - R),
+                -beta, -beta + 1, ply, deadline, rep_table, false,
+                INVALID_POSITION, isPV, NULL, &propagated_store);
+        if (ans >= beta)
+            *store_tt = propagated_store;
+    }
 
     if (ans == -ABORTED)
         aborted = true;
@@ -346,7 +353,8 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 {
                     t = current_alpha + 1;
 
-                    if (USE_LMR && !isPV && depth > LMR_DEPTH && i > LMR_NODES && !is_good_capture)
+                    if (USE_LMR && !isPV && depth > LMR_DEPTH && i >= LMR_NODES
+                            && ml.remaining_moves() && !is_good_capture)
                     {
                         t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
                                 -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL, &propagated_store);
