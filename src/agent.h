@@ -17,13 +17,14 @@ class Agent
         int quiescence(Board &board, int side, int alpha, int beta, POSITION last_square = INVALID_POSITION);
 
     protected:
-        static const int FULL_DEPTH_PLY = 3;
         static const bool USE_NULL_MOVE = true;
         static const bool USE_TRANS_TABLE = true;
         static const bool USE_IID = true;
         static const bool USE_KILLER = true;
-        static const bool USE_LMR = false;
-        static const int LMR_NODES = 3, LMR_PLY = 6;
+
+        static const bool USE_LMR = true;
+        static const int LMR_NODES = 2, LMR_DEPTH = 3;
+
         static const bool CHECKS_IN_QUIESCENCE = false;
         static const int CHECK_TIME_NODES = 32768;
 

@@ -5,6 +5,6 @@ Repetition: board should detect repeated attackings for more than 4 plies
 Repeated attacking detection: examine the attacking list of the moving piece, instead of the evasion piece
 Generate checks in the first ply of qsearch
 Bitboard
-Frutality/Delta pruning
+Futility/Delta pruning
 Don't try null-move pruning when there's few remaining material
 More decent evalutions: king safety, score of cannon and horse should vary with remain pieces on board

@@ -11,6 +11,11 @@ bool is_winning_capture(Board *board, MOVE move, int score, int side)
     if (captured > capturing)
         return true;
 
+    return is_winning_capture(board, move, side);
+}
+
+bool is_winning_capture(Board *board, MOVE move, int side)
+{
     int v = board->static_value(side);
 
     bool game_end;
