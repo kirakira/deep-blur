@@ -49,6 +49,11 @@ MoveList::MoveList(Board *b, int s, MOVE fm, int *hs, MOVE k1, MOVE k2)
 {
 }
 
+bool MoveList::remaining_moves()
+{
+    return state >= GENERATE_MOVES;
+}
+
 MOVE MoveList::next_move()
 {
     MOVE ret = 0;

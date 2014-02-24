@@ -8,6 +8,7 @@ class MoveList
         MoveList(Board *board, int side, MOVE first_move, int *history_scores, MOVE killer1, MOVE killer2);
 
         MOVE next_move();
+        bool remaining_moves();
 
     private:
         Board *board;
