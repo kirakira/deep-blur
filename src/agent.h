@@ -40,7 +40,7 @@ class Agent
 
         int quiescence(Board &board, int side, int alpha, int beta, bool in_check, POSITION last_square, bool *store_tt);
 
-        int trans_hit, nodes, null_cut, first_cut, beta_nodes, alpha_nodes, first_best;
+        int nodes;
         int move_score[1 << 16];
         int killer[MAX_DEPTH][2];
 

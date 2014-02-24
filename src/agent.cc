@@ -90,13 +90,7 @@ bool Agent::special_move_type(MoveType mt, int *score, bool *store_tt)
 
 int Agent::search(Board &board, int side, MOVE *result, int time_limit, int depth)
 {
-    trans_hit = 0;
     nodes = 0;
-    null_cut = 0;
-    first_cut = 0;
-    beta_nodes = 0;
-    alpha_nodes = 0;
-    first_best = 0;
 
     search_start_time = clock();
     clock_t deadline = search_start_time + (double) time_limit / 1000. * (double) CLOCKS_PER_SEC;
@@ -104,16 +98,8 @@ int Agent::search(Board &board, int side, MOVE *result, int time_limit, int dept
     clock_t t = clock() - search_start_time;
 
     double sec = (double) t / (double) CLOCKS_PER_SEC;
-    cout << "# transposition hit rate: " << (double) trans_hit * 100 / (double) (trans_hit + nodes) << "%" << endl;
-    cout << "# null-move cutoff: " << (double) null_cut * 100 / (double) nodes
-        << "%, first-move cutoff: " << (double) first_cut * 100 / (double) nodes << "%" << endl;
-    cout << "# beta nodes: " << (double) beta_nodes * 100 / (double) (nodes)
-        << "%, alpha nodes: " << (double) alpha_nodes * 100/ (double) (nodes)
-        << "%" << endl;
-    cout << "# first-move-best rate: " << (double) first_best * 100 / (double) (nodes - null_cut) << "%" << endl;
-    trans.stat();
-    cout << "# total nodes: " << (double) nodes / 1e6
-        << "m, EBF: " << ebf(nodes, depth)
+    cout << "# total nodes: " << readable_number(nodes)
+        << ", EBF: " << ebf(nodes, depth)
         << ", NPS: " << (double) nodes / sec / 1000000. << "m in " << sec << "s" << endl;
     cout << "# " << board.fen_string(side) << endl;
 
@@ -126,7 +112,7 @@ void Agent::output_thinking(int ply, int score, PV *pv)
     string sign;
     if (score > 0)
         sign = "+";
-    cout << ply << "\t" << sign << score << "\t" << t << "\t" << readable_number(nodes) << "\t";
+    cout << ply << "\t" << sign << score << "\t" << t << "\t" << nodes << "\t";
     if (pv)
     {
         for (int i = 0; i < pv->count; ++i)
@@ -274,8 +260,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                  || (his_exact == Transposition::LOWER && his_score >= beta))
                 && (nullable || his_move != 0))
         {
-            ++trans_hit;
-
             if (result)
                 *result = his_move;
             return his_score;
@@ -290,7 +274,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     ++nodes;
 
-    int ans = -INF, first_ans = ABORTED;
+    int ans = -INF;
     MOVE best_move = 0;
     MOVE searched_moves[120];
     int searched_moves_count = 0;
@@ -372,9 +356,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                 break;
             }
 
-            if (i == 0)
-                first_ans = t;
-
             if (t > ans)
             {
                 ans = t;
@@ -394,14 +375,10 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     killer[ply][1] = killer[ply][0];
                     killer[ply][0] = move;
                 }
-                if (i == 0)
-                    ++first_cut;
                 break;
             }
         }
     }
-    else
-        ++null_cut;
 
     if (aborted)
         return ABORTED;
@@ -416,13 +393,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             e = Transposition::LOWER;
         trans.put(my_hash, ans, e, best_move, depth);
     }
-
-    if (ans >= beta)
-        ++beta_nodes;
-    else if (ans <= alpha)
-        ++alpha_nodes;
-    if (first_ans == ans)
-        ++first_best;
 
     if (ans >= beta && best_move != 0 && !board.is_capture(best_move))
         update_history(depth, best_move, searched_moves, searched_moves_count);
