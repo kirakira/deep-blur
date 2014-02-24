@@ -5,7 +5,6 @@
 #include "common.h"
 #include "board.h"
 #include "transposition.h"
-#include "hash.h"
 
 //#define DEBUG_OUTPUT
 
@@ -35,17 +34,19 @@ class Agent
 
         int id(Board &board, int side, MOVE *result, clock_t deadline, int *depth);
         int search_root(Board &board, int side, MOVE *result, int depth, clock_t deadline,
-                MOVE first_move, HashSet *rep_table, PV *pv, bool *aborted);
+                MOVE first_move, PV *pv, bool *aborted);
         int alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta, int ply,
-                clock_t deadline, HashSet *rep_table, bool nullable, POSITION last_square, bool isPV, PV *pv, bool *store_tt);
+                clock_t deadline, bool nullable, POSITION last_square, bool isPV, PV *pv, bool *store_tt);
 
-        int quiescence(Board &board, int side, int alpha, int beta, HashSet *rep, bool in_check, POSITION last_square, bool *store_tt);
+        int quiescence(Board &board, int side, int alpha, int beta, bool in_check, POSITION last_square, bool *store_tt);
 
         int trans_hit, nodes, null_cut, first_cut, beta_nodes, alpha_nodes, first_best;
         int move_score[1 << 16];
         int killer[MAX_DEPTH][2];
 
         double ebf(int nodes, int depth);
+
+        bool special_move_type(MoveType mt, int *score, bool *store_tt);
 
         Transposition trans;
 

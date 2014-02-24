@@ -26,4 +26,6 @@ class HashSet
         int increment(uint64_t key);
         int decrement(uint64_t key);
         int count(uint64_t key);
+
+        void clear();
 };

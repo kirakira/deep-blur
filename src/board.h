@@ -6,6 +6,17 @@
 
 #include "piece.h"
 #include "move.h"
+#include "hash.h"
+
+enum MoveType
+{
+    KING_CAPTURE,
+    PERPETUAL_CHECK_OR_CHASE,
+    NEXT_PERPETUAL_CHECK_OR_CHASE,
+    REPETITION,
+    CAPTURE,
+    REGULAR
+};
 
 class Board
 {
@@ -14,8 +25,8 @@ class Board
 
         void set(std::string fen);
 
-        bool move(MOVE m, bool *game_end = NULL, bool *rep = NULL, bool force = false);
-        bool checked_move(int side, MOVE m, bool *rep = NULL);
+        bool move(MOVE m, MoveType *move_type = NULL, bool detect_repetition = true);
+        bool checked_move(int side, MOVE m, MoveType *move_type = NULL);
         void unmove();
         bool checked_unmove();
 
@@ -23,8 +34,6 @@ class Board
         bool is_capture(MOVE move, int *value = NULL);
         POSITION king_position(int side);
         bool is_attacked(POSITION pos, bool test_all_attacks, MOVE *best_attack = NULL);
-
-        bool will_repeat_attack(int side);
 
         uint64_t hash_code(int side);
         int static_value(int side);
@@ -34,7 +43,7 @@ class Board
         void print();
         std::string fen_string(int side);
 
-        static const int H = 10, W = 9, NON_CAPTURE = 0, KING_CAPTURE = 35;
+        static const int H = 10, W = 9, NON_CAPTURE = 0, KING_CAPTURE_VALUE = 35;
 
     protected:
         typedef struct sBoardEntry
@@ -53,8 +62,9 @@ class Board
         {
             MOVE move;
             BoardEntry capture;
-            uint8_t rep_side;
+            uint8_t perp_side;
         } HistoryEntry;
+        static const int NON_PERPETUAL = 2;
 
         BoardEntry board[H][W];
         PieceEntry pieces[32];
@@ -68,7 +78,7 @@ class Board
         int current_static_value;
 
         std::vector<HistoryEntry> history;
-        static const int NON_REP = 2;
+        HashSet history_positions;
 
         static bool is_valid_position(PIECE piece, int i, int j);
         static bool is_in_palace(int side, int i, int j);
@@ -77,6 +87,8 @@ class Board
         bool check_position(int side, int i, int j, int *target_capture_score);
 
         inline bool king_face_to_face();
+
+        bool test_for_next_perpetual(int my_side);
 
         class BoardStaticFieldsInitializer
         {

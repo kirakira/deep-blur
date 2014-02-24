@@ -7,6 +7,7 @@ using namespace std;
 
 Board::Board(string fen)
     : hash_side(rc4_uint64[H * W * 16])
+    , history_positions(8)
 {
     set(fen);
 }
@@ -65,6 +66,7 @@ void Board::set(string fen)
 
     history.clear();
     history.reserve(128);
+    history_positions.clear();
 }
 
 void Board::print()
@@ -101,7 +103,7 @@ uint64_t Board::hash_code(int side)
         return hash ^ hash_side;
 }
 
-bool Board::checked_move(int side, MOVE move, bool *rep)
+bool Board::checked_move(int side, MOVE move, MoveType *mt)
 {
     int src_i = position_rank(move_src(move)),
         src_j = position_file(move_src(move)),
@@ -163,7 +165,7 @@ bool Board::checked_move(int side, MOVE move, bool *rep)
     if (!hit)
         return false;
 
-    if (!this->move(move, NULL, rep))
+    if (!this->move(move, mt))
         return false;
 
     if (in_check(side))
@@ -175,7 +177,7 @@ bool Board::checked_move(int side, MOVE move, bool *rep)
     return true;
 }
 
-bool Board::move(MOVE move, bool *game_end, bool *rep, bool force)
+bool Board::move(MOVE move, MoveType *mt, bool detect_repetition)
 {
     int src_i = position_rank(move_src(move)),
         src_j = position_file(move_src(move)),
@@ -184,13 +186,19 @@ bool Board::move(MOVE move, bool *game_end, bool *rep, bool force)
     BoardEntry src = board[src_i][src_j],
                dst = board[dst_i][dst_j];
 
-    if (game_end)
-        *game_end = false;
+    if (mt)
+        *mt = REGULAR;
 
     if (dst.piece != 0)
     {
-        if (piece_type(dst.piece) == PIECE_K && game_end)
-            *game_end = true;
+        if (mt)
+        {
+            if (piece_type(dst.piece) == PIECE_K)
+                *mt = KING_CAPTURE;
+            else
+                *mt = CAPTURE;
+        }
+
         pieces[dst.index].piece = 0;
         hash ^= get_hash(dst_i, dst_j, dst.piece);
         current_static_value -= static_values[dst.piece][dst_i][dst_j];
@@ -208,63 +216,106 @@ bool Board::move(MOVE move, bool *game_end, bool *rep, bool force)
     HistoryEntry history_entry;
     history_entry.move = move;
     history_entry.capture = dst;
-    history_entry.rep_side = NON_REP;
+    history_entry.perp_side = NON_PERPETUAL;
     history.push_back(history_entry);
 
-    uint8_t rep_side = NON_REP;
     int my_side = piece_side(src.piece);
-    if (!force && history.size() >= 4)
-    {
-        if (history[history.size() - 2].rep_side != NON_REP)
-        {
-            // if repeated attack already exists, then history.size() must be at least 5
-            if (history[history.size() - 5].move == move)
-                rep_side = history[history.size() - 2].rep_side;
-        }
-        else
-        {
-            POSITION victim = move_dst(history[history.size() - 2].move);
-            if (dst.piece == 0 && are_inverse_moves(move, history[history.size() - 3].move)
-                    && are_inverse_moves(history[history.size() - 2].move, history[history.size() - 4].move)
-                    && history[history.size() - 2].capture.piece == 0
-                    && history[history.size() - 3].capture.piece == 0
-                    && history[history.size() - 4].capture.piece == 0
-                    && piece_type(src.piece) != PIECE_K
-                    && (is_attacked(victim, true)
-                        || (piece_type(board[position_rank(victim)][position_file(victim)].piece) != PIECE_K
-                            && in_check(1 - my_side))))
-            {
-                MOVE victim_move = history[history.size() - 2].move;
-                unmove();
-                unmove();
-                victim = move_dst(history[history.size() - 2].move);
-                if (is_attacked(victim, true)
-                        || (piece_type(board[position_rank(victim)][position_file(victim)].piece) != PIECE_K
-                            && in_check(1 - my_side)))
-                    rep_side = (uint8_t) my_side;
-                this->move(victim_move, NULL, NULL, true);
-                this->move(move, NULL, NULL, true);
-            }
-        }
-        if (rep_side != NON_REP)
-            history[history.size() - 1].rep_side = rep_side;
-    }
-
-    if (rep)
-    {
-        if (rep_side == my_side)
-            *rep = true;
-        else
-            *rep = false;
-    }
-
-    if (!force && king_face_to_face())
+    int rep_count = history_positions.increment(hash_code(my_side));
+    if (king_face_to_face())
     {
         unmove();
         return false;
     }
+
+    if (rep_count > 1 && detect_repetition)
+    {
+        uint8_t perp_side = NON_PERPETUAL;
+        if (dst.piece == 0)
+        {
+            if (history.size() >= 2 && history[history.size() - 2].perp_side != NON_PERPETUAL)
+            {
+                uint8_t his_perp = history[history.size() - 2].perp_side;
+                if (his_perp == my_side)
+                {
+                    if (in_check(1 - my_side))
+                        perp_side = my_side;
+                    else
+                        perp_side = NON_PERPETUAL;
+                }
+                else
+                    perp_side = his_perp;
+            }
+            else
+            {
+                if (test_for_next_perpetual(my_side))
+                    perp_side = 1 - my_side;
+            }
+        }
+
+        if (mt)
+        {
+            if (perp_side == NON_PERPETUAL)
+                *mt = REPETITION;
+            else if (perp_side != NON_PERPETUAL)
+            {
+                history[history.size() - 1].perp_side = perp_side;
+                if (perp_side != my_side)
+                    *mt = NEXT_PERPETUAL_CHECK_OR_CHASE;
+                else
+                    *mt = PERPETUAL_CHECK_OR_CHASE;
+            }
+        }
+    }
+
+    /*
+       uint8_t rep_side = NON_REP;
+       int my_side = piece_side(src.piece);
+       if (!force && history.size() >= 4)
+       {
+       if (history[history.size() - 2].rep_side != NON_REP)
+       {
+    // if repeated attack already exists, then history.size() must be at least 5
+    if (history[history.size() - 5].move == move)
+    rep_side = history[history.size() - 2].rep_side;
+    }
     else
-        return true;
+    {
+    POSITION victim = move_dst(history[history.size() - 2].move);
+    if (dst.piece == 0 && are_inverse_moves(move, history[history.size() - 3].move)
+    && are_inverse_moves(history[history.size() - 2].move, history[history.size() - 4].move)
+    && history[history.size() - 2].capture.piece == 0
+    && history[history.size() - 3].capture.piece == 0
+    && history[history.size() - 4].capture.piece == 0
+    && piece_type(src.piece) != PIECE_K
+    && (is_attacked(victim, true)
+    || (piece_type(board[position_rank(victim)][position_file(victim)].piece) != PIECE_K
+    && in_check(1 - my_side))))
+    {
+    MOVE victim_move = history[history.size() - 2].move;
+    unmove();
+    unmove();
+    victim = move_dst(history[history.size() - 2].move);
+    if (is_attacked(victim, true)
+    || (piece_type(board[position_rank(victim)][position_file(victim)].piece) != PIECE_K
+    && in_check(1 - my_side)))
+    rep_side = (uint8_t) my_side;
+    this->move(victim_move, NULL, NULL, true);
+    this->move(move, NULL, NULL, true);
+    }
+    }
+    if (rep_side != NON_REP)
+    history[history.size() - 1].rep_side = rep_side;
+    }
+
+    if (rep)
+    {
+    if (rep_side == my_side)
+     *rep = true;
+     else
+     *rep = false;
+     }*/
+
+    return true;
 }
 
 void Board::unmove()
@@ -272,12 +323,16 @@ void Board::unmove()
     HistoryEntry history_entry = history.back();
     history.pop_back();
 
+
     int src_i = position_rank(move_src(history_entry.move)),
         src_j = position_file(move_src(history_entry.move)),
         dst_i = position_rank(move_dst(history_entry.move)),
         dst_j = position_file(move_dst(history_entry.move));
 
     BoardEntry src = board[dst_i][dst_j], dst = history_entry.capture;
+
+    int my_side = piece_side(src.piece);
+    history_positions.decrement(hash_code(my_side));
 
     board[src_i][src_j] = src;
     pieces[src.index].position = make_position(src_i, src_j);
@@ -302,6 +357,44 @@ bool Board::checked_unmove()
         return false;
     unmove();
     return true;
+}
+
+bool Board::test_for_next_perpetual(int my_side)
+{
+    vector<HistoryEntry> saved_moves;
+    bool test = false;
+    int side = my_side;
+    uint64_t rep_hash = hash_code(my_side);
+    bool success = false;
+    while (!success && history.size() > 0)
+    {
+        HistoryEntry he = history.back();
+        if (he.capture.piece != 0)
+            break;
+        if (test)
+        {
+            if (!in_check(my_side))
+                break;
+        }
+        test = !test;
+
+        saved_moves.push_back(he);
+        unmove();
+        side = 1 - side;
+
+        if (hash_code(side) == rep_hash)
+            success = true;
+    }
+
+    while (saved_moves.size() > 0)
+    {
+        HistoryEntry he = saved_moves.back();
+        saved_moves.pop_back();
+        move(he.move, NULL, false);
+        history[history.size() - 1].perp_side = he.perp_side;
+    }
+
+    return success;
 }
 
 bool Board::is_capture(MOVE move, int *value)
@@ -1147,15 +1240,4 @@ string Board::fen_string(int side)
     else
         s += " w";
     return s;
-}
-
-bool Board::will_repeat_attack(int side)
-{
-    if (history.size() < 4)
-        return false;
-    bool rep;
-    if (!checked_move(side, history[history.size() - 4].move, &rep))
-        return false;
-    unmove();
-    return rep;
 }

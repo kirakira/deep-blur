@@ -18,6 +18,11 @@ int HashSet::hash(uint64_t key)
     return (int) key & mask;
 }
 
+void HashSet::clear()
+{
+    memset(table, 0, sizeof(Entry) * (mask + 1));
+}
+
 int HashSet::increment(uint64_t key)
 {
     int index = hash(key), i = index;

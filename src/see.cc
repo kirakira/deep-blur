@@ -18,10 +18,10 @@ bool is_winning_capture(Board *board, MOVE move, int side)
 {
     int v = board->static_value(side);
 
-    bool game_end;
-    if (!board->move(move, &game_end))
+    MoveType mt;
+    if (!board->move(move, &mt))
         return false;
-    if (game_end)
+    if (mt == KING_CAPTURE)
     {
         board->unmove();
         return true;
@@ -39,12 +39,12 @@ int static_exchange_eval(Board *board, int side, POSITION pos)
     int ans = board->static_value(side);
 
     MOVE response;
-    bool game_end;
-    if (!board->is_attacked(pos, true, &response) || !board->move(response, &game_end))
+    MoveType mt;
+    if (!board->is_attacked(pos, true, &response) || !board->move(response, &mt))
         return ans;
 
     int ret;
-    if (game_end)
+    if (mt == KING_CAPTURE)
         ret = INF;
     else
         ret = -static_exchange_eval(board, 1 - side, pos);

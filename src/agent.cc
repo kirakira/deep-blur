@@ -58,6 +58,36 @@ double Agent::ebf(int nodes, int depth)
     return t;
 }
 
+bool Agent::special_move_type(MoveType mt, int *score, bool *store_tt)
+{
+    if (mt == KING_CAPTURE)
+    {
+        *score = INF;
+        *store_tt = true;
+        return true;
+    }
+    else if (mt == NEXT_PERPETUAL_CHECK_OR_CHASE)
+    {
+        *score = INF;
+        *store_tt = false;
+        return true;
+    }
+    else if (mt == PERPETUAL_CHECK_OR_CHASE)
+    {
+        *score = -INF;
+        *store_tt = false;
+        return true;
+    }
+    else if (mt == REPETITION)
+    {
+        *score = 0;
+        *store_tt = false;
+        return true;
+    }
+    else
+        return false;
+}
+
 int Agent::search(Board &board, int side, MOVE *result, int time_limit, int depth)
 {
     trans_hit = 0;
@@ -119,9 +149,8 @@ int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth
 
         bool aborted;
         MOVE current_move;
-        HashSet rep_table(8);
 
-        int t = search_root(board, side, &current_move, level, deadline, *result, &rep_table, &pv, &aborted);
+        int t = search_root(board, side, &current_move, level, deadline, *result, &pv, &aborted);
         if (t != ABORTED)
         {
             ret = t;
@@ -138,11 +167,10 @@ int Agent::id(Board &board, int side, MOVE *result, clock_t deadline, int *depth
 }
 
 int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t deadline,
-        MOVE first_move, HashSet *rep_table, PV *pv, bool *aborted)
+        MOVE first_move, PV *pv, bool *aborted)
 {
     uint64_t my_hash = board.hash_code(side);
-    rep_table->put(my_hash);
-    bool propagated_store, store_tt = true, not_save_tt = false;
+    bool store_tt = true;
 
     MoveList ml(&board, side, first_move, move_score, 0, 0);
 
@@ -152,40 +180,31 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
     for (int i = 0; ans < INF && (move = ml.next_move()); ++i)
     {
-        bool game_end, rep_attack;
-        if (!board.move(move, &game_end, &rep_attack) || rep_attack)
-        {
-            if (rep_attack)
-            {
-                board.unmove();
-                not_save_tt = true;
-            }
+        MoveType mt;
+        if (!board.move(move, &mt))
             continue;
-        }
 
         PV newPV;
         newPV.moves[0] = move;
         newPV.count = 1;
+
         int t;
-        if (game_end)
-        {
-            t = INF;
-            propagated_store = true;
-        }
-        else
+        bool propagated_store;
+
+        if (!special_move_type(mt, &t, &propagated_store))
         {
             POSITION dst = move_dst(move);
 
             if (i == 0)
                 t = -alpha_beta(board, 1 - side, NULL, depth - 1, -INF, -ans,
-                        1, deadline, rep_table, true, dst, true, &newPV, &propagated_store);
+                        1, deadline, true, dst, true, &newPV, &propagated_store);
             else
             {
                 t = -alpha_beta(board, 1 - side, NULL, depth - 1, -ans - 1,
-                        -ans, 1, deadline, rep_table, true, dst, false, NULL, &propagated_store);
+                        -ans, 1, deadline, true, dst, false, NULL, &propagated_store);
                 if (ans < t)
                     t = -alpha_beta(board, 1 - side, NULL, depth - 1, -INF, -ans,
-                            1, deadline, rep_table, true, dst, true, &newPV, &propagated_store);
+                            1, deadline, true, dst, true, &newPV, &propagated_store);
             }
         }
         board.unmove();
@@ -211,9 +230,6 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
         }
     }
 
-    rep_table->remove(my_hash);
-    store_tt = store_tt && (ans >= INF || !not_save_tt);
-
     if (USE_TRANS_TABLE && store_tt)
     {
         int e;
@@ -231,37 +247,29 @@ int Agent::search_root(Board &board, int side, MOVE *result, int depth, clock_t 
 
 // if return value >= beta, it is a lower bound; if return value <= alpha, it is an upper bound
 int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha, int beta,
-        int ply, clock_t deadline, HashSet *rep_table, bool nullable, POSITION last_square,
+        int ply, clock_t deadline, bool nullable, POSITION last_square,
         bool isPV, PV *pv, bool *store_tt)
 {
     if (depth == 0)
     {
         ++nodes;
-        return quiescence(board, side, alpha, beta, rep_table, board.in_check(side), last_square, store_tt);
+        return quiescence(board, side, alpha, beta, board.in_check(side), last_square, store_tt);
     }
 
     uint64_t my_hash = board.hash_code(side);
-    if (rep_table->contains(my_hash))
-    {
-        *store_tt = false;
-        if (board.will_repeat_attack(side))
-            return -INF;
-        else
-            return 0;
-    }
 
     *store_tt = true;
 
     int his_score, his_exact = 0, his_depth = 0;
     MOVE his_move = 0;
-    bool rep;
+    MoveType mt;
     if (USE_TRANS_TABLE && trans.get(board.hash_code(side), &his_score, &his_exact, &his_move, &his_depth)
-            && (his_move == 0 || board.checked_move(side, his_move, &rep)))
+            && (his_move == 0 || board.checked_move(side, his_move, &mt)))
     {
         if (his_move != 0)
             board.unmove();
 
-        if (his_depth >= depth && (his_move == 0 || !rep) &&
+        if (his_depth >= depth && (his_move == 0 || mt != PERPETUAL_CHECK_OR_CHASE) &&
                 (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
                  || (his_exact == Transposition::LOWER && his_score >= beta))
                 && (nullable || his_move != 0))
@@ -282,18 +290,15 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     ++nodes;
 
-    rep_table->put(my_hash);
-
     int ans = -INF, first_ans = ABORTED;
     MOVE best_move = 0;
     MOVE searched_moves[120];
     int searched_moves_count = 0;
-    bool aborted = false;
-    bool not_save_tt = false, propagated_store;
+    bool aborted = false, propagated_store;
 
     if (USE_NULL_MOVE && nullable && !isPV)
         ans = -alpha_beta(board, 1 - side, NULL, max(0, depth - 3),
-                -beta, -beta + 1, ply, deadline, rep_table, false, INVALID_POSITION, isPV, NULL, &propagated_store);
+                -beta, -beta + 1, ply, deadline, false, INVALID_POSITION, isPV, NULL, &propagated_store);
 
     if (ans == -ABORTED)
         aborted = true;
@@ -304,44 +309,34 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
         if (USE_IID && depth >= 6)
             alpha_beta(board, side, &his_move, depth - 2, alpha, beta, ply + 1, deadline,
-                    rep_table, false, last_square, isPV, NULL, &propagated_store);
+                    false, last_square, isPV, NULL, &propagated_store);
 
         int original_pv_count = pv ? pv->count : 0;
         MoveList ml(&board, side, his_move, move_score, killer[ply][0], killer[ply][1]);
         MOVE move;
         for (int i = 0; ans < beta && (move = ml.next_move()); ++i)
         {
-            bool game_end, rep_attack;
             bool is_good_capture = board.is_capture(move) && is_winning_capture(&board, move, side);
-            if (!board.move(move, &game_end, &rep_attack) || rep_attack)
-            {
-                if (rep_attack)
-                {
-                    not_save_tt = true;
-                    board.unmove();
-                }
-                continue;
-            }
 
-            searched_moves[searched_moves_count++] = move;
+            MoveType mt;
+            if (!board.move(move, &mt))
+                continue;
 
             PV newPV;
             newPV.moves[0] = move;
             newPV.count = 1;
+
             int t;
-            if (game_end)
+            if (!special_move_type(mt, &t, &propagated_store))
             {
-                t = INF;
-                propagated_store = true;
-            }
-            else
-            {
+                searched_moves[searched_moves_count++] = move;
+
                 int current_alpha = max(alpha, ans);
                 POSITION dst = move_dst(move);
 
                 if (i == 0)
                     t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
-                            ply + 1, deadline, rep_table, true, dst, isPV, &newPV, &propagated_store);
+                            ply + 1, deadline, true, dst, isPV, &newPV, &propagated_store);
                 else
                 {
                     t = current_alpha + 1;
@@ -349,33 +344,18 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     if (USE_LMR && !isPV && depth > LMR_DEPTH && i > LMR_NODES && !is_good_capture)
                     {
                         t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
-                                -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL, &propagated_store);
+                                -current_alpha, ply + 1, deadline, true, dst, false, NULL, &propagated_store);
                     }
 
                     if (t > current_alpha)
                         t = -alpha_beta(board, 1 - side, NULL, depth - 1, -current_alpha - 1,
-                                -current_alpha, ply + 1, deadline, rep_table, true, dst, false, NULL, &propagated_store);
+                                -current_alpha, ply + 1, deadline, true, dst, false, NULL, &propagated_store);
                     if (current_alpha < t && t < beta)
-                    {
-#ifdef DEBUG_OUTPUT
-                        int t0 = t;
-#endif
                         t = -alpha_beta(board, 1 - side, NULL, depth - 1, -beta, -current_alpha,
-                                ply + 1, deadline, rep_table, true, dst, isPV, &newPV, &propagated_store);
-
-#ifdef DEBUG_OUTPUT
-                        board.print();
-                        cout << "(alpha, beta) =(" << current_alpha << ", " << beta << ")" << endl;
-                        cout << "move index: " << i << ", " << move_string(moves[i]) << endl;
-                        cout << "first returned: " << t0 << endl;
-                        cout << "second returned: " << t << endl;
-                        for (int j = 0; j < i; ++j)
-                            cout << move_string(moves[j]) << "(" << move_score[moves[j]] << ") ";
-                        cout << endl << endl;
-#endif
-                    }
+                                ply + 1, deadline, true, dst, isPV, &newPV, &propagated_store);
                 }
             }
+
             board.unmove();
 
             if (t == -ABORTED)
@@ -415,9 +395,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     else
         ++null_cut;
 
-    rep_table->remove(my_hash);
-    *store_tt = *store_tt && (ans >= beta || !not_save_tt);
-
     if (aborted)
         return ABORTED;
 
@@ -449,27 +426,14 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
 int Agent::quiescence(Board &board, int side, int alpha, int beta, POSITION last_square)
 {
-    HashSet hs(8);
     bool store_tt;
-    return quiescence(board, side, alpha, beta, &hs, board.in_check(side), last_square, &store_tt);
+    return quiescence(board, side, alpha, beta, board.in_check(side), last_square, &store_tt);
 }
 
-int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep_table,
+int Agent::quiescence(Board &board, int side, int alpha, int beta,
         bool in_check, POSITION last_square, bool *store_tt)
 {
-    uint64_t my_hash = board.hash_code(side);
-    if (rep_table->contains(my_hash))
-    {
-        *store_tt = false;
-        if (board.will_repeat_attack(side))
-            return -INF;
-        else
-            return 0;
-    }
-
-    rep_table->put(my_hash);
     *store_tt = true;
-    bool not_save_tt = false;
 
     int ans, sv = board.static_value(side);
     if (in_check)
@@ -489,7 +453,7 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep_
             for (int i = 0; i < moves_count; ++i)
             {
                 if (move_dst(moves[i]) == last_square)
-                    capture_scores[i] = max(capture_scores[i], Board::KING_CAPTURE - 1);
+                    capture_scores[i] = max(capture_scores[i], Board::KING_CAPTURE_VALUE - 1);
                 if (capture_scores[i] > Board::NON_CAPTURE
                         && is_winning_capture(&board, moves[i], capture_scores[i], side))
                 {
@@ -510,46 +474,40 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta, HashSet *rep_
 
         for (int i = 0; ans < beta && i < moves_count; ++i)
         {
-            bool game_end, rep_attack;
-            if (!board.move(moves[i], &game_end, &rep_attack))
+            MoveType mt;
+            if (!board.move(moves[i], &mt))
                 continue;
 
-            // it is faster to refute suicide here
-            if (rep_attack || game_end || (in_check && board.in_check(side)))
+            int t;
+            bool propagated_store;
+            if (!special_move_type(mt, &t, &propagated_store))
             {
-                if (game_end)
+                t = -INF;
+                // it is faster to refute suicide here
+                if (in_check && board.in_check(side))
+                    propagated_store = true;
+                else
                 {
-                    ans = INF;
-                    *store_tt = true;
+                    bool next_in_check = board.in_check(1 - side);
+
+                    if (in_check || capture_scores[i] > Board::NON_CAPTURE || next_in_check)
+                    {
+                        int current_alpha = max(alpha, ans);
+                        t = -quiescence(board, 1 - side, -beta, -current_alpha,
+                                next_in_check, move_dst(moves[i]), &propagated_store);
+                    }
                 }
-                if (rep_attack)
-                    not_save_tt = true;
-                board.unmove();
-                continue;
             }
 
-            bool next_in_check = board.in_check(1 - side);
-
-            if (in_check || capture_scores[i] > Board::NON_CAPTURE || next_in_check)
+            if (t > ans)
             {
-                int current_alpha = max(alpha, ans);
-                bool propagated_store;
-                int t = -quiescence(board, 1 - side, -beta, -current_alpha, rep_table,
-                        next_in_check, move_dst(moves[i]), &propagated_store);
-
-                if (t > ans)
-                {
-                    *store_tt = propagated_store;
-                    ans = t;
-                }
+                *store_tt = propagated_store;
+                ans = t;
             }
 
             board.unmove();
         }
     }
-
-    rep_table->remove(my_hash);
-    *store_tt = *store_tt && (ans >= beta || !not_save_tt);
 
     return ans;
 }

@@ -77,13 +77,13 @@ int main()
             side = 1;
         else if (is_move(command))
         {
-            bool rep;
-            if (!board.checked_move(side, make_move(command), &rep))
+            MoveType mt;
+            if (!board.checked_move(side, make_move(command), &mt))
                 cout << "Illegal move: " << command << endl;
             else
             {
-                if (rep)
-                    cout << "# Warning: repeated attack" << endl;
+                if (mt == PERPETUAL_CHECK_OR_CHASE)
+                    cout << "# Warning: perpetual check" << endl;
 
                 side = 1 - side;
 
