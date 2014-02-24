@@ -246,17 +246,14 @@ bool Board::move(MOVE move, MoveType *mt, bool detect_repetition)
                     perp_side = his_perp;
             }
             else
-            {
-                if (test_for_next_perpetual(my_side))
-                    perp_side = 1 - my_side;
-            }
+                perp_side = test_for_perpetual(my_side);
         }
 
         if (mt)
         {
             if (perp_side == NON_PERPETUAL)
                 *mt = REPETITION;
-            else if (perp_side != NON_PERPETUAL)
+            else
             {
                 history[history.size() - 1].perp_side = perp_side;
                 if (perp_side != my_side)
@@ -266,54 +263,6 @@ bool Board::move(MOVE move, MoveType *mt, bool detect_repetition)
             }
         }
     }
-
-    /*
-       uint8_t rep_side = NON_REP;
-       int my_side = piece_side(src.piece);
-       if (!force && history.size() >= 4)
-       {
-       if (history[history.size() - 2].rep_side != NON_REP)
-       {
-    // if repeated attack already exists, then history.size() must be at least 5
-    if (history[history.size() - 5].move == move)
-    rep_side = history[history.size() - 2].rep_side;
-    }
-    else
-    {
-    POSITION victim = move_dst(history[history.size() - 2].move);
-    if (dst.piece == 0 && are_inverse_moves(move, history[history.size() - 3].move)
-    && are_inverse_moves(history[history.size() - 2].move, history[history.size() - 4].move)
-    && history[history.size() - 2].capture.piece == 0
-    && history[history.size() - 3].capture.piece == 0
-    && history[history.size() - 4].capture.piece == 0
-    && piece_type(src.piece) != PIECE_K
-    && (is_attacked(victim, true)
-    || (piece_type(board[position_rank(victim)][position_file(victim)].piece) != PIECE_K
-    && in_check(1 - my_side))))
-    {
-    MOVE victim_move = history[history.size() - 2].move;
-    unmove();
-    unmove();
-    victim = move_dst(history[history.size() - 2].move);
-    if (is_attacked(victim, true)
-    || (piece_type(board[position_rank(victim)][position_file(victim)].piece) != PIECE_K
-    && in_check(1 - my_side)))
-    rep_side = (uint8_t) my_side;
-    this->move(victim_move, NULL, NULL, true);
-    this->move(move, NULL, NULL, true);
-    }
-    }
-    if (rep_side != NON_REP)
-    history[history.size() - 1].rep_side = rep_side;
-    }
-
-    if (rep)
-    {
-    if (rep_side == my_side)
-     *rep = true;
-     else
-     *rep = false;
-     }*/
 
     return true;
 }
@@ -359,24 +308,27 @@ bool Board::checked_unmove()
     return true;
 }
 
-bool Board::test_for_next_perpetual(int my_side)
+uint8_t Board::test_for_perpetual(int my_side)
 {
     vector<HistoryEntry> saved_moves;
-    bool test = false;
     int side = my_side;
     uint64_t rep_hash = hash_code(my_side);
     bool success = false;
+    bool perp[2] = {true, true};
     while (!success && history.size() > 0)
     {
         HistoryEntry he = history.back();
+        POSITION pos = move_dst(he.move);
+
+        if (piece_side(board[position_rank(pos)][position_file(pos)].piece) != side)
+            break;
         if (he.capture.piece != 0)
             break;
-        if (test)
-        {
-            if (!in_check(my_side))
-                break;
-        }
-        test = !test;
+
+        if (!in_check(1 - side))
+            perp[1 - side] = false;
+        if (!perp[0] && !perp[1])
+            break;
 
         saved_moves.push_back(he);
         unmove();
@@ -394,7 +346,15 @@ bool Board::test_for_next_perpetual(int my_side)
         history[history.size() - 1].perp_side = he.perp_side;
     }
 
-    return success;
+    if (!success)
+        return NON_PERPETUAL;
+
+    if (perp[0] && !perp[1])
+        return 1;
+    else if (perp[1] && !perp[0])
+        return 0;
+    else
+        return NON_PERPETUAL;
 }
 
 bool Board::is_capture(MOVE move, int *value)

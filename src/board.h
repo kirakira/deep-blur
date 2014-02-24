@@ -88,7 +88,7 @@ class Board
 
         inline bool king_face_to_face();
 
-        bool test_for_next_perpetual(int my_side);
+        uint8_t test_for_perpetual(int my_side);
 
         class BoardStaticFieldsInitializer
         {
