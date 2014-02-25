@@ -66,12 +66,6 @@ bool Agent::special_move_type(MoveType mt, int *score, bool *store_tt)
         *store_tt = true;
         return true;
     }
-    else if (mt == NEXT_PERPETUAL_CHECK_OR_CHASE)
-    {
-        *score = INF;
-        *store_tt = false;
-        return true;
-    }
     else if (mt == PERPETUAL_CHECK_OR_CHASE)
     {
         *score = -INF;

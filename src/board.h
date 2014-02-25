@@ -12,7 +12,6 @@ enum MoveType
 {
     KING_CAPTURE,
     PERPETUAL_CHECK_OR_CHASE,
-    NEXT_PERPETUAL_CHECK_OR_CHASE,
     REPETITION,
     CAPTURE,
     REGULAR
@@ -88,7 +87,7 @@ class Board
 
         inline bool king_face_to_face();
 
-        uint8_t test_for_perpetual(int my_side);
+        bool test_for_perpetual(int my_side);
 
         class BoardStaticFieldsInitializer
         {

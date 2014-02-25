@@ -246,21 +246,15 @@ bool Board::move(MOVE move, MoveType *mt, bool detect_repetition)
                     perp_side = his_perp;
             }
             else
-                perp_side = test_for_perpetual(my_side);
+                perp_side = test_for_perpetual(my_side) ? my_side : NON_PERPETUAL;
         }
 
         if (mt)
         {
-            if (perp_side == NON_PERPETUAL)
-                *mt = REPETITION;
+            if (perp_side == my_side)
+                *mt = PERPETUAL_CHECK_OR_CHASE;
             else
-            {
-                history[history.size() - 1].perp_side = perp_side;
-                if (perp_side != my_side)
-                    *mt = NEXT_PERPETUAL_CHECK_OR_CHASE;
-                else
-                    *mt = PERPETUAL_CHECK_OR_CHASE;
-            }
+                *mt = REPETITION;
         }
     }
 
@@ -308,13 +302,12 @@ bool Board::checked_unmove()
     return true;
 }
 
-uint8_t Board::test_for_perpetual(int my_side)
+bool Board::test_for_perpetual(int my_side)
 {
     vector<HistoryEntry> saved_moves;
     int side = my_side;
     uint64_t rep_hash = hash_code(my_side);
-    bool success = false;
-    bool perp[2] = {true, true};
+    bool success = false, other_perp = true;
     while (!success && history.size() > 0)
     {
         HistoryEntry he = history.back();
@@ -326,9 +319,12 @@ uint8_t Board::test_for_perpetual(int my_side)
             break;
 
         if (!in_check(1 - side))
-            perp[1 - side] = false;
-        if (!perp[0] && !perp[1])
-            break;
+        {
+            if (side == my_side)
+                break;
+            else
+                other_perp = false;
+        }
 
         saved_moves.push_back(he);
         unmove();
@@ -346,15 +342,7 @@ uint8_t Board::test_for_perpetual(int my_side)
         history[history.size() - 1].perp_side = he.perp_side;
     }
 
-    if (!success)
-        return NON_PERPETUAL;
-
-    if (perp[0] && !perp[1])
-        return 1;
-    else if (perp[1] && !perp[0])
-        return 0;
-    else
-        return NON_PERPETUAL;
+    return success && !other_perp;
 }
 
 bool Board::is_capture(MOVE move, int *value)
