@@ -311,11 +311,11 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
             newPV.moves[0] = move;
             newPV.count = 1;
 
+            searched_moves[searched_moves_count++] = move;
+
             int t;
             if (!special_move_type(mt, &t, &propagated_store))
             {
-                searched_moves[searched_moves_count++] = move;
-
                 int current_alpha = max(alpha, ans);
                 POSITION dst = move_dst(move);
 
@@ -393,6 +393,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
 
     if (result)
         *result = best_move;
+
     return ans;
 }
 
