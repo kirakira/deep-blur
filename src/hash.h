@@ -5,20 +5,27 @@
 class HashSet
 {
     private:
+        typedef struct sEntry
+        {
+            uint64_t key;
+            uint64_t value;
+        } Entry;
+
         HashSet &operator=(const HashSet &);
         HashSet(const HashSet &);
 
-        uint64_t *table;
+        Entry *table;
         int mask;
-        bool containsZero;
 
-        int hash(uint64_t value);
+        int hash(uint64_t key);
 
     public:
         HashSet(int depth);
         ~HashSet();
 
-        void put(uint64_t value);
-        void remove(uint64_t value);
-        bool contains(uint64_t value);
+        int increment(uint64_t key);
+        int decrement(uint64_t key);
+        int count(uint64_t key);
+
+        void clear();
 };

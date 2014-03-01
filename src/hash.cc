@@ -1,9 +1,10 @@
 #include "hash.h"
+#include <cstring>
 
 HashSet::HashSet(int depth)
-    : containsZero(false)
 {
-    table = new uint64_t[1 << depth]();
+    table = new Entry[1 << depth];
+    memset(table, 0, sizeof(Entry) * (1 << depth));
     mask = (1 << depth) - 1;
 }
 
@@ -12,26 +13,31 @@ HashSet::~HashSet()
     delete[] table;
 }
 
-int HashSet::hash(uint64_t value)
+int HashSet::hash(uint64_t key)
 {
-    return (int) value & mask;
+    return (int) key & mask;
 }
 
-void HashSet::put(uint64_t value)
+void HashSet::clear()
 {
-    if (value == 0)
-    {
-        containsZero = true;
-        return;
-    }
+    memset(table, 0, sizeof(Entry) * (mask + 1));
+}
 
-    int index = hash(value), i = index;
+int HashSet::increment(uint64_t key)
+{
+    int index = hash(key), i = index;
     do
     {
-        if (table[i] == 0)
+        if (table[i].value == 0)
         {
-            table[i] = value;
-            return;
+            table[i].key = key;
+            table[i].value = 1;
+            return 1;
+        }
+        else if (table[i].key == key)
+        {
+            ++table[i].value;
+            return (int) table[i].value;
         }
         else
             i = (i + 1) & mask;
@@ -40,75 +46,77 @@ void HashSet::put(uint64_t value)
     int old_size = mask + 1;
     int new_size = (mask + 1) * 2;
     mask = new_size - 1;
-    uint64_t *tmp = table;
-    table = new uint64_t[new_size]();
+    Entry *tmp = table;
+    table = new Entry[new_size];
+    memset(table, 0, sizeof(Entry) * new_size);
     for (int i = 0; i < old_size; ++i)
-        put(tmp[i]);
+        for (int j = 0; j < (int) tmp[i].value; ++j)
+            increment(tmp[i].key);
     delete []tmp;
 
-    put(value);
+    return increment(key);
 }
 
-bool HashSet::contains(uint64_t value)
+int HashSet::count(uint64_t key)
 {
-    if (value == 0)
-        return containsZero;
-    int index = hash(value), i = index;
+    int index = hash(key), i = index;
     do
     {
-        if (table[i] == 0)
-            return false;
-        else if (table[i] == value)
-            return true;
+        if (table[i].value == 0)
+            return 0;
+        else if (table[i].key == key)
+            return (int) table[i].value;
         else
             i = (i + 1) & mask;
     } while (i != index);
-    return false;
+
+    return 0;
 }
 
-void HashSet::remove(uint64_t value)
+int HashSet::decrement(uint64_t key)
 {
-    if (value == 0)
-    {
-        containsZero = false;
-        return;
-    }
-
-    int index = hash(value), i = index;
+    int index = hash(key), i = index;
     int pos = -1;
     do
     {
-        if (table[i] == 0)
+        if (table[i].value == 0)
             break;
-        else if (table[i] == value)
+        else if (table[i].key == key)
         {
-            pos = i;
-            break;
+            --table[i].value;
+            if (table[i].value)
+                return table[i].value;
+            else
+            {
+                pos = i;
+                break;
+            }
         }
         else
             i = (i + 1) & mask;
     } while (i != index);
-    if (pos == -1)
-        return;
 
-    table[pos] = 0;
+    if (pos == -1)
+        return 0;
+
     i = (pos + 1) & mask;
     int hole = pos;
     while (i != pos)
     {
-        if (table[i] == 0)
+        if (table[i].value == 0)
             break;
 
         bool b1 = hole < i;
-        int h = hash(table[i]);
+        int h = hash(table[i].key);
         bool b2 = (h > hole && h <= i);
         if ((b1 || b2) && (!b1 || !b2))
         {
             table[hole] = table[i];
-            table[i] = 0;
+            table[i].value = 0;
             hole = i;
         }
 
         i = (i + 1) & mask;
     }
+    return 0;
 }
