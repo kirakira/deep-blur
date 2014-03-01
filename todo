@@ -1,5 +1,6 @@
 Test transposition table in qsearch
 Aging history table
+4-probe transposition table
 Check extensions
 Repeated attacking detection: examine the attacking list of the moving piece, instead of the evasion piece
 Evaluate recapture in qsearch
