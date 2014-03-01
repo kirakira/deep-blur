@@ -1,7 +1,5 @@
-Discard repetition check in search routines (they should now be replaced by repetition checks)
-Repeated attacks should not include attacks between same type of pieces
+Aging history table
 Check extensions
-Repetition: board should detect repeated attackings for more than 4 plies
 Repeated attacking detection: examine the attacking list of the moving piece, instead of the evasion piece
 Evaluate recapture in qsearch
 Generate checks in the first ply of qsearch
