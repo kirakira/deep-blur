@@ -406,6 +406,22 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta,
 {
     *store_tt = true;
 
+    uint64_t my_hash = board.hash_code(side);
+    int his_score, his_exact = 0, his_depth = 0;
+    MOVE his_move = 0;
+    MoveType mt;
+    if (USE_TRANS_TABLE && trans.get(board.hash_code(side), &his_score, &his_exact, &his_move, &his_depth)
+            && (his_move == 0 || board.checked_move(side, his_move, &mt)))
+    {
+        if (his_move != 0)
+            board.unmove();
+
+        if ((his_move == 0 || mt != PERPETUAL_CHECK_OR_CHASE) &&
+                (his_exact == Transposition::EXACT || (his_exact == Transposition::UPPER && his_score <= alpha)
+                 || (his_exact == Transposition::LOWER && his_score >= beta)))
+            return his_score;
+    }
+
     int ans, sv = board.static_value(side);
     if (in_check)
         ans = -INF;
@@ -478,6 +494,17 @@ int Agent::quiescence(Board &board, int side, int alpha, int beta,
 
             board.unmove();
         }
+    }
+
+    if (USE_TRANS_TABLE && *store_tt
+            && (his_exact != Transposition::EXACT || his_depth <= 0))
+    {
+        int e = Transposition::EXACT;
+        if (ans <= alpha)
+            e = Transposition::UPPER;
+        else if (ans >= beta)
+            e = Transposition::LOWER;
+        trans.put(my_hash, ans, e, 0, 0);
     }
 
     return ans;
