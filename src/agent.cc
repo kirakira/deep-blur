@@ -301,8 +301,6 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
         MOVE move;
         for (int i = 0; ans < beta && (move = ml.next_move()); ++i)
         {
-            bool is_good_capture = board.is_capture(move) && is_winning_capture(&board, move, side);
-
             MoveType mt;
             if (!board.move(move, &mt))
                 continue;
@@ -327,7 +325,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
                     t = current_alpha + 1;
 
                     if (USE_LMR && !isPV && depth > LMR_DEPTH && i >= LMR_NODES
-                            && ml.remaining_moves() && !is_good_capture)
+                            && ml.remaining_moves())
                     {
                         t = -alpha_beta(board, 1 - side, NULL, depth - 2, -current_alpha - 1,
                                 -current_alpha, ply + 1, deadline, true, dst, false, NULL, &propagated_store);
