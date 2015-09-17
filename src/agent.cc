@@ -273,7 +273,7 @@ int Agent::alpha_beta(Board &board, int side, MOVE *result, int depth, int alpha
     MOVE searched_moves[120];
     int searched_moves_count = 0;
     bool aborted = false, propagated_store;
-    int eval = board.static_value(side);
+    //int eval = board.static_value(side);
 
     if (USE_NULL_MOVE && nullable && !isPV/* && eval >= beta*/)
     {

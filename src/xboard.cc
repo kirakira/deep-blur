@@ -118,12 +118,12 @@ int main()
         }
         else if (command == "generate")
         {
-            int side = 0;
-            iss >> side;
+            int generate_side = 0;
+            iss >> generate_side;
 
             MOVE moves[120];
             int capture_scores[120], moves_count;
-            board.generate_moves(side, moves, capture_scores, &moves_count);
+            board.generate_moves(generate_side, moves, capture_scores, &moves_count);
 
             for (int i = 0; i < moves_count; ++i)
                 cout << move_string(moves[i]) << " ";
