@@ -27,16 +27,26 @@ king_capture_king: 9 * 2^10 entries
 total: 287352 entries (281 KB)
 
 
+Bitboard general
+========
+* Board must contain extra bits equivalent to 1 row above the top row in order to use aggregate
+
+Aggregate
+=========
+template<uint64 final_mask>
+constexpr uint64 aggregate(uint64 board, uint64 relevant_mask, int shift) {
+    return (((board & relevant_bits) * magic_number) >> shift) & final_mask;
+}
+
+
 Column extraction
 ======
 relavent bits: b, b+9, b+18, b+27, b+36, for 0<=b<=8
 magic number: 0, 8, 16, 24, 32 (0x101010101LL)
 result bits: [b+32, b+36]
 
+// final_mask = 63LL;
 // shift = col_num + 32;
-constexpr uint64 aggregate(uint64 board, uint64 relevant_bits, int shift) {
-    return (((board & relevant_bits) * magic_number) >> shift) & 63LL;
-}
 
 x0: b,    b+8,  b+16, ..., b+32
 x1: b+9,  b+17, b+25, ..., b+33
@@ -49,10 +59,8 @@ magic number: 0, 7, 16
 result bits: [b+6, b+9]
 standing for: b-1, b-9, b+1, b+9
 
+// final_mask = 15LL;
 // shift = b + 6;
-constexpr uint64 aggregate_horse(uint64 board, uint64 relevant_bits, int shift) {
-    return (((board & relevant_bits) * magic_number) >> shift) & 15LL;
-}
 
 
 Elephant move
@@ -61,3 +69,6 @@ relevant bits: b-10, b-8, b+8, b+10
 magic number: 0, 17
 result bits: [b+7, b+10]
 standing for: b-10, b+8, b-8, b+10
+
+// final_mask = 15LL;
+// shift = b + 7;
