@@ -45,11 +45,11 @@ x1: b+9,  b+17, b+25, ..., b+33
 Horse move
 ======
 relevant bits: b-9, b-1, b+1, b+9
-magic number: 0, 6, 11, 17
-result bits: [b+7, b+10]
-starnding for: b+1, b-9, b+9, b-1
+magic number: 0, 7, 16
+result bits: [b+6, b+9]
+standing for: b-1, b-9, b+1, b+9
 
-// shift = b + 7;
+// shift = b + 6;
 constexpr uint64 aggregate_horse(uint64 board, uint64 relevant_bits, int shift) {
     return (((board & relevant_bits) * magic_number) >> shift) & 15LL;
 }
