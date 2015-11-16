@@ -1,0 +1,63 @@
+Move table
+====
+pawn: 47 * 3 moves
+cannon_row: 90 * (8 choose 2) * 9 moves
+cannon_col: 90 * (9 choose 2) * 10 moves
+rook_row: 90 * (8 choose 2) moves
+rook_col: 90 * (9 choose 2) moves
+horse: 90 * 8 * 2^4 moves
+elephant: 7 * 4 * 2^4 moves
+assistant: 8 moves
+king: 24 moves
+king_capture_king: 9 * 3 moves
+total: 73008 moves (73 KB)
+
+Move lookup table
+====
+pawn: 90 entries
+cannon_row: 90 * 2^9 entries
+cannon_col: 90 * 2^10 entries
+rook_row: 90 * 2^9 entries
+rook_col: 90 * 2^10 entries
+horse: 90 * 2^4 entries
+elephant: 7 * 2^4 entries
+assitant: 5 entries
+king: 9 entries
+king_capture_king: 9 * 2^10 entries
+total: 287352 entries (281 KB)
+
+
+Column extraction
+======
+relavent bits: b, b+9, b+18, b+27, b+36, for 0<=b<=8
+magic number: 0, 8, 16, 24, 32 (0x101010101LL)
+result bits: [b+32, b+36]
+
+// shift = col_num + 32;
+constexpr uint64 aggregate(uint64 board, uint64 relevant_bits, int shift) {
+    return (((board & relevant_bits) * magic_number) >> shift) & 63LL;
+}
+
+x0: b,    b+8,  b+16, ..., b+32
+x1: b+9,  b+17, b+25, ..., b+33
+
+
+Horse move
+======
+relevant bits: b-9, b-1, b+1, b+9
+magic number: 0, 6, 11, 17
+result bits: [b+7, b+10]
+starnding for: b+1, b-9, b+9, b-1
+
+// shift = b + 7;
+constexpr uint64 aggregate_horse(uint64 board, uint64 relevant_bits, int shift) {
+    return (((board & relevant_bits) * magic_number) >> shift) & 15LL;
+}
+
+
+Elephant move
+======
+relevant bits: b-10, b-8, b+8, b+10
+magic number: 0, 17
+result bits: [b+7, b+10]
+standing for: b-10, b+8, b-8, b+10
