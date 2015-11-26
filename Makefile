@@ -9,3 +9,6 @@ all: $(HEADERS) $(SOURCES)
 
 o: $(HEADERS) $(SOURCES)
 	g++ -o bin/deep-blur -O3 $(SOURCES)
+
+board_test: src/board_test.cc src/board.cc src/hash.cc
+	g++ -o bin/board_test -Wall -Wextra -Wshadow -std=c++11 src/board_test.cc src/board.cc src/hash.cc
