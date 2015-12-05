@@ -1,6 +1,7 @@
 #ifndef BLUR_BITBOARD_H
 #define BLUR_BITBOARD_H
 
+#include <array>
 #include <iostream>
 
 #include "board-common.h"
@@ -9,87 +10,82 @@
 namespace blur {
 
 // Value semantics.
-class HalfBitBoard final {
+class HalfBitBoard {
  public:
-  HalfBitBoard() = delete;
-  constexpr static HalfBitBoard EmptyBoard() noexcept;
+  constexpr static HalfBitBoard EmptyBoard();
   // Returns a HalfBitBoard that has only the specified position set.
   // Requires: squares.value() < 45.
-  constexpr static HalfBitBoard Fill(Position square) noexcept;
+  constexpr static HalfBitBoard Fill(Position square);
 
-  void Move(Move move) noexcept;
+  inline void Move(Move move);
 
-  HalfBitBoard(const HalfBitBoard&) = default;
-  HalfBitBoard& operator=(const HalfBitBoard&) = default;
+  inline HalfBitBoard(const HalfBitBoard&) = default;
+  inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
 
-  friend constexpr HalfBitBoard operator~(HalfBitBoard b) noexcept;
-  friend constexpr HalfBitBoard operator&(HalfBitBoard b1,
-                                          HalfBitBoard b2) noexcept;
-  friend constexpr HalfBitBoard operator|(HalfBitBoard b1,
-                                          HalfBitBoard b2) noexcept;
-  friend constexpr HalfBitBoard operator^(HalfBitBoard b1,
-                                          HalfBitBoard b2) noexcept;
-  HalfBitBoard& operator&=(HalfBitBoard b) noexcept;
-  HalfBitBoard& operator|=(HalfBitBoard b) noexcept;
-  HalfBitBoard& operator^=(HalfBitBoard b) noexcept;
-  friend constexpr bool operator==(HalfBitBoard b1, HalfBitBoard b2) noexcept;
-  friend constexpr bool operator!=(HalfBitBoard b1, HalfBitBoard b2) noexcept;
+  friend inline HalfBitBoard operator~(HalfBitBoard b);
+  friend inline HalfBitBoard operator&(HalfBitBoard b1, HalfBitBoard b2);
+  friend constexpr HalfBitBoard operator|(HalfBitBoard b1, HalfBitBoard b2);
+  friend inline HalfBitBoard operator^(HalfBitBoard b1, HalfBitBoard b2);
+  inline HalfBitBoard& operator&=(HalfBitBoard b);
+  inline HalfBitBoard& operator|=(HalfBitBoard b);
+  inline HalfBitBoard& operator^=(HalfBitBoard b);
+  friend inline bool operator==(HalfBitBoard b1, HalfBitBoard b2);
+  friend inline bool operator!=(HalfBitBoard b1, HalfBitBoard b2);
 
   // For debug output only.
-  friend std::ostream& operator<<(std::ostream& os, HalfBitBoard b);
+  friend inline std::ostream& operator<<(std::ostream& os, HalfBitBoard b);
 
  private:
-  constexpr explicit HalfBitBoard(uint64 value) noexcept : value_(value) {}
+  constexpr explicit HalfBitBoard(uint64 value) : value_(value) {}
 
   uint64 value_;
 };
 
 // Value semantics.
-class BitBoard final {
+class BitBoard {
  public:
-  constexpr static BitBoard EmptyBoard() noexcept;
-  constexpr static BitBoard Fill(Position pos) noexcept;
+  constexpr static BitBoard EmptyBoard();
+  constexpr static BitBoard Fill(Position pos);
 
-  void MakeMove(Move move) noexcept;
+  inline void MakeMove(Move move);
 
-  BitBoard(const BitBoard&) = default;
-  BitBoard& operator=(const BitBoard&) = default;
+  inline BitBoard(const BitBoard&) = default;
+  inline BitBoard& operator=(const BitBoard&) = default;
 
-  friend constexpr BitBoard operator~(BitBoard b) noexcept;
-  friend constexpr BitBoard operator&(BitBoard b1, BitBoard b2) noexcept;
-  friend constexpr BitBoard operator|(BitBoard b1, BitBoard b2) noexcept;
-  friend constexpr BitBoard operator^(BitBoard b1, BitBoard b2) noexcept;
-  BitBoard& operator&=(BitBoard b) noexcept;
-  BitBoard& operator|=(BitBoard b) noexcept;
-  BitBoard& operator^=(BitBoard b) noexcept;
-  friend constexpr bool operator==(BitBoard b1, BitBoard b2) noexcept;
-  friend constexpr bool operator!=(BitBoard b1, BitBoard b2) noexcept;
+  friend inline BitBoard operator~(BitBoard b);
+  friend inline BitBoard operator&(BitBoard b1, BitBoard b2);
+  friend constexpr BitBoard operator|(BitBoard b1, BitBoard b2);
+  friend inline BitBoard operator^(BitBoard b1, BitBoard b2);
+  inline BitBoard& operator&=(BitBoard b);
+  inline BitBoard& operator|=(BitBoard b);
+  inline BitBoard& operator^=(BitBoard b);
+  friend inline bool operator==(BitBoard b1, BitBoard b2);
+  friend inline bool operator!=(BitBoard b1, BitBoard b2);
 
   // For debug output only.
-  friend std::ostream& operator<<(std::ostream& os, BitBoard b);
+  friend inline std::ostream& operator<<(std::ostream& os, BitBoard b);
 
  private:
-  constexpr BitBoard(HalfBitBoard lower, HalfBitBoard upper) noexcept
+  constexpr BitBoard(HalfBitBoard lower, HalfBitBoard upper)
       : halves_{lower, upper} {}
 
   HalfBitBoard halves_[2];
 };
 
-// Lookup tables related to bitboard.
-class BitTables final {
- public:
-  constexpr BitTables() noexcept;
+#include "bitboard-impl.h"
 
-  BitBoard red_pawn_moves[90];
-  BitBoard black_pawn_moves[90];
+// Lookup tables related to bitboard.
+class BitTables {
+ public:
+  static constexpr std::array<BitBoard, kNumPositions> red_pawn_moves =
+      GenerateArray<BitBoard, kNumPositions>(RedPawnMovesAt);
+  static constexpr std::array<BitBoard, kNumPositions> black_pawn_moves =
+      GenerateArray<BitBoard, kNumPositions>(BlackPawnMovesAt);
 
  private:
-  void FillRedPawnMoves() noexcept;
-  void FillBlackPawnMoves() noexcept;
+  BitTables() = delete;
 };
-
-constexpr BitTables kBitTables{};
 
 }  // namespace blur
 
-#endif // BLUR_BITBOARD_H
+#endif  // BLUR_BITBOARD_H

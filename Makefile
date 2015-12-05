@@ -1,25 +1,28 @@
-CFLAGS=-std=c++11 -Wall -Wextra -Wshadow -Werror
-CC=c++
+COMPILER=c++
+COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror
 OUT=bin
 ifeq ($(build),opt)
-	CFLAGS+=-O3
+	COMPILER_FLAGS+=-O3
 else
-	CFLAGS+=-g
+	COMPILER_FLAGS+=-g
 endif
+
+.PHONY: test
+test: $(OUT)/common_test $(OUT)/board_test
 
 $(OUT)/common.o: src/common.h src/common.cc
 	mkdir -p $(OUT)
-	$(CC) $(CFLAGS) -c -o $(OUT)/common.o src/common.cc
+	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/common.cc
 
-$(OUT)/board.o: $(OUT)/common.o src/board-common.h src/bitboard.h src/bitboard.cc
-	$(CC) $(CFLAGS) -c -o $(OUT)/board.o src/bitboard.cc
+$(OUT)/bitboard.o: $(OUT)/common.o src/board-common.h src/bitboard.h src/bitboard.cc src/bitboard-impl.h
+	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/bitboard.cc
 
-$(OUT)/board_test: $(OUT)/board.o src/board_test.cc
-	$(CC) $(CFLAGS) -o $(OUT)/board_test $(OUT)/board.o src/board_test.cc
+$(OUT)/common_test: $(OUT)/common.o src/common_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o src/common_test.cc
 
-.PHONY: test
-test: $(OUT)/board_test
+$(OUT)/board_test: $(OUT)/bitboard.o $(OUT)/common.o src/board_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/bitboard.o $(OUT)/common.o src/board_test.cc
 
 .PHONY: clean
 clean:
-	rm $(OUT)/*.o 2>/dev/null
+	rm -f $(OUT)/*.o $(OUT)/*_test

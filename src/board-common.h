@@ -26,30 +26,29 @@ namespace blur {
 // 0  | 0| 1| 2| 3| 4| 5| 6| 7| 8|
 //    ----------------------------
 
-constexpr int kNumPositions = 90;
-constexpr int kNumRows = 10;
-constexpr int kNumColumns = 9;
+const int kNumPositions = 90;
+const int kNumRows = 10;
+const int kNumColumns = 9;
 
 // Value semantics.
-class Position final {
+class Position {
  public:
-  constexpr Position(int row, int col) noexcept
-      : Position(row* kNumColumns + col) {}
+  constexpr Position(int row, int col) : Position(row * kNumColumns + col) {}
   // For example, "a0" -> 0; "d8" -> 75.
-  constexpr explicit Position(const std::string& str) noexcept;
+  explicit Position(const std::string& str);
   // pos values from 0 to 89 inclusive.
-  constexpr explicit Position(int pos) noexcept : value_(pos) {}
+  constexpr explicit Position(int pos) : value_(pos) {}
 
-  static constexpr bool IsValidPosition(int row, int col) noexcept {
+  constexpr static bool IsValidPosition(int row, int col) {
     return row >= 0 && row < kNumRows && col >= 0 && col < kNumColumns;
   }
 
-  static constexpr bool IsValidPosition(const std::string& str) noexcept;
+  static bool IsValidPosition(const std::string& str);
 
   // Ranges from 0 to 89 inclusive.
-  constexpr int value() const noexcept { return value_; }
-  constexpr int Row() const noexcept { return value_ / kNumColumns; }
-  constexpr int Column() const noexcept { return value_ % kNumColumns; }
+  constexpr int value() const { return value_; }
+  constexpr int Row() const { return value_ / kNumColumns; }
+  constexpr int Column() const { return value_ % kNumColumns; }
   std::string ToString() const;
 
   Position(const Position&) = default;
@@ -60,19 +59,21 @@ class Position final {
 };
 
 // Value semantics.
-class Move final {
+class Move {
  public:
-  explicit Move(Position from, Position to) noexcept;
-  constexpr explicit Move(const std::string& str) noexcept;
+  // An unintialzied move.
+  Move() = default;
+  explicit Move(Position from, Position to);
+  explicit Move(const std::string& str);
 
   // Returned int uses its lower 14 bits.
-  constexpr int value() const noexcept;
+  int value() const;
 
-  constexpr Position from() const noexcept { return from_; }
-  constexpr Position to() const noexcept { return to_; }
+  Position from() const { return from_; }
+  Position to() const { return to_; }
   std::string ToString() const;
 
-  constexpr Move(const Move&) = default;
+  Move(const Move&) = default;
   Move& operator=(const Move&) = default;
 
  private:
