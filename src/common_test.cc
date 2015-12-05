@@ -16,9 +16,7 @@ bool RunTest(Function f, const string& test_name) {
 
 namespace blur {
 
-constexpr int ArrayGenerator(size_t t) {
-  return (t % 3) * 5 + 2;
-}
+constexpr int ArrayGenerator(size_t t) { return (t % 3) * 5 + 2; }
 
 bool TestGenerateArray() {
   constexpr auto a = GenerateArray<int, 5>(ArrayGenerator);
@@ -31,9 +29,7 @@ bool TestGenerateArray() {
   return true;
 }
 
-constexpr int Operation(int x, int y) {
-  return x + y;
-}
+constexpr int Operation(int x, int y) { return x + y; }
 
 bool TestAggregate() {
   static_assert(Aggregate(Operation, 1, 2, 3, 4, 5) == 15, "Wrong aggregate.");

@@ -6,7 +6,6 @@ namespace {
 int GetBit(uint64 x, int pos) { return (x >> pos) & 1; }
 }  // namespace
 
-
 /* static */
 constexpr HalfBitBoard HalfBitBoard::EmptyBoard() { return HalfBitBoard(0); }
 
@@ -138,42 +137,76 @@ namespace {
 constexpr int di[] = {0, 1, 0, -1};
 constexpr int dj[] = {1, 0, -1, 0};
 
-constexpr bool InRedHalf(Position pos) { return pos.Row() < 5; }
+// --- ---
+// |1| |0|
+// -------
+//   | |
+// -------
+// |2| |3|
+// --- ---
+constexpr int ddi[] = {1, 1, -1, -1};
+constexpr int ddj[] = {1, -1, -1, 1};
 
-constexpr bool InBlackHalf(Position pos) { return !InRedHalf(pos); }
+constexpr bool InBoard(int i, int j) { return Position::IsValidPosition(i, j); }
 
-constexpr BitBoard CombinePositionIfLegal(BitBoard current,
-                                          const std::pair<int, int>& pos) {
-  if (Position::IsValidPosition(pos.first, pos.second)) {
+constexpr bool InRedHalf(int i, int j) { return InBoard(i, j) && i < 5; }
+
+constexpr bool InBlackHalf(int i, int j) {
+  return InBoard(i, j) && !InRedHalf(i, j);
+}
+
+constexpr bool InRedPalace(int i, int j) {
+  return InBoard(i, j) && i <= 2 && j >= 3 && j <= 5;
+}
+
+constexpr bool InBlackPalace(int i, int j) {
+  return InBoard(i, j) && i >= 7 && j >= 3 && j <= 5;
+}
+
+template <typename Predicate, Predicate predicate>
+constexpr BitBoard CombinePositionIf(BitBoard current,
+                                     const std::pair<int, int>& pos) {
+  if (predicate(pos.first, pos.second)) {
     return current | BitBoard::Fill(Position(pos.first, pos.second));
   } else {
     return current;
   }
 }
 
-template <size_t... directions>
+template <typename Predicate, Predicate predicate, size_t... directions>
 constexpr BitBoard AdjacentPositions(int i, int j) {
-  return Aggregate(CombinePositionIfLegal, BitBoard::EmptyBoard(),
+  return Aggregate(CombinePositionIf<Predicate, predicate>,
+                   BitBoard::EmptyBoard(),
                    std::make_pair(i + di[directions], j + dj[directions])...);
 }
 
 constexpr BitBoard RedPawnMovesAt(size_t index) {
   Position pos(index);
   const int i = pos.Row(), j = pos.Column();
-  if (InRedHalf(pos)) {
-    return AdjacentPositions<1>(i, j);
+  if (InRedHalf(i, j)) {
+    return AdjacentPositions<decltype(InBoard), InBoard, 1>(i, j);
   } else {
-    return AdjacentPositions<0, 1, 2>(i, j);
+    return AdjacentPositions<decltype(InBoard), InBoard, 0, 1, 2>(i, j);
   }
 }
 
 constexpr BitBoard BlackPawnMovesAt(size_t index) {
   Position pos(index);
   const int i = pos.Row(), j = pos.Column();
-  if (InBlackHalf(pos)) {
-    return AdjacentPositions<3>(i, j);
+  if (InBlackHalf(i, j)) {
+    return AdjacentPositions<decltype(InBoard), InBoard, 3>(i, j);
   } else {
-    return AdjacentPositions<0, 2, 3>(i, j);
+    return AdjacentPositions<decltype(InBoard), InBoard, 0, 2, 3>(i, j);
+  }
+}
+
+constexpr BitBoard AssistantMovesAt(size_t index) {
+  Position pos(index);
+  const int i = pos.Row(), j = pos.Column();
+  if (InRedPalace(i, j)) {
+  } else if (InBlackPalace(i, j)) {
+  } else {
+    return BitBoard::EmptyBoard();
   }
 }
 
