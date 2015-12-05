@@ -180,6 +180,20 @@ constexpr BitBoard AdjacentPositions(int i, int j) {
                    std::make_pair(i + di[directions], j + dj[directions])...);
 }
 
+template <typename Predicate>
+constexpr BitBoard RelativePositions(
+    int i, int j, std::initializer_list<std::pair<int, int>> offsets,
+    Predicate predicate) {
+  auto result = BitBoard::EmptyBoard();
+  for (auto offset : offsets) {
+    const int ni = i + offset.first, nj = j + offset.second;
+    if (predicate(ni, nj)) {
+      result |= BitBoard::Fill(Position(ni, nj));
+    }
+  }
+  return result;
+}
+
 constexpr BitBoard RedPawnMovesAt(size_t index) {
   Position pos(index);
   const int i = pos.Row(), j = pos.Column();
@@ -204,7 +218,9 @@ constexpr BitBoard AssistantMovesAt(size_t index) {
   Position pos(index);
   const int i = pos.Row(), j = pos.Column();
   if (InRedPalace(i, j)) {
+    return BitBoard::EmptyBoard();
   } else if (InBlackPalace(i, j)) {
+    return BitBoard::EmptyBoard();
   } else {
     return BitBoard::EmptyBoard();
   }
