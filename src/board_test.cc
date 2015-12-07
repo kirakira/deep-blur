@@ -16,6 +16,12 @@ void PrintPawnTables() {
   }
 }
 
+void PrintKingTables() {
+  for (int i = 0; i < kNumPositions; ++i) {
+    cout << i << ": " << endl << BitTables::king_moves[i] << endl;
+  }
+}
+
 void PrintAssistantTables() {
   for (int i = 0; i < kNumPositions; ++i) {
     cout << i << ": " << endl << BitTables::assistant_moves[i] << endl;
@@ -23,6 +29,6 @@ void PrintAssistantTables() {
 }
 
 int main() {
-  PrintAssistantTables();
+  PrintKingTables();
   return 0;
 }

@@ -161,6 +161,10 @@ constexpr bool InBlackPalace(int i, int j) {
   return InBoard(i, j) && i >= 7 && j >= 3 && j <= 5;
 }
 
+constexpr bool InPalace(int i, int j) {
+  return InRedPalace(i, j) || InBlackPalace(i, j);
+}
+
 template <typename... Index>
 constexpr std::array<std::pair<int, int>, sizeof...(Index)> MakeOffsets(
     const int offset_array[][2], Index... indices) {
@@ -206,14 +210,22 @@ constexpr BitBoard BlackPawnMovesAt(size_t index) {
   }
 }
 
+constexpr BitBoard KingMovesAt(size_t index) {
+  Position pos(index);
+  const int i = pos.Row(), j = pos.Column();
+  if (InPalace(i, j)) {
+    return RelativePositions(i, j, InPalace,
+                             MakeOffsets(kAdjacentOffsets, 0, 1, 2, 3));
+  } else {
+    return BitBoard::EmptyBoard();
+  }
+}
+
 constexpr BitBoard AssistantMovesAt(size_t index) {
   Position pos(index);
   const int i = pos.Row(), j = pos.Column();
-  if (InRedPalace(i, j)) {
-    return RelativePositions(i, j, InRedPalace,
-                             MakeOffsets(kDiagonalOffsets, 0, 1, 2, 3));
-  } else if (InBlackPalace(i, j)) {
-    return RelativePositions(i, j, InBlackPalace,
+  if (InPalace(i, j)) {
+    return RelativePositions(i, j, InPalace,
                              MakeOffsets(kDiagonalOffsets, 0, 1, 2, 3));
   } else {
     return BitBoard::EmptyBoard();

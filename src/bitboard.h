@@ -81,6 +81,8 @@ class BitTables {
       GenerateArray<BitBoard, kNumPositions>(RedPawnMovesAt);
   static constexpr std::array<BitBoard, kNumPositions> black_pawn_moves =
       GenerateArray<BitBoard, kNumPositions>(BlackPawnMovesAt);
+  static constexpr std::array<BitBoard, kNumPositions> king_moves =
+      GenerateArray<BitBoard, kNumPositions>(KingMovesAt);
   static constexpr std::array<BitBoard, kNumPositions> assistant_moves =
       GenerateArray<BitBoard, kNumPositions>(AssistantMovesAt);
 
