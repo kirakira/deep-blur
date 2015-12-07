@@ -27,7 +27,7 @@ class HalfBitBoard {
   friend constexpr HalfBitBoard operator|(HalfBitBoard b1, HalfBitBoard b2);
   friend inline HalfBitBoard operator^(HalfBitBoard b1, HalfBitBoard b2);
   inline HalfBitBoard& operator&=(HalfBitBoard b);
-  inline HalfBitBoard& operator|=(HalfBitBoard b);
+  constexpr HalfBitBoard& operator|=(HalfBitBoard b);
   inline HalfBitBoard& operator^=(HalfBitBoard b);
   friend inline bool operator==(HalfBitBoard b1, HalfBitBoard b2);
   friend inline bool operator!=(HalfBitBoard b1, HalfBitBoard b2);
@@ -57,7 +57,7 @@ class BitBoard {
   friend constexpr BitBoard operator|(BitBoard b1, BitBoard b2);
   friend inline BitBoard operator^(BitBoard b1, BitBoard b2);
   inline BitBoard& operator&=(BitBoard b);
-  inline BitBoard& operator|=(BitBoard b);
+  constexpr BitBoard& operator|=(BitBoard b);
   inline BitBoard& operator^=(BitBoard b);
   friend inline bool operator==(BitBoard b1, BitBoard b2);
   friend inline bool operator!=(BitBoard b1, BitBoard b2);

@@ -32,7 +32,7 @@ constexpr HalfBitBoard operator|(HalfBitBoard b1, HalfBitBoard b2) {
   return HalfBitBoard(b1.value_ | b2.value_);
 }
 
-HalfBitBoard& HalfBitBoard::operator|=(HalfBitBoard b) {
+constexpr HalfBitBoard& HalfBitBoard::operator|=(HalfBitBoard b) {
   value_ |= b.value_;
   return *this;
 }
@@ -85,7 +85,7 @@ constexpr BitBoard operator|(BitBoard b1, BitBoard b2) {
   return BitBoard(b1.halves_[0] | b2.halves_[0], b1.halves_[1] | b2.halves_[1]);
 }
 
-BitBoard& BitBoard::operator|=(BitBoard b) {
+constexpr BitBoard& BitBoard::operator|=(BitBoard b) {
   halves_[0] |= b.halves_[0];
   halves_[1] |= b.halves_[1];
   return *this;
@@ -134,8 +134,7 @@ namespace {
 // ---------
 //    |3|
 //    ---
-constexpr int di[] = {0, 1, 0, -1};
-constexpr int dj[] = {1, 0, -1, 0};
+constexpr int kAdjacentOffsets[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 
 // --- ---
 // |1| |0|
@@ -144,8 +143,7 @@ constexpr int dj[] = {1, 0, -1, 0};
 // -------
 // |2| |3|
 // --- ---
-constexpr int ddi[] = {1, 1, -1, -1};
-constexpr int ddj[] = {1, -1, -1, 1};
+constexpr int kDiagonalOffsets[4][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
 
 constexpr bool InBoard(int i, int j) { return Position::IsValidPosition(i, j); }
 
@@ -163,30 +161,22 @@ constexpr bool InBlackPalace(int i, int j) {
   return InBoard(i, j) && i >= 7 && j >= 3 && j <= 5;
 }
 
-template <typename Predicate, Predicate predicate>
-constexpr BitBoard CombinePositionIf(BitBoard current,
-                                     const std::pair<int, int>& pos) {
-  if (predicate(pos.first, pos.second)) {
-    return current | BitBoard::Fill(Position(pos.first, pos.second));
-  } else {
-    return current;
-  }
+template <typename... Index>
+constexpr std::array<std::pair<int, int>, sizeof...(Index)> MakeOffsets(
+    const int offset_array[][2], Index... indices) {
+  return {{std::pair<int, int>(offset_array[indices][0],
+                               offset_array[indices][1])...}};
 }
 
-template <typename Predicate, Predicate predicate, size_t... directions>
-constexpr BitBoard AdjacentPositions(int i, int j) {
-  return Aggregate(CombinePositionIf<Predicate, predicate>,
-                   BitBoard::EmptyBoard(),
-                   std::make_pair(i + di[directions], j + dj[directions])...);
-}
-
-template <typename Predicate>
+template <typename Predicate, size_t array_length>
 constexpr BitBoard RelativePositions(
-    int i, int j, std::initializer_list<std::pair<int, int>> offsets,
-    Predicate predicate) {
+    int i, int j, Predicate predicate,
+    const std::array<std::pair<int, int>, array_length>& offsets) {
   auto result = BitBoard::EmptyBoard();
-  for (auto offset : offsets) {
-    const int ni = i + offset.first, nj = j + offset.second;
+  // Did not use range-based for-loop because stupid C++14 does not mark
+  // std::array::begin() as constexpr.
+  for (size_t index = 0; index < offsets.size(); ++index) {
+    const int ni = i + offsets[index].first, nj = j + offsets[index].second;
     if (predicate(ni, nj)) {
       result |= BitBoard::Fill(Position(ni, nj));
     }
@@ -198,9 +188,10 @@ constexpr BitBoard RedPawnMovesAt(size_t index) {
   Position pos(index);
   const int i = pos.Row(), j = pos.Column();
   if (InRedHalf(i, j)) {
-    return AdjacentPositions<decltype(InBoard), InBoard, 1>(i, j);
+    return RelativePositions(i, j, InBoard, MakeOffsets(kAdjacentOffsets, 1));
   } else {
-    return AdjacentPositions<decltype(InBoard), InBoard, 0, 1, 2>(i, j);
+    return RelativePositions(i, j, InBoard,
+                             MakeOffsets(kAdjacentOffsets, 0, 1, 2));
   }
 }
 
@@ -208,9 +199,10 @@ constexpr BitBoard BlackPawnMovesAt(size_t index) {
   Position pos(index);
   const int i = pos.Row(), j = pos.Column();
   if (InBlackHalf(i, j)) {
-    return AdjacentPositions<decltype(InBoard), InBoard, 3>(i, j);
+    return RelativePositions(i, j, InBoard, MakeOffsets(kAdjacentOffsets, 3));
   } else {
-    return AdjacentPositions<decltype(InBoard), InBoard, 0, 2, 3>(i, j);
+    return RelativePositions(i, j, InBoard,
+                             MakeOffsets(kAdjacentOffsets, 0, 2, 3));
   }
 }
 
@@ -218,9 +210,11 @@ constexpr BitBoard AssistantMovesAt(size_t index) {
   Position pos(index);
   const int i = pos.Row(), j = pos.Column();
   if (InRedPalace(i, j)) {
-    return BitBoard::EmptyBoard();
+    return RelativePositions(i, j, InRedPalace,
+                             MakeOffsets(kDiagonalOffsets, 0, 1, 2, 3));
   } else if (InBlackPalace(i, j)) {
-    return BitBoard::EmptyBoard();
+    return RelativePositions(i, j, InBlackPalace,
+                             MakeOffsets(kDiagonalOffsets, 0, 1, 2, 3));
   } else {
     return BitBoard::EmptyBoard();
   }
