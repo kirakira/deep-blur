@@ -15,9 +15,12 @@ class HalfBitBoard {
   constexpr static HalfBitBoard EmptyBoard();
   // Returns a HalfBitBoard that has only the specified position set.
   // Requires: squares.value() < 45.
-  constexpr static HalfBitBoard Fill(Position square);
+  constexpr static HalfBitBoard Fill(Position position);
 
   inline void Move(Move move);
+
+  // Returns lower 4 bits. From least significant: BR, TL, BL, TR.
+  inline uint64 GatherBitsWithElephantPattern(Position pos) const;
 
   inline HalfBitBoard(const HalfBitBoard&) = default;
   inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
@@ -37,6 +40,8 @@ class HalfBitBoard {
 
  private:
   constexpr explicit HalfBitBoard(uint64 value) : value_(value) {}
+  inline uint64 GatherBits(uint64 relevant_mask, uint64 magic, int shift,
+                           uint64 final_mask) const;
 
   uint64 value_;
 };
@@ -45,7 +50,7 @@ class HalfBitBoard {
 class BitBoard {
  public:
   constexpr static BitBoard EmptyBoard();
-  constexpr static BitBoard Fill(Position pos);
+  constexpr static BitBoard Fill(Position position);
 
   inline void MakeMove(Move move);
 
@@ -78,13 +83,19 @@ class BitBoard {
 class BitTables {
  public:
   static constexpr std::array<BitBoard, kNumPositions> red_pawn_moves =
-      GenerateArray<BitBoard, kNumPositions>(RedPawnMovesAt);
+      GenerateArray<BitBoard, kNumPositions>(impl::RedPawnMovesAt);
   static constexpr std::array<BitBoard, kNumPositions> black_pawn_moves =
-      GenerateArray<BitBoard, kNumPositions>(BlackPawnMovesAt);
+      GenerateArray<BitBoard, kNumPositions>(impl::BlackPawnMovesAt);
   static constexpr std::array<BitBoard, kNumPositions> king_moves =
-      GenerateArray<BitBoard, kNumPositions>(KingMovesAt);
+      GenerateArray<BitBoard, kNumPositions>(impl::KingMovesAt);
   static constexpr std::array<BitBoard, kNumPositions> assistant_moves =
-      GenerateArray<BitBoard, kNumPositions>(AssistantMovesAt);
+      GenerateArray<BitBoard, kNumPositions>(impl::AssistantMovesAt);
+  // elephant_moves[pos][occupancy]. Occupancy ranges from [0, 2^4).
+  // Bits order: b-10, b+8, b-8, b+10 corresponds to 0th bit of to 3th bit of
+  // occupancy respectively.
+  static constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
+      elephant_moves = GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
+          impl::ElephantMovesAt);
 
  private:
   BitTables() = delete;

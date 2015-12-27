@@ -2,16 +2,31 @@
 
 #include <utility>
 
-namespace {
-int GetBit(uint64 x, int pos) { return (x >> pos) & 1; }
-}  // namespace
-
 /* static */
 constexpr HalfBitBoard HalfBitBoard::EmptyBoard() { return HalfBitBoard(0); }
 
 /* static */
 constexpr HalfBitBoard HalfBitBoard::Fill(Position pos) {
   return HalfBitBoard(static_cast<uint64>(1) << pos.value());
+}
+
+uint64 HalfBitBoard::GatherBits(uint64 relevant_mask, uint64 magic, int shift,
+                                uint64 final_mask) const {
+  return (((value_ & relevant_mask) * magic) >> shift) & final_mask;
+}
+
+inline uint64 HalfBitBoard::GatherBitsWithElephantPattern(Position pos) const {
+  const int b = pos.value();
+  uint64 relevant_mask;
+  if (b >= 10) {
+    relevant_mask = FillBits(b - 10, b - 8, b + 8, b + 10);
+  } else if (b >= 8) {
+    relevant_mask = FillBits(b - 8, b + 8, b + 10);
+  } else {
+    relevant_mask = FillBits(b + 8, b + 10);
+  }
+  return GatherBits(relevant_mask, FillBits(0, 17), b + 7,
+                    static_cast<uint64>(15));
 }
 
 HalfBitBoard operator~(HalfBitBoard b) {
@@ -125,7 +140,7 @@ std::ostream& operator<<(std::ostream& os, BitBoard b) {
   return os;
 }
 
-namespace {
+namespace impl {
 
 //    ---
 //    |1|
@@ -134,7 +149,7 @@ namespace {
 // ---------
 //    |3|
 //    ---
-constexpr int kAdjacentOffsets[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+constexpr int kAdjacentOffsets[][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 
 // --- ---
 // |1| |0|
@@ -143,7 +158,11 @@ constexpr int kAdjacentOffsets[4][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 // -------
 // |2| |3|
 // --- ---
-constexpr int kDiagonalOffsets[4][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
+constexpr int kDiagonalOffsets[][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
+
+constexpr std::array<std::array<int, 3>, 4> kElephantMovePattern = {{
+    {{2, 2, 3}}, {{2, -2, 1}}, {{-2, -2, 0}}, {{-2, 2, 2}},
+}};  // I agree this is stupid.
 
 constexpr bool InBoard(int i, int j) { return Position::IsValidPosition(i, j); }
 
@@ -161,27 +180,41 @@ constexpr bool InBlackPalace(int i, int j) {
   return InBoard(i, j) && i >= 7 && j >= 3 && j <= 5;
 }
 
+// Sometimes we don't care red or black...
 constexpr bool InPalace(int i, int j) {
   return InRedPalace(i, j) || InBlackPalace(i, j);
 }
 
 template <typename... Index>
-constexpr std::array<std::pair<int, int>, sizeof...(Index)> MakeOffsets(
+constexpr std::array<std::array<int, 2>, sizeof...(Index)> MakeOffsets(
     const int offset_array[][2], Index... indices) {
-  return {{std::pair<int, int>(offset_array[indices][0],
-                               offset_array[indices][1])...}};
+  return {{{{offset_array[indices][0], offset_array[indices][1]}}...}};
 }
 
-template <typename Predicate, size_t array_length>
+template <typename Predicate, size_t offset_length>
 constexpr BitBoard RelativePositions(
-    int i, int j, Predicate predicate,
-    const std::array<std::pair<int, int>, array_length>& offsets) {
+    int current_i, int current_j, Predicate predicate,
+    const std::array<std::array<int, 2>, offset_length>& offsets) {
   auto result = BitBoard::EmptyBoard();
-  // Did not use range-based for-loop because stupid C++14 does not mark
+  // Cannot use range-based for-loop because stupid C++14 does not mark
   // std::array::begin() as constexpr.
-  for (size_t index = 0; index < offsets.size(); ++index) {
-    const int ni = i + offsets[index].first, nj = j + offsets[index].second;
+  for (size_t i = 0; i < offsets.size(); ++i) {
+    const int ni = current_i + offsets[i][0], nj = current_j + offsets[i][1];
     if (predicate(ni, nj)) {
+      result |= BitBoard::Fill(Position(ni, nj));
+    }
+  }
+  return result;
+}
+
+template <typename Predicate, size_t offsets_length>
+constexpr BitBoard RelativePositionsWithOccupancy(
+    int current_i, int current_j, int64 occupancy, Predicate predicate,
+    const std::array<std::array<int, 3>, offsets_length>& offsets) {
+  auto result = BitBoard::EmptyBoard();
+  for (size_t i = 0; i < offsets.size(); ++i) {
+    const int ni = current_i + offsets[i][0], nj = current_j + offsets[i][1];
+    if (predicate(ni, nj, GetBit(occupancy, offsets[i][2]))) {
       result |= BitBoard::Fill(Position(ni, nj));
     }
   }
@@ -190,7 +223,7 @@ constexpr BitBoard RelativePositions(
 
 constexpr BitBoard RedPawnMovesAt(size_t index) {
   Position pos(index);
-  const int i = pos.Row(), j = pos.Column();
+  int i = pos.Row(), j = pos.Column();
   if (InRedHalf(i, j)) {
     return RelativePositions(i, j, InBoard, MakeOffsets(kAdjacentOffsets, 1));
   } else {
@@ -201,7 +234,7 @@ constexpr BitBoard RedPawnMovesAt(size_t index) {
 
 constexpr BitBoard BlackPawnMovesAt(size_t index) {
   Position pos(index);
-  const int i = pos.Row(), j = pos.Column();
+  int i = pos.Row(), j = pos.Column();
   if (InBlackHalf(i, j)) {
     return RelativePositions(i, j, InBoard, MakeOffsets(kAdjacentOffsets, 3));
   } else {
@@ -212,7 +245,7 @@ constexpr BitBoard BlackPawnMovesAt(size_t index) {
 
 constexpr BitBoard KingMovesAt(size_t index) {
   Position pos(index);
-  const int i = pos.Row(), j = pos.Column();
+  int i = pos.Row(), j = pos.Column();
   if (InPalace(i, j)) {
     return RelativePositions(i, j, InPalace,
                              MakeOffsets(kAdjacentOffsets, 0, 1, 2, 3));
@@ -223,7 +256,7 @@ constexpr BitBoard KingMovesAt(size_t index) {
 
 constexpr BitBoard AssistantMovesAt(size_t index) {
   Position pos(index);
-  const int i = pos.Row(), j = pos.Column();
+  int i = pos.Row(), j = pos.Column();
   if (InPalace(i, j)) {
     return RelativePositions(i, j, InPalace,
                              MakeOffsets(kDiagonalOffsets, 0, 1, 2, 3));
@@ -232,6 +265,31 @@ constexpr BitBoard AssistantMovesAt(size_t index) {
   }
 }
 
-}  // namespace
+constexpr bool CheckRedElephantPosition(int i, int j, int occupancy_bit) {
+  return !occupancy_bit && InRedHalf(i, j);
+}
+
+constexpr bool CheckBlackElephantPosition(int i, int j, int occupancy_bit) {
+  return !occupancy_bit && InBlackHalf(i, j);
+}
+
+constexpr BitBoard ElephantMovesWithOccupancy(size_t index, int64 occupancy) {
+  Position pos(index);
+  int i = pos.Row(), j = pos.Column();
+  if (InRedHalf(i, j)) {
+    return RelativePositionsWithOccupancy(
+        i, j, occupancy, CheckRedElephantPosition, kElephantMovePattern);
+  } else {
+    return RelativePositionsWithOccupancy(
+        i, j, occupancy, CheckBlackElephantPosition, kElephantMovePattern);
+  }
+}
+
+constexpr auto ElephantMovesAt(size_t index) {
+  return GenerateArray<BitBoard, 16>(
+      CurryFront(ElephantMovesWithOccupancy, index));
+}
+
+}  // namespace impl
 
 #endif  // BLUR_BITBOARD_H

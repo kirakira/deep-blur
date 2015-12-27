@@ -32,7 +32,46 @@ bool TestGenerateArray() {
 constexpr int Operation(int x, int y) { return x + y; }
 
 bool TestAggregate() {
-  static_assert(Aggregate(Operation, 1, 2, 3, 4, 5) == 15, "Wrong aggregate.");
+  static_assert(Aggregate(Operation, 1, 2, 3, 4, 5) == 15, "Wrong Aggregate.");
+  return true;
+}
+
+bool TestFillBits() {
+  static_assert(FillBits(0, 1, 63, 17) == 0x8000000000020003ULL,
+                "Wrong FillBits.");
+  return true;
+}
+
+constexpr auto Sum(int x, int y) { return x + y; }
+
+bool TestCurry() {
+  constexpr auto f = CurryFront(Sum, 5);
+  constexpr auto z = f(9);
+  static_assert(z == 14, "Curry failed");
+  return true;
+}
+
+constexpr int Ref(int& x) { return ++x; }
+
+bool TestCurryRef() {
+  int x = 0;
+  auto f = CurryFront(Ref, x);
+  f();
+  return x == 0;
+}
+
+bool TestCurryRefWrapper() {
+  int x = 0;
+  auto f = CurryFront(Ref, std::ref(x));
+  f();
+  return x == 1;
+}
+
+void NormalFunction(int) {}
+
+bool TestCurryNonConstExpr() {
+  auto f = CurryFront(NormalFunction, 5);
+  f();
   return true;
 }
 
@@ -41,6 +80,12 @@ bool TestAggregate() {
 int main() {
   bool fail = false;
   fail = !RunTest(blur::TestGenerateArray, "TestGenerateArray") || fail;
+  fail = !RunTest(blur::TestAggregate, "TestAggregate") || fail;
+  fail = !RunTest(blur::TestFillBits, "TestAggregate") || fail;
+  /*
+  fail = !RunTest(blur::TestCurry, "TestCurry") || fail;
+  fail = !RunTest(blur::TestCurryRef, "TestCurryRef") || fail;*/
+  fail = !RunTest(blur::TestCurryRefWrapper, "TestCurryRefWrapper") || fail;
   if (fail) {
     cerr << "Some test failed." << endl;
   } else {

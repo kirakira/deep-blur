@@ -28,7 +28,15 @@ void PrintAssistantTables() {
   }
 }
 
+void PrintElephantTables() {
+  for (int i = 0; i < kNumPositions; ++i) {
+    for (uint64 occ = 0; occ < (1 << 4); ++occ)
+      cout << "Pos: " << i << ", occupancy: " << occ << endl
+           << BitTables::elephant_moves[i][occ] << endl;
+  }
+}
+
 int main() {
-  PrintKingTables();
+  PrintElephantTables();
   return 0;
 }

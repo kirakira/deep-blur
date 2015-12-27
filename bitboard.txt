@@ -29,7 +29,7 @@ total: 287352 entries (281 KB)
 
 Bitboard general
 ========
-* Board must contain extra bits equivalent to 1 row above the top row in order to use aggregate
+* Board must contain 10 extra bits.
 
 Aggregate
 =========
