@@ -15,7 +15,7 @@ uint64 HalfBitBoard::GatherBits(uint64 relevant_mask, uint64 magic, int shift,
   return (((value_ & relevant_mask) * magic) >> shift) & final_mask;
 }
 
-inline uint64 HalfBitBoard::GatherBitsWithElephantPattern(Position pos) const {
+inline uint64 HalfBitBoard::GetElephantOccupancy(Position pos) const {
   const int b = pos.value();
   uint64 relevant_mask;
   if (b >= 10) {
@@ -86,10 +86,16 @@ constexpr BitBoard BitBoard::EmptyBoard() {
 
 /* static */
 constexpr BitBoard BitBoard::Fill(Position pos) {
-  return pos.value() < 45
+  return pos.InRedHalf()
              ? BitBoard(HalfBitBoard::Fill(pos), HalfBitBoard::EmptyBoard())
              : BitBoard(HalfBitBoard::EmptyBoard(),
                         HalfBitBoard::Fill(Position(pos.value() - 45)));
+}
+
+uint64 BitBoard::GetElephantOccupancy(Position pos) {
+  return pos.InRedHalf()
+             ? halves_[0].GetElephantOccupancy(pos)
+             : halves_[1].GetElephantOccupancy(Position(pos.value() - 45));
 }
 
 BitBoard operator~(BitBoard b) {
@@ -166,7 +172,9 @@ constexpr std::array<std::array<int, 3>, 4> kElephantMovePattern = {{
 
 constexpr bool InBoard(int i, int j) { return Position::IsValidPosition(i, j); }
 
-constexpr bool InRedHalf(int i, int j) { return InBoard(i, j) && i < 5; }
+constexpr bool InRedHalf(int i, int j) {
+  return InBoard(i, j) && Position(i, j).InRedHalf();
+}
 
 constexpr bool InBlackHalf(int i, int j) {
   return InBoard(i, j) && !InRedHalf(i, j);
@@ -209,7 +217,7 @@ constexpr BitBoard RelativePositions(
 
 template <typename Predicate, size_t offsets_length>
 constexpr BitBoard RelativePositionsWithOccupancy(
-    int current_i, int current_j, int64 occupancy, Predicate predicate,
+    int current_i, int current_j, uint64 occupancy, Predicate predicate,
     const std::array<std::array<int, 3>, offsets_length>& offsets) {
   auto result = BitBoard::EmptyBoard();
   for (size_t i = 0; i < offsets.size(); ++i) {
@@ -273,7 +281,7 @@ constexpr bool CheckBlackElephantPosition(int i, int j, int occupancy_bit) {
   return !occupancy_bit && InBlackHalf(i, j);
 }
 
-constexpr BitBoard ElephantMovesWithOccupancy(size_t index, int64 occupancy) {
+constexpr BitBoard ElephantMovesWithOccupancy(size_t index, uint64 occupancy) {
   Position pos(index);
   int i = pos.Row(), j = pos.Column();
   if (InRedHalf(i, j)) {

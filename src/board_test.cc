@@ -36,7 +36,16 @@ void PrintElephantTables() {
   }
 }
 
+bool CheckElephantTables() {
+  auto board = BitBoard::Fill(Position(67 + 10)) | BitBoard::Fill(Position(67 - 8));
+  uint64 occ = board.GetElephantOccupancy(Position(67));
+  auto expected = BitBoard::Fill(Position(67 + 16)) | BitBoard::Fill(Position(67 - 20));
+  return expected == BitTables::elephant_moves[67][occ];
+}
+
 int main() {
   PrintElephantTables();
-  return 0;
+  bool success = true;
+  success = success && CheckElephantTables();
+  return success ? 0 : 1;
 }

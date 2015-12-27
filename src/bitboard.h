@@ -14,13 +14,13 @@ class HalfBitBoard {
  public:
   constexpr static HalfBitBoard EmptyBoard();
   // Returns a HalfBitBoard that has only the specified position set.
-  // Requires: squares.value() < 45.
+  // Requires: position.value() < 45.
   constexpr static HalfBitBoard Fill(Position position);
 
   inline void Move(Move move);
 
   // Returns lower 4 bits. From least significant: BR, TL, BL, TR.
-  inline uint64 GatherBitsWithElephantPattern(Position pos) const;
+  inline uint64 GetElephantOccupancy(Position pos) const;
 
   inline HalfBitBoard(const HalfBitBoard&) = default;
   inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
@@ -52,10 +52,15 @@ class BitBoard {
   constexpr static BitBoard EmptyBoard();
   constexpr static BitBoard Fill(Position position);
 
-  inline void MakeMove(Move move);
+  inline void Move(Move move);
+
+  // Returns lower 4 bits. From least significant: BR, TL, BL, TR.
+  inline uint64 GetElephantOccupancy(Position pos) const;
 
   inline BitBoard(const BitBoard&) = default;
   inline BitBoard& operator=(const BitBoard&) = default;
+
+  inline uint64 GetElephantOccupancy(Position pos);
 
   friend inline BitBoard operator~(BitBoard b);
   friend inline BitBoard operator&(BitBoard b1, BitBoard b2);
@@ -91,8 +96,7 @@ class BitTables {
   static constexpr std::array<BitBoard, kNumPositions> assistant_moves =
       GenerateArray<BitBoard, kNumPositions>(impl::AssistantMovesAt);
   // elephant_moves[pos][occupancy]. Occupancy ranges from [0, 2^4).
-  // Bits order: b-10, b+8, b-8, b+10 corresponds to 0th bit of to 3th bit of
-  // occupancy respectively.
+  // Bits order of occupancy from its least significant bit: BR, TL, BL, TR.
   static constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
       elephant_moves = GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
           impl::ElephantMovesAt);

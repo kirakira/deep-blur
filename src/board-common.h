@@ -49,6 +49,7 @@ class Position {
   constexpr int value() const { return value_; }
   constexpr int Row() const { return value_ / kNumColumns; }
   constexpr int Column() const { return value_ % kNumColumns; }
+  constexpr bool InRedHalf() const { return value_ < (kNumPositions / 2); }
   std::string ToString() const;
 
   Position(const Position&) = default;
