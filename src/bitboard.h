@@ -21,6 +21,8 @@ class HalfBitBoard {
 
   // Returns lower 4 bits. From least significant: BR, TL, BL, TR.
   inline uint64 GetElephantOccupancy(Position pos) const;
+  // Returns lower 4 bits. From least significant: L, B, R, T.
+  inline uint64 GetHorseOccupancy(int pos) const;
 
   inline HalfBitBoard(const HalfBitBoard&) = default;
   inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
@@ -56,6 +58,8 @@ class BitBoard {
 
   // Returns lower 4 bits. From least significant: BR, TL, BL, TR.
   inline uint64 GetElephantOccupancy(Position pos) const;
+  // Returns lower 4 bits. From least significant: L, B, R, T.
+  inline uint64 GetHorseOccupancy(Position pos) const;
 
   inline BitBoard(const BitBoard&) = default;
   inline BitBoard& operator=(const BitBoard&) = default;
@@ -100,6 +104,11 @@ class BitTables {
   static constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
       elephant_moves = GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
           impl::ElephantMovesAt);
+  // horse_moves[pos][occupancy]. Occupancy ranges from [0, 2^4).
+  // Bits order of occupancy from its least significant bit: L, B, R, T.
+  static constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
+      horse_moves = GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
+          impl::HorseMovesAt);
 
  private:
   BitTables() = delete;

@@ -29,6 +29,15 @@ inline uint64 HalfBitBoard::GetElephantOccupancy(Position pos) const {
                     static_cast<uint64>(15));
 }
 
+inline uint64 HalfBitBoard::GetHorseOccupancy(int b) const {
+  uint64 relevant_mask = 0;
+  if (b % 9 != 0) relevant_mask |= FillBits(b - 1);
+  if (b % 9 != 8) relevant_mask |= FillBits(b + 1);
+  if (b >= 9) relevant_mask |= FillBits(b - 9);
+  if (b <= 35) relevant_mask |= FilBits(b + 9);
+  return GatherBits(relevant_mask, FillBits(0, 7, 16), b + 6, static_cast<uint64>(15));
+}
+
 HalfBitBoard operator~(HalfBitBoard b) {
   return HalfBitBoard(((static_cast<uint64>(1) << (kNumPositions / 2)) - 1) &
                       ~b.value_);
@@ -98,6 +107,13 @@ uint64 BitBoard::GetElephantOccupancy(Position pos) {
              : halves_[1].GetElephantOccupancy(Position(pos.value() - 45));
 }
 
+uint64 BitBoard::GetHorseOccupancy(Position pos) {
+  uint64 ans = 0;
+  if (pos.value() <= 53) ans |= halves_[0].GetElephantOccupancy(pos.value());
+  if (pos.value() >= 36) ans |= halves_[1].GetElephantOccupancy(pos.value() - 45);
+  return ans;
+}
+
 BitBoard operator~(BitBoard b) {
   return BitBoard(~b.halves_[0], ~b.halves_[1]);
 }
@@ -148,19 +164,19 @@ std::ostream& operator<<(std::ostream& os, BitBoard b) {
 
 namespace impl {
 
-//    ---
-//    |1|
-// ---------
-// |2|   |0|
-// ---------
-//    |3|
-//    ---
+//   ---
+//   |1|
+// -------
+// |2|*|0|
+// -------
+//   |3|
+//   ---
 constexpr int kAdjacentOffsets[][2] = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
 
 // --- ---
 // |1| |0|
 // -------
-//   | |
+//   |*|
 // -------
 // |2| |3|
 // --- ---
@@ -169,6 +185,27 @@ constexpr int kDiagonalOffsets[][2] = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};
 constexpr std::array<std::array<int, 3>, 4> kElephantMovePattern = {{
     {{2, 2, 3}}, {{2, -2, 1}}, {{-2, -2, 0}}, {{-2, 2, 2}},
 }};  // I agree this is stupid.
+
+// -----------
+// | |2| |1| |
+// -----------
+// |3| | | |0|
+// -----------
+// | | |*| | |
+// -----------
+// |4| | | |7|
+// -----------
+// | |5| |6| |
+// -----------
+constexpr std::array<std::array<int, 3>, 8> kHorseMovePattern = {
+    {{{1, 2, 2}},
+     {{2, 1, 3}},
+     {{2, -1, 3}},
+     {{1, -2, 0}},
+     {{-1, -2, 0}},
+     {{-2, -1, 1}},
+     {{-2, 1, 1}},
+     {{-1, 2, 2}}}};
 
 constexpr bool InBoard(int i, int j) { return Position::IsValidPosition(i, j); }
 
@@ -296,6 +333,22 @@ constexpr BitBoard ElephantMovesWithOccupancy(size_t index, uint64 occupancy) {
 constexpr auto ElephantMovesAt(size_t index) {
   return GenerateArray<BitBoard, 16>(
       CurryFront(ElephantMovesWithOccupancy, index));
+}
+
+constexpr bool CheckHorsePosition(int i, int j, int occupancy_bit) {
+  return !occupancy_bit && InBoard(i, j);
+}
+
+constexpr BitBoard HorseMovesWithOccupancy(size_t index, uint64 occupancy) {
+  Position pos(index);
+  int i = pos.Row(), j = pos.Column();
+  return RelativePositionsWithOccupancy(i, j, occupancy, CheckHorsePosition,
+                                        kHorseMovePattern);
+}
+
+constexpr auto HorseMovesAt(size_t index) {
+  return GenerateArray<BitBoard, 16>(
+      CurryFront(HorseMovesWithOccupancy, index));
 }
 
 }  // namespace impl
