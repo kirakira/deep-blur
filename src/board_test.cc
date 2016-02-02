@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 #include "board.h"
 
@@ -36,16 +37,30 @@ void PrintElephantTables() {
   }
 }
 
-bool CheckElephantTables() {
-  auto board = BitBoard::Fill(Position(67 + 10)) | BitBoard::Fill(Position(67 - 8));
-  uint64 occ = board.GetElephantOccupancy(Position(67));
-  auto expected = BitBoard::Fill(Position(67 + 16)) | BitBoard::Fill(Position(67 - 20));
-  return expected == BitTables::elephant_moves[67][occ];
+void PrintHorseTables() {
+  for (int i = 0; i < kNumPositions; ++i) {
+    for (uint64 occ = 0; occ < (1 << 4); ++occ) {
+      string occ_str;
+      if (GetBit(occ, 0)) occ_str += "L";
+      if (GetBit(occ, 1)) occ_str += "B";
+      if (GetBit(occ, 2)) occ_str += "R";
+      if (GetBit(occ, 3)) occ_str += "T";
+      if (occ_str == "") occ_str = "NONE";
+      cout << "Pos: " << i << ", occupancy: " << occ_str << endl
+           << BitTables::horse_moves[i][occ] << endl;
+    }
+  }
+}
+
+bool CheckHorseTables() {
+  auto board = BitBoard::Fill(Position(49 + 9));
+  uint64 occ = board.GetHorseOccupancy(Position(49));
+  uint64 expected = 1 << 3;
+  return expected == occ;
 }
 
 int main() {
-  PrintElephantTables();
   bool success = true;
-  success = success && CheckElephantTables();
+  success = success && CheckHorseTables();
   return success ? 0 : 1;
 }

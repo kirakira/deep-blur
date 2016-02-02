@@ -31,11 +31,12 @@ inline uint64 HalfBitBoard::GetElephantOccupancy(Position pos) const {
 
 inline uint64 HalfBitBoard::GetHorseOccupancy(int b) const {
   uint64 relevant_mask = 0;
-  if (b % 9 != 0) relevant_mask |= FillBits(b - 1);
-  if (b % 9 != 8) relevant_mask |= FillBits(b + 1);
+  if (b >= 0 && b % 9 != 0) relevant_mask |= FillBits(b - 1);
+  if (b >= 0 && b % 9 != 8) relevant_mask |= FillBits(b + 1);
   if (b >= 9) relevant_mask |= FillBits(b - 9);
-  if (b <= 35) relevant_mask |= FilBits(b + 9);
-  return GatherBits(relevant_mask, FillBits(0, 7, 16), b + 6, static_cast<uint64>(15));
+  if (b <= 35) relevant_mask |= FillBits(b + 9);
+  return GatherBits(relevant_mask, FillBits(0, 7, 16), b + 6,
+                    static_cast<uint64>(15));
 }
 
 HalfBitBoard operator~(HalfBitBoard b) {
@@ -107,10 +108,10 @@ uint64 BitBoard::GetElephantOccupancy(Position pos) {
              : halves_[1].GetElephantOccupancy(Position(pos.value() - 45));
 }
 
-uint64 BitBoard::GetHorseOccupancy(Position pos) {
+uint64 BitBoard::GetHorseOccupancy(Position pos) const {
   uint64 ans = 0;
-  if (pos.value() <= 53) ans |= halves_[0].GetElephantOccupancy(pos.value());
-  if (pos.value() >= 36) ans |= halves_[1].GetElephantOccupancy(pos.value() - 45);
+  if (pos.value() <= 53) ans |= halves_[0].GetHorseOccupancy(pos.value());
+  if (pos.value() >= 36) ans |= halves_[1].GetHorseOccupancy(pos.value() - 45);
   return ans;
 }
 
