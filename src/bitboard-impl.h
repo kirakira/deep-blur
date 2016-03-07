@@ -362,24 +362,25 @@ constexpr auto HorseMovesAt(size_t index) {
       CurryFront(HorseMovesWithOccupancy, index));
 }
 
-constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, uint64 occupancy) {
+constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, int direction,
+                                               uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
   Position pos(index);
-  int i = pos.Row(), j = pos.Column();
-  for (int dir = -1; dir <= 1; dir += 2) {
-    int pieces_met = 0;
-    for (int col = j + dir; col >= 0 && col < kNumColumns && pieces_met < 2;
-         col += dir) {
-      bool occupied = GetBit(occupancy, col);
-      if (occupied) {
-        if (pieces_met == 1) {
-          moves |= BitBoard::Fill(Position(i, col));
-        }
-        ++pieces_met;
-      } else {
-        if (pieces_met == 0) {
-          moves |= BitBoard::Fill(Position(i, col));
-        }
+  const int i = pos.Row(), j = pos.Column();
+  int pieces_met = 0;
+  for (int ni = i + kAdjacentOffsets[direction],
+           nj = j + kAdjacentOffsets[direction];
+       InBoard(ni, nj) && pieces_met < 2;
+       ni += kAdjacentOffsets[direction], nj += kAdjacentOffsets[direction]) {
+    bool occupied = GetBit(occupancy, col);
+    if (occupied) {
+      if (pieces_met == 1) {
+        moves |= BitBoard::Fill(Position(ni, nj));
+      }
+      ++pieces_met;
+    } else {
+      if (pieces_met == 0) {
+        moves |= BitBoard::Fill(Position(ni, nj));
       }
     }
   }
@@ -388,7 +389,7 @@ constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, uint64 occupancy) {
 
 constexpr auto CannonRowMovesAt(size_t index) {
   return GenerateArray<BitBoard, 512>(
-      CurryFront(CannonRowMovesWithOccupancy, index));
+      CurryFront(CannonRowMovesWithOccupancy, {0, 2}, index));
 }
 
 }  // namespace impl
