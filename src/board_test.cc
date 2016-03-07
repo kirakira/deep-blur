@@ -62,8 +62,9 @@ bool CheckHorseTables() {
 bool CheckCannonRowMovesTables() {
   auto board = BitBoard::Fill(Position(5, 0)) | BitBoard::Fill(Position(5, 1)) |
                BitBoard::Fill(Position(5, 5)) | BitBoard::Fill(Position(5, 7));
-  auto moves = BitTables::cannon_row_moves[Position(5, 1)
-                                          .value()][board.GetRowOccupancy(5)];
+  auto moves =
+      BitTables::cannon_row_moves[Position(5, 1)
+                                      .value()][board.GetRowOccupancy(5)];
   auto expected_moves =
       BitBoard::Fill(Position(5, 2)) | BitBoard::Fill(Position(5, 3)) |
       BitBoard::Fill(Position(5, 4)) | BitBoard::Fill(Position(5, 7));
