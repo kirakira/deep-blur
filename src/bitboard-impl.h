@@ -39,6 +39,11 @@ inline uint64 HalfBitBoard::GetHorseOccupancy(int b) const {
                     static_cast<uint64>(15));
 }
 
+static const uint64 kRowMask = (1 << kNumColumns) - 1;
+inline uint64 HalfBitBoard::GetRowOccupancy(int row) const {
+  return (value_ >> (row * kNumColumns)) & kRowMask;
+}
+
 HalfBitBoard operator~(HalfBitBoard b) {
   return HalfBitBoard(((static_cast<uint64>(1) << (kNumPositions / 2)) - 1) &
                       ~b.value_);
@@ -102,7 +107,7 @@ constexpr BitBoard BitBoard::Fill(Position pos) {
                         HalfBitBoard::Fill(Position(pos.value() - 45)));
 }
 
-uint64 BitBoard::GetElephantOccupancy(Position pos) {
+uint64 BitBoard::GetElephantOccupancy(Position pos) const {
   return pos.InRedHalf()
              ? halves_[0].GetElephantOccupancy(pos)
              : halves_[1].GetElephantOccupancy(Position(pos.value() - 45));
@@ -113,6 +118,11 @@ uint64 BitBoard::GetHorseOccupancy(Position pos) const {
   if (pos.value() <= 53) ans |= halves_[0].GetHorseOccupancy(pos.value());
   if (pos.value() >= 36) ans |= halves_[1].GetHorseOccupancy(pos.value() - 45);
   return ans;
+}
+
+uint64 BitBoard::GetRowOccupancy(int row) const {
+  return row < 5 ? halves_[0].GetRowOccupancy(row)
+                 : halves_[1].GetRowOccupancy(row - 5);
 }
 
 BitBoard operator~(BitBoard b) {
@@ -350,6 +360,35 @@ constexpr BitBoard HorseMovesWithOccupancy(size_t index, uint64 occupancy) {
 constexpr auto HorseMovesAt(size_t index) {
   return GenerateArray<BitBoard, 16>(
       CurryFront(HorseMovesWithOccupancy, index));
+}
+
+constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, uint64 occupancy) {
+  BitBoard moves = BitBoard::EmptyBoard();
+  Position pos(index);
+  int i = pos.Row(), j = pos.Column();
+  for (int dir = -1; dir <= 1; dir += 2) {
+    int pieces_met = 0;
+    for (int col = j + dir; col >= 0 && col < kNumColumns && pieces_met < 2;
+         col += dir) {
+      bool occupied = GetBit(occupancy, col);
+      if (occupied) {
+        if (pieces_met == 1) {
+          moves |= BitBoard::Fill(Position(i, col));
+        }
+        ++pieces_met;
+      } else {
+        if (pieces_met == 0) {
+          moves |= BitBoard::Fill(Position(i, col));
+        }
+      }
+    }
+  }
+  return moves;
+}
+
+constexpr auto CannonRowMovesAt(size_t index) {
+  return GenerateArray<BitBoard, 512>(
+      CurryFront(CannonRowMovesWithOccupancy, index));
 }
 
 }  // namespace impl

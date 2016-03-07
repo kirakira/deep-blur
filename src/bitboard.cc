@@ -10,5 +10,7 @@ constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
     BitTables::elephant_moves;
 constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
     BitTables::horse_moves;
+constexpr std::array<std::array<BitBoard, 512>, kNumPositions>
+    BitTables::cannon_row_moves;
 
 }  // namespace blur

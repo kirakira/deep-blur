@@ -1,5 +1,5 @@
 COMPILER=c++
-COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror
+COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -fconstexpr-steps=40000000
 OUT=bin
 ifeq ($(build),opt)
 	COMPILER_FLAGS+=-O3
