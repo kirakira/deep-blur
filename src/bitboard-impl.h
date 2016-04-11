@@ -39,8 +39,8 @@ inline uint64 HalfBitBoard::GetHorseOccupancy(int b) const {
                     static_cast<uint64>(15));
 }
 
-static const uint64 kRowMask = (1 << kNumColumns) - 1;
 inline uint64 HalfBitBoard::GetRowOccupancy(int row) const {
+  static constexpr uint64 kRowMask = (1 << kNumColumns) - 1;
   return (value_ >> (row * kNumColumns)) & kRowMask;
 }
 
@@ -49,8 +49,8 @@ constexpr uint64 GenerateColRelevantBits(int col) {
 }
 
 inline uint64 HalfBitBoard::GetColOccupancy(int col) const {
-  constexpr uint64 magic = FillBits(0, 8, 16, 24, 32);
-  constexpr auto col_relevant_bits =
+  static constexpr uint64 magic = FillBits(0, 8, 16, 24, 32);
+  static constexpr auto col_relevant_bits =
       GenerateArray<uint64, kNumColumns>(GenerateColRelevantBits);
   return GatherBits(col_relevant_bits[col], magic, col + 32, 31LL);
 }
