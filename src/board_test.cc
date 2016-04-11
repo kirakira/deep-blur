@@ -59,6 +59,24 @@ bool CheckHorseTables() {
   return expected == occ;
 }
 
+bool TestRowOccupancy() {
+  for (int row = 0; row < kNumRows; ++row) {
+    for (uint64 x = 0; x < (1 << kNumColumns); ++x) {
+      auto board = BitBoard::EmptyBoard();
+      for (int pos = 0; pos < kNumPositions; ++pos) {
+        Position p(pos);
+        if (p.Row() != row) board |= BitBoard::Fill(p);
+      }
+      for (int i = 0; i < kNumColumns; ++i) {
+        if (GetBit(x, i)) board |= BitBoard::Fill(Position(row, i));
+      }
+      auto occ = board.GetRowOccupancy(row);
+      if (occ != x) return false;
+    }
+  }
+  return true;
+}
+
 bool CheckCannonRowMovesTables() {
   auto board = BitBoard::Fill(Position(5, 0)) | BitBoard::Fill(Position(5, 1)) |
                BitBoard::Fill(Position(5, 5)) | BitBoard::Fill(Position(5, 7));
@@ -80,15 +98,10 @@ bool TestColOccupancy() {
         if (p.Column() != col) board |= BitBoard::Fill(p);
       }
       for (int i = 0; i < kNumRows; ++i) {
-        if (GetBit(x, i)) {
-          board |= BitBoard::Fill(Position(i, col));
-        }
+        if (GetBit(x, i)) board |= BitBoard::Fill(Position(i, col));
       }
       auto occ = board.GetColOccupancy(col);
-      if (occ != x) {
-        cout << "Expected: " << x << ", received: " << occ << endl;
-        return false;
-      }
+      if (occ != x) return false;
     }
   }
   return true;
