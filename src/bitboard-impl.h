@@ -15,17 +15,22 @@ uint64 HalfBitBoard::GatherBits(uint64 relevant_mask, uint64 magic, int shift,
   return (((value_ & relevant_mask) * magic) >> shift) & final_mask;
 }
 
+constexpr uint64 GenerateElephantRelevantBits(int pos) {
+  const Position p(pos);
+  const int row = p.Row(), col = p.Column();
+  uint64 relevant_mask = 0;
+  if (row != 0 && col != 0) relevant_mask |= FillBits(pos - 10);
+  if (row != 0 && col != 8) relevant_mask |= FillBits(pos - 8);
+  if (row != 4 && col != 0) relevant_mask |= FillBits(pos + 8);
+  if (row != 4 && col != 8) relevant_mask |= FillBits(pos + 10);
+  return relevant_mask;
+}
+
 inline uint64 HalfBitBoard::GetElephantOccupancy(Position pos) const {
   const int b = pos.value();
-  uint64 relevant_mask;
-  if (b >= 10) {
-    relevant_mask = FillBits(b - 10, b - 8, b + 8, b + 10);
-  } else if (b >= 8) {
-    relevant_mask = FillBits(b - 8, b + 8, b + 10);
-  } else {
-    relevant_mask = FillBits(b + 8, b + 10);
-  }
-  return GatherBits(relevant_mask, FillBits(0, 17), b + 7,
+  static constexpr auto relevant_bits =
+      GenerateArray<uint64, 45>(GenerateElephantRelevantBits);
+  return GatherBits(relevant_bits[b], FillBits(0, 17), b + 7,
                     static_cast<uint64>(15));
 }
 

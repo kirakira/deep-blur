@@ -41,21 +41,23 @@ bool TestElephantOccupancy() {
       for (int i = 0; i < kNumPositions; ++i) {
         Position ip(i);
         const int irow = ip.Row(), icol = ip.Column();
-        if (irow == row - 1 && icol == col + 1) {
+        if (irow == row - 1 && icol == col - 1) {
           if (GetBit(x, 0)) board |= BitBoard::Fill(ip);
         } else if (irow == row + 1 && icol == col - 1) {
           if (GetBit(x, 1)) board |= BitBoard::Fill(ip);
-        } else if (irow == row - 1 && icol == col - 1) {
+        } else if (irow == row - 1 && icol == col + 1) {
           if (GetBit(x, 2)) board |= BitBoard::Fill(ip);
         } else if (irow == row + 1 && icol == col + 1) {
           if (GetBit(x, 3)) board |= BitBoard::Fill(ip);
+        } else {
+          board |= BitBoard::Fill(ip);
         }
       }
       uint64 occ = board.GetElephantOccupancy(p);
       uint64 expected = 0;
-      if (GetBit(x, 0) && row != 0 && row != 5 && col != 8) expected |= 1;
+      if (GetBit(x, 0) && row != 0 && row != 5 && col != 0) expected |= 1;
       if (GetBit(x, 1) && row != 4 && row != 9 && col != 0) expected |= 2;
-      if (GetBit(x, 2) && row != 0 && row != 5 && col != 0) expected |= 4;
+      if (GetBit(x, 2) && row != 0 && row != 5 && col != 8) expected |= 4;
       if (GetBit(x, 3) && row != 4 && row != 9 && col != 8) expected |= 8;
       if (expected != occ) {
         cout << "(" << row << ", " << col << ")" << endl;
