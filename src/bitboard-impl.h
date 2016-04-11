@@ -44,6 +44,17 @@ inline uint64 HalfBitBoard::GetRowOccupancy(int row) const {
   return (value_ >> (row * kNumColumns)) & kRowMask;
 }
 
+constexpr uint64 GenerateColRelevantBits(int col) {
+  return FillBits(col, col + 9, col + 18, col + 27, col + 36);
+}
+
+inline uint64 HalfBitBoard::GetColOccupancy(int col) const {
+  constexpr uint64 magic = FillBits(0, 8, 16, 24, 32);
+  constexpr auto col_relevant_bits =
+      GenerateArray<uint64, kNumColumns>(GenerateColRelevantBits);
+  return GatherBits(col_relevant_bits[col], magic, col + 32, 31LL);
+}
+
 HalfBitBoard operator~(HalfBitBoard b) {
   return HalfBitBoard(((static_cast<uint64>(1) << (kNumPositions / 2)) - 1) &
                       ~b.value_);
@@ -123,6 +134,11 @@ uint64 BitBoard::GetHorseOccupancy(Position pos) const {
 uint64 BitBoard::GetRowOccupancy(int row) const {
   return row < 5 ? halves_[0].GetRowOccupancy(row)
                  : halves_[1].GetRowOccupancy(row - 5);
+}
+
+uint64 BitBoard::GetColOccupancy(int col) const {
+  return halves_[0].GetColOccupancy(col) |
+         (halves_[1].GetColOccupancy(col) << 5);
 }
 
 BitBoard operator~(BitBoard b) {
@@ -370,7 +386,7 @@ constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, uint64 occupancy) {
     int pieces_met = 0;
     for (int ni = i, nj = j + dir; InBoard(ni, nj) && pieces_met < 2;
          nj += dir) {
-      bool occupied = GetBit(occupancy, nj);
+      const bool occupied = GetBit(occupancy, nj);
       if (occupied) {
         if (pieces_met == 1) {
           moves |= BitBoard::Fill(Position(ni, nj));
@@ -389,6 +405,35 @@ constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, uint64 occupancy) {
 constexpr auto CannonRowMovesAt(size_t index) {
   return GenerateArray<BitBoard, 512>(
       CurryFront(CannonRowMovesWithOccupancy, index));
+}
+
+constexpr BitBoard CannonColMovesWithOccupancy(size_t index, uint64 occupancy) {
+  BitBoard moves = BitBoard::EmptyBoard();
+  Position pos(index);
+  const int i = pos.Row(), j = pos.Column();
+  for (int dir = -1; dir <= 1; dir += 2) {
+    int pieces_met = 0;
+    for (int ni = i + dir, nj = j; InBoard(ni, nj) && pieces_met < 2;
+         ni += dir) {
+      const bool occupied = GetBit(occupancy, ni);
+      if (occupied) {
+        if (pieces_met == 1) {
+          moves |= BitBoard::Fill(Position(ni, nj));
+        }
+        ++pieces_met;
+      } else {
+        if (pieces_met == 0) {
+          moves |= BitBoard::Fill(Position(ni, nj));
+        }
+      }
+    }
+  }
+  return moves;
+}
+
+constexpr auto CannonColMovesAt(size_t index) {
+  return GenerateArray<BitBoard, 1024>(
+      CurryFront(CannonColMovesWithOccupancy, index));
 }
 
 }  // namespace impl

@@ -34,7 +34,7 @@ Bitboard general
 Aggregate
 =========
 template<uint64 final_mask>
-constexpr uint64 aggregate(uint64 board, uint64 relevant_mask, int shift) {
+constexpr uint64 aggregate(uint64 board, uint64 relevant_mask, uint64 magic_number, int shift) {
     return (((board & relevant_bits) * magic_number) >> shift) & final_mask;
 }
 
@@ -45,7 +45,7 @@ relavent bits: b, b+9, b+18, b+27, b+36, for 0<=b<=8
 magic number: 0, 8, 16, 24, 32 (0x101010101LL)
 result bits: [b+32, b+36]
 
-// final_mask = 63LL;
+// final_mask = 31LL;
 // shift = col_num + 32;
 
 x0: b,    b+8,  b+16, ..., b+32

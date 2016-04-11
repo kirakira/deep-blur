@@ -24,6 +24,7 @@ class HalfBitBoard {
   // Returns lower 4 bits. From least significant: L, B, R, T.
   inline uint64 GetHorseOccupancy(int pos) const;
   inline uint64 GetRowOccupancy(int row) const;
+  inline uint64 GetColOccupancy(int col) const;
 
   inline HalfBitBoard(const HalfBitBoard&) = default;
   inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
@@ -61,7 +62,8 @@ class BitBoard {
   inline uint64 GetElephantOccupancy(Position pos) const;
   // Returns lower 4 bits. From least significant: L, B, R, T.
   inline uint64 GetHorseOccupancy(Position pos) const;
-  inline uint64 GetRowOccupancy(int pos) const;
+  inline uint64 GetRowOccupancy(int row) const;
+  inline uint64 GetColOccupancy(int col) const;
 
   inline BitBoard(const BitBoard&) = default;
   inline BitBoard& operator=(const BitBoard&) = default;
@@ -110,11 +112,19 @@ class BitTables {
       horse_moves = GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
           impl::HorseMovesAt);
   // cannon_row_moves[pos][row]. Row ranges from [0, 2^9) encoding 1 bit for
-  // each position in the row (1 for occupied, 0 for unoccupied).
+  // each position in the row (1 for occupied, 0 for unoccupied) from left to
+  // right.
   static constexpr std::array<std::array<BitBoard, 512>, kNumPositions>
       cannon_row_moves =
           GenerateArray<std::array<BitBoard, 512>, kNumPositions>(
               impl::CannonRowMovesAt);
+  // cannon_col_moves[pos][col]. Col ranges from [0, 2^10) encoding 1 bit for
+  // each position in the column (1 for occupied, 0 for unoccupied) from down to
+  // top.
+  static constexpr std::array<std::array<BitBoard, 1024>, kNumPositions>
+      cannon_col_moves =
+          GenerateArray<std::array<BitBoard, 1024>, kNumPositions>(
+              impl::CannonColMovesAt);
 
  private:
   BitTables() = delete;
