@@ -29,19 +29,27 @@ inline uint64 HalfBitBoard::GetElephantOccupancy(Position pos) const {
                     static_cast<uint64>(15));
 }
 
-inline uint64 HalfBitBoard::GetHorseOccupancy(int b) const {
+constexpr uint64 GenerateHorseRelevantBits(int pos_plus_9) {
+  const int b = pos_plus_9 - 9;
   uint64 relevant_mask = 0;
   if (b >= 0 && b % 9 != 0) relevant_mask |= FillBits(b - 1);
   if (b >= 0 && b % 9 != 8) relevant_mask |= FillBits(b + 1);
   if (b >= 9) relevant_mask |= FillBits(b - 9);
   if (b <= 35) relevant_mask |= FillBits(b + 9);
-  return GatherBits(relevant_mask, FillBits(0, 7, 16), b + 6,
+  return relevant_mask;
+}
+
+inline uint64 HalfBitBoard::GetHorseOccupancy(int pos) const {
+  static constexpr auto relevant_bits =
+      GenerateArray<uint64, 63>(GenerateHorseRelevantBits);
+  // Magic is shifted by 3 bits because pos could be -9 at minimum.
+  return GatherBits(relevant_bits[pos + 9], FillBits(3, 10, 19), pos + 9,
                     static_cast<uint64>(15));
 }
 
 inline uint64 HalfBitBoard::GetRowOccupancy(int row) const {
-  static constexpr uint64 kRowMask = (1 << kNumColumns) - 1;
-  return (value_ >> (row * kNumColumns)) & kRowMask;
+  static constexpr uint64 row_mask = (1 << kNumColumns) - 1;
+  return (value_ >> (row * kNumColumns)) & row_mask;
 }
 
 constexpr uint64 GenerateColRelevantBits(int col) {
@@ -52,7 +60,8 @@ inline uint64 HalfBitBoard::GetColOccupancy(int col) const {
   static constexpr uint64 magic = FillBits(0, 8, 16, 24, 32);
   static constexpr auto col_relevant_bits =
       GenerateArray<uint64, kNumColumns>(GenerateColRelevantBits);
-  return GatherBits(col_relevant_bits[col], magic, col + 32, 31LL);
+  return GatherBits(col_relevant_bits[col], magic, col + 32,
+                    static_cast<uint64>(31));
 }
 
 HalfBitBoard operator~(HalfBitBoard b) {

@@ -52,6 +52,45 @@ void PrintHorseTables() {
   }
 }
 
+bool TestHorseOccupancy() {
+  for (int pos = 0; pos < kNumPositions; ++pos) {
+    Position p(pos);
+    const int row = p.Row(), col = p.Column();
+
+    for (uint64 x = 0; x < 16; ++x) {
+      auto board = BitBoard::EmptyBoard();
+      for (int i = 0; i < kNumPositions; ++i) {
+        Position ip(i);
+        const int irow = ip.Row(), icol = ip.Column();
+        if (irow == row && icol == col - 1) {
+          if (GetBit(x, 0)) board |= BitBoard::Fill(ip);
+        } else if (irow == row - 1 && icol == col) {
+          if (GetBit(x, 1)) board |= BitBoard::Fill(ip);
+        } else if (irow == row && icol == col + 1) {
+          if (GetBit(x, 2)) board |= BitBoard::Fill(ip);
+        } else if (irow == row + 1 && icol == col) {
+          if (GetBit(x, 3)) board |= BitBoard::Fill(ip);
+        } else {
+          board |= BitBoard::Fill(ip);
+        }
+      }
+      uint64 occ = board.GetHorseOccupancy(p);
+      uint64 expected = 0;
+      if (GetBit(x, 0) && col > 0) expected |= 1;
+      if (GetBit(x, 1) && row > 0) expected |= 2;
+      if (GetBit(x, 2) && col < 8) expected |= 4;
+      if (GetBit(x, 3) && row < 9) expected |= 8;
+      if (occ != expected) {
+        cout << "(" << row << ", " << col << ")" << endl;
+        cout << board << endl;
+        cout << "Expected: " << expected << ", got: " << occ << endl;
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 bool CheckHorseTables() {
   auto board = BitBoard::Fill(Position(49 + 9));
   uint64 occ = board.GetHorseOccupancy(Position(49));
@@ -122,6 +161,7 @@ bool CheckCannonColMovesTables() {
 
 int main() {
   bool success = true;
+  success = success && TestHorseOccupancy();
   success = success && CheckHorseTables();
   success = success && TestRowOccupancy();
   success = success && CheckCannonRowMovesTables();

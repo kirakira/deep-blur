@@ -22,6 +22,7 @@ class HalfBitBoard {
   // Returns lower 4 bits. From least significant: BR, TL, BL, TR.
   inline uint64 GetElephantOccupancy(Position pos) const;
   // Returns lower 4 bits. From least significant: L, B, R, T.
+  // Requires pos range: [-9, 53].
   inline uint64 GetHorseOccupancy(int pos) const;
   inline uint64 GetRowOccupancy(int row) const;
   inline uint64 GetColOccupancy(int col) const;
