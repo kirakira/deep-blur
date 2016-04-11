@@ -123,6 +123,7 @@ bool CheckCannonColMovesTables() {
 int main() {
   bool success = true;
   success = success && CheckHorseTables();
+  success = success && TestRowOccupancy();
   success = success && CheckCannonRowMovesTables();
   success = success && TestColOccupancy();
   success = success && CheckCannonColMovesTables();
