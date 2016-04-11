@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include "board.h"
 
@@ -27,6 +28,44 @@ void PrintAssistantTables() {
   for (int i = 0; i < kNumPositions; ++i) {
     cout << i << ": " << endl << BitTables::assistant_moves[i] << endl;
   }
+}
+
+bool TestElephantOccupancy() {
+  vector<int> elephant_positions = {2,  6,  18, 22, 26, 38, 42,
+                                    47, 51, 63, 67, 71, 83, 87};
+  for (int pos : elephant_positions) {
+    Position p(pos);
+    const int row = p.Row(), col = p.Column();
+    for (uint64 x = 0; x < 16; ++x) {
+      BitBoard board = BitBoard::EmptyBoard();
+      for (int i = 0; i < kNumPositions; ++i) {
+        Position ip(i);
+        const int irow = ip.Row(), icol = ip.Column();
+        if (irow == row - 1 && icol == col + 1) {
+          if (GetBit(x, 0)) board |= BitBoard::Fill(ip);
+        } else if (irow == row + 1 && icol == col - 1) {
+          if (GetBit(x, 1)) board |= BitBoard::Fill(ip);
+        } else if (irow == row - 1 && icol == col - 1) {
+          if (GetBit(x, 2)) board |= BitBoard::Fill(ip);
+        } else if (irow == row + 1 && icol == col + 1) {
+          if (GetBit(x, 3)) board |= BitBoard::Fill(ip);
+        }
+      }
+      uint64 occ = board.GetElephantOccupancy(p);
+      uint64 expected = 0;
+      if (GetBit(x, 0) && row != 0 && row != 5 && col != 8) expected |= 1;
+      if (GetBit(x, 1) && row != 4 && row != 9 && col != 0) expected |= 2;
+      if (GetBit(x, 2) && row != 0 && row != 5 && col != 0) expected |= 4;
+      if (GetBit(x, 3) && row != 4 && row != 9 && col != 8) expected |= 8;
+      if (expected != occ) {
+        cout << "(" << row << ", " << col << ")" << endl;
+        cout << board << endl;
+        cout << "expected: " << expected << "; received: " << occ << endl;
+        return false;
+      }
+    }
+  }
+  return true;
 }
 
 void PrintElephantTables() {
@@ -161,6 +200,7 @@ bool CheckCannonColMovesTables() {
 
 int main() {
   bool success = true;
+  success = success && TestElephantOccupancy();
   success = success && TestHorseOccupancy();
   success = success && CheckHorseTables();
   success = success && TestRowOccupancy();
