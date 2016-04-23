@@ -205,11 +205,23 @@ bool CheckRookRowTables() {
                BitBoard::Fill(Position(5, 7));
   auto moves = BitTables::rook_row_moves[Position(5, 1).value()]
                                         [board.GetRowOccupancy(5)];
-  cout << moves << endl;
   auto expected_moves =
       BitBoard::Fill(Position(5, 0)) | BitBoard::Fill(Position(5, 2)) |
       BitBoard::Fill(Position(5, 3)) | BitBoard::Fill(Position(5, 4)) |
       BitBoard::Fill(Position(5, 5));
+  return moves == expected_moves;
+}
+
+bool CheckRookColTables() {
+  auto board = BitBoard::Fill(Position(5, 1)) | BitBoard::Fill(Position(6, 1)) |
+               BitBoard::Fill(Position(7, 1)) | BitBoard::Fill(Position(9, 1)) |
+               BitBoard::Fill(Position(3, 1)) | BitBoard::Fill(Position(1, 1));
+  auto moves = BitTables::cannon_col_moves[Position(5, 1).value()]
+                                          [board.GetColOccupancy(1)];
+
+  auto expected_moves = BitBoard::Fill(Position(3, 1)) |
+                        BitBoard::Fill(Position(4, 1)) |
+                        BitBoard::Fill(Position(6, 1));
   return moves == expected_moves;
 }
 

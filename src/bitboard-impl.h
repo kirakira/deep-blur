@@ -468,6 +468,24 @@ constexpr auto RookRowMovesAt(size_t index) {
       CurryFront(RookRowMovesWithOccupancy, index));
 }
 
+constexpr auto RookColMovesWithOccupancy(size_t index, uint64 occupancy) {
+  BitBoard moves = BitBoard::EmptyBoard();
+  Position pos(index);
+  const int i = pos.Row(), j = pos.Column();
+  for (int dir = -1; dir <= 1; dir += 2) {
+    for (int ni = i + dir, nj = j; InBoard(ni, nj); ni += dir) {
+      moves |= BitBoard::Fill(Position(ni, nj));
+      if (GetBit(occupancy, ni)) break;
+    }
+  }
+  return moves;
+}
+
+constexpr auto RookColMovesAt(size_t index) {
+  return GenerateArray<BitBoard, 1024>(
+      CurryFront(RookColMovesWithOccupancy, index));
+}
+
 }  // namespace impl
 
 #endif  // BLUR_BITBOARD_H

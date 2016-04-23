@@ -131,6 +131,11 @@ class BitTables {
   static constexpr std::array<std::array<BitBoard, 512>, kNumPositions>
       rook_row_moves = GenerateArray<std::array<BitBoard, 512>, kNumPositions>(
           impl::RookRowMovesAt);
+  // rook_col_moves[pos][col]. Col ranges from [0, 2^10) encoding 1 bit for each
+  // position in the column (1 for occupied, 0 for unoccupied) from down to top.
+  static constexpr std::array<std::array<BitBoard, 1024>, kNumPositions>
+      rook_col_moves = GenerateArray<std::array<BitBoard, 1024>, kNumPositions>(
+          impl::RookColMovesAt);
 
  private:
   BitTables() = delete;
