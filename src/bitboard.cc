@@ -14,5 +14,7 @@ constexpr std::array<std::array<BitBoard, 512>, kNumPositions>
     BitTables::cannon_row_moves;
 constexpr std::array<std::array<BitBoard, 1024>, kNumPositions>
     BitTables::cannon_col_moves;
+constexpr std::array<std::array<BitBoard, 512>, kNumPositions>
+    BitTables::rook_row_moves;
 
 }  // namespace blur

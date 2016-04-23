@@ -157,7 +157,7 @@ bool TestRowOccupancy() {
   return true;
 }
 
-bool CheckCannonRowMovesTables() {
+bool CheckCannonRowTables() {
   auto board = BitBoard::Fill(Position(5, 0)) | BitBoard::Fill(Position(5, 1)) |
                BitBoard::Fill(Position(5, 5)) | BitBoard::Fill(Position(5, 7));
   auto moves =
@@ -187,7 +187,7 @@ bool TestColOccupancy() {
   return true;
 }
 
-bool CheckCannonColMovesTables() {
+bool CheckCannonColTables() {
   auto board = BitBoard::Fill(Position(5, 1)) | BitBoard::Fill(Position(6, 1)) |
                BitBoard::Fill(Position(7, 1)) | BitBoard::Fill(Position(9, 1)) |
                BitBoard::Fill(Position(3, 1)) | BitBoard::Fill(Position(1, 1));
@@ -200,15 +200,29 @@ bool CheckCannonColMovesTables() {
   return moves == expected_moves;
 }
 
+bool CheckRookRowTables() {
+  auto board = BitBoard::Fill(Position(5, 1)) | BitBoard::Fill(Position(5, 5)) |
+               BitBoard::Fill(Position(5, 7));
+  auto moves = BitTables::rook_row_moves[Position(5, 1).value()]
+                                        [board.GetRowOccupancy(5)];
+  cout << moves << endl;
+  auto expected_moves =
+      BitBoard::Fill(Position(5, 0)) | BitBoard::Fill(Position(5, 2)) |
+      BitBoard::Fill(Position(5, 3)) | BitBoard::Fill(Position(5, 4)) |
+      BitBoard::Fill(Position(5, 5));
+  return moves == expected_moves;
+}
+
 int main() {
   bool success = true;
   success = success && TestElephantOccupancy();
   success = success && TestHorseOccupancy();
   success = success && CheckHorseTables();
   success = success && TestRowOccupancy();
-  success = success && CheckCannonRowMovesTables();
+  success = success && CheckCannonRowTables();
   success = success && TestColOccupancy();
-  success = success && CheckCannonColMovesTables();
+  success = success && CheckCannonColTables();
+  success = success && CheckRookRowTables();
   cout << (success ? "Success." : "Failed.") << endl;
   return success ? 0 : 1;
 }

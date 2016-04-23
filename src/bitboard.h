@@ -126,6 +126,11 @@ class BitTables {
       cannon_col_moves =
           GenerateArray<std::array<BitBoard, 1024>, kNumPositions>(
               impl::CannonColMovesAt);
+  // rook_row_moves[pos][row]. Row ranges from [0, 2^9) encoding 1 bit for each
+  // position in the row (1 for occupied, 0 for unoccupied) from left to right.
+  static constexpr std::array<std::array<BitBoard, 512>, kNumPositions>
+      rook_row_moves = GenerateArray<std::array<BitBoard, 512>, kNumPositions>(
+          impl::RookRowMovesAt);
 
  private:
   BitTables() = delete;
