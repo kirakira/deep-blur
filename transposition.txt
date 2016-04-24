@@ -1,0 +1,4 @@
+Table size: 2^x
+Requires: x >= 21 (2M * 8 = 16MB)
+uint64 entry = hash_upper, score, score_type, depth
+                   43        13        2        6
