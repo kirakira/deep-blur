@@ -72,3 +72,12 @@ standing for: b-10, b+8, b-8, b+10
 
 // final_mask = 15LL;
 // shift = b + 7;
+
+
+Board representation
+======
+* Proposal 1
+  struct Board {
+    PieceType board_[10][9];
+    BitBoard side_[2];
+  };
