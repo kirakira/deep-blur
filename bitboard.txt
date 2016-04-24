@@ -80,4 +80,5 @@ Board representation
   struct Board {
     PieceType board_[10][9];
     BitBoard side_[2];
+    BitBoard pieces_[2][kNumPieces];
   };
