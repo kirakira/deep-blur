@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#include "board.h"
+#include "bitboard.h"
 
 using namespace blur;
 using namespace std;
