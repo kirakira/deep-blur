@@ -8,7 +8,7 @@ else
 endif
 
 .PHONY: test
-test: $(OUT)/common_test $(OUT)/board_test
+test: $(OUT)/common_test $(OUT)/bitboard_test $(OUT)/board_test
 
 $(OUT)/common.o: src/common.h src/common.cc
 	mkdir -p $(OUT)
@@ -23,8 +23,11 @@ $(OUT)/board.o: $(OUT)/common.o $(OUT)/bitboard.o src/board.h src/board.cc
 $(OUT)/common_test: $(OUT)/common.o src/common_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o src/common_test.cc
 
-$(OUT)/bitboard_test: $(OUT)/bitboard.o $(OUT)/common.o src/board_test.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/bitboard.o $(OUT)/common.o src/board_test.cc
+$(OUT)/bitboard_test: $(OUT)/bitboard.o $(OUT)/common.o src/bitboard_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/bitboard.o $(OUT)/common.o src/bitboard_test.cc
+
+$(OUT)/board_test: $(OUT)/board.o $(OUT)/bitboard.o $(OUT)/common.o src/board_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(out)/bitboard.o $(OUT)/common.o src/bitboard_test.cc
 
 .PHONY: clean
 clean:
