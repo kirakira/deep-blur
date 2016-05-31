@@ -2,7 +2,7 @@ COMPILER=c++
 COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -fconstexpr-steps=100000000
 OUT=bin
 ifeq ($(build),opt)
-	COMPILER_FLAGS+=-O3
+	COMPILER_FLAGS+=-O3 -march=native
 else
 	COMPILER_FLAGS+=-g
 endif
