@@ -8,26 +8,26 @@ else
 endif
 
 .PHONY: test
-test: $(OUT)/common_test $(OUT)/bitboard_test $(OUT)/board_test
+test: $(OUT)/common_test $(OUT)/bittables_test $(OUT)/board_test
 
 $(OUT)/common.o: src/common.h src/common.cc
 	mkdir -p $(OUT)
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/common.cc
 
-$(OUT)/bitboard.o: $(OUT)/common.o src/board.h src/bitboard.h src/bitboard.cc
-	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/bitboard.cc
+$(OUT)/bittables.o: $(OUT)/common.o src/board-base.h src/bitboard.h src/bittables.h src/bittables.cc
+	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/bittables.cc
 
-$(OUT)/board.o: $(OUT)/common.o $(OUT)/bitboard.o src/board.h src/board.cc
+$(OUT)/board.o: $(OUT)/common.o $(OUT)/bittables.o src/board.h src/bitboard.h src/board-base.h src/board.cc
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/board.cc
 
 $(OUT)/common_test: $(OUT)/common.o src/common_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o src/common_test.cc
 
-$(OUT)/bitboard_test: $(OUT)/bitboard.o $(OUT)/common.o src/bitboard_test.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/bitboard.o $(OUT)/common.o src/bitboard_test.cc
+$(OUT)/bittables_test: $(OUT)/bittables.o $(OUT)/common.o src/bittables_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/bittables.o $(OUT)/common.o src/bittables_test.cc
 
-$(OUT)/board_test: $(OUT)/board.o $(OUT)/bitboard.o $(OUT)/common.o src/board_test.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(out)/bitboard.o $(OUT)/common.o src/bitboard_test.cc
+$(OUT)/board_test: $(OUT)/board.o $(OUT)/bittables.o $(OUT)/common.o src/board_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/bittables.o $(OUT)/common.o src/board_test.cc
 
 .PHONY: clean
 clean:

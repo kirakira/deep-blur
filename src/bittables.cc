@@ -1,4 +1,4 @@
-#include "bitboard.h"
+#include "bittables.h"
 
 namespace blur {
 

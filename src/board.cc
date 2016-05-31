@@ -7,15 +7,19 @@ using std::map;
 using std::string;
 using std::vector;
 
+namespace blur {
+
 Board::Board() {
   assert(
       SetBoard("rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR"));
 }
 
 bool Board::SetBoard(const string& fen) {
-  vector<Side> sides = {kRed, kBlack};
-  vector<PieceType> piece_types = {kKing,  kPawn,   kAssistant, kElephant,
-                                   kHorse, kCannon, kRook};
+  vector<Side> sides = {Side::kRed, Side::kBlack};
+  vector<PieceType> piece_types = {PieceType::kKing,      PieceType::kPawn,
+                                   PieceType::kAssistant, PieceType::kElephant,
+                                   PieceType::kHorse,     PieceType::kCannon,
+                                   PieceType::kRook};
   map<char, Piece> char_piece_map;
   for (auto side : sides) {
     for (auto piece_type : piece_types) {
@@ -52,11 +56,11 @@ bool Board::SetBoard(const string& fen) {
 
   for (int i = 0; i < kNumRows; ++i) {
     for (int j = 0; j < kNumColumns; ++j) {
-      board_[i][j] = Piece::Empty();
+      board_[i][j] = Piece::EmptyPiece();
     }
   }
   for (int i = 0; i < 16; ++i) {
-    piece_bitboards_[i] = BitBoard::EmtpyBoard();
+    piece_bitboards_[i] = BitBoard::EmptyBoard();
   }
 
   row = 0, col = 0;
@@ -80,7 +84,7 @@ bool Board::SetBoard(const string& fen) {
 string Board::ToString() const {
   string ans;
   int gap = 0;
-  const auto append_gap[&ans, &gap]() {
+  const auto append_gap = [&ans, &gap]() {
     if (gap > 0) {
       ans += std::to_string(gap);
       gap = 0;
@@ -100,3 +104,5 @@ string Board::ToString() const {
   }
   return ans;
 }
+
+}  // namespace blur
