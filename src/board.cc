@@ -1,8 +1,10 @@
+#include "board.h"
+
 #include <cassert>
 #include <iostream>
 #include <map>
 
-#include "board.h"
+#include "bittables.h"
 
 using std::cout;
 using std::endl;

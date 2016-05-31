@@ -20,7 +20,6 @@ bool CheckSetBoard() {
   if (board.ToString() !=
       "2eakae1r/5r3/hc4hc1/p1p1p1p1p/9/9/P1P1P1P1P/HC4HC1/3R4R/2EAKAE2")
     return false;
-  board.DebugPrint();
   return true;
 }
 
