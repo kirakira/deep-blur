@@ -8,4 +8,4 @@ all: $(HEADERS) $(SOURCES)
 	g++ -o bin/deep-blur_debug -Wall -Wextra -g $(SOURCES)
 
 o: $(HEADERS) $(SOURCES)
-	g++ -o bin/deep-blur -O3 $(SOURCES)
+	g++ -o bin/deep-blur -march=native -O3 $(SOURCES)
