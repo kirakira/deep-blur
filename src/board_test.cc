@@ -12,8 +12,10 @@ bool CheckSetBoard() {
   if (board.ToString() !=
       "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR")
     return false;
+  board.DebugPrint();
   if (!board.SetBoard("4k4/9/9/9/9/9/9/9/9/4K4")) return false;
   if (board.ToString() != "4k4/9/9/9/9/9/9/9/9/4K4") return false;
+  board.DebugPrint();
   return true;
 }
 

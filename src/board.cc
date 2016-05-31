@@ -96,7 +96,7 @@ string Board::ToString() const {
     }
   };
   for (int i = kNumRows - 1; i >= 0; --i) {
-    for (int j = 0;j < kNumColumns; ++j){ 
+    for (int j = 0; j < kNumColumns; ++j) {
       if (board_[i][j] != Piece::EmptyPiece()) {
         append_gap();
         ans += board_[i][j].ToLetter();
@@ -108,6 +108,23 @@ string Board::ToString() const {
     if (i != 0) ans += "/";
   }
   return ans;
+}
+
+void Board::DebugPrint() const {
+  cout << "   a b c d e f g h i" << endl << endl;
+  for (int i = kNumRows - 1; i >= 0; --i) {
+    cout << i << "  ";
+    for (int j = 0; j < kNumColumns; ++j) {
+      if (board_[i][j] == Piece::EmptyPiece()) {
+        cout << ".";
+      } else {
+        cout << board_[i][j].ToLetter();
+      }
+      cout << " ";
+    }
+    cout << " " << i << endl;
+  }
+  cout << endl << "   a b c d e f g h i" << endl;
 }
 
 }  // namespace blur

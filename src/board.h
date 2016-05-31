@@ -24,8 +24,10 @@ class Board {
 
   // Returns false if this is a bad board position.
   bool SetBoard(const std::string& fen);
-  // Return the fen string representation of current position.
+  // Return the fen string of the current position.
   std::string ToString() const;
+  // Print the current board.
+  void DebugPrint() const;
 
  private:
   Piece board_[kNumRows][kNumColumns];
