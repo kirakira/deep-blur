@@ -12,9 +12,14 @@ bool CheckSetBoard() {
   if (board.ToString() !=
       "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR")
     return false;
-  board.DebugPrint();
   if (!board.SetBoard("4k4/9/9/9/9/9/9/9/9/4K4")) return false;
   if (board.ToString() != "4k4/9/9/9/9/9/9/9/9/4K4") return false;
+  if (!board.SetBoard(
+          "2eakae1r/5r3/hc4hc1/p1p1p1p1p/9/9/P1P1P1P1P/HC4HC1/3R4R/2EAKAE2"))
+    return false;
+  if (board.ToString() !=
+      "2eakae1r/5r3/hc4hc1/p1p1p1p1p/9/9/P1P1P1P1P/HC4HC1/3R4R/2EAKAE2")
+    return false;
   board.DebugPrint();
   return true;
 }
