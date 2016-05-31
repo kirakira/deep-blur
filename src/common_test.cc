@@ -75,6 +75,10 @@ bool TestCurryNonConstExpr() {
   return true;
 }
 
+bool TestLsb() {
+  return lsb(12) == 2 && lsb(1) == 0 && lsb(96) == 5;
+}
+
 }  // namespace blur
 
 int main() {
@@ -82,10 +86,10 @@ int main() {
   fail = !RunTest(blur::TestGenerateArray, "TestGenerateArray") || fail;
   fail = !RunTest(blur::TestAggregate, "TestAggregate") || fail;
   fail = !RunTest(blur::TestFillBits, "TestAggregate") || fail;
-  /*
   fail = !RunTest(blur::TestCurry, "TestCurry") || fail;
-  fail = !RunTest(blur::TestCurryRef, "TestCurryRef") || fail;*/
+  fail = !RunTest(blur::TestCurryRef, "TestCurryRef") || fail;
   fail = !RunTest(blur::TestCurryRefWrapper, "TestCurryRefWrapper") || fail;
+  fail = !RunTest(blur::TestLsb, "TestLsb") || fail;
   if (fail) {
     cerr << "Some test failed." << endl;
   } else {

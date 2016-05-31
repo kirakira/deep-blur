@@ -131,6 +131,10 @@ constexpr uint64 FillBits(Ints... pos) {
                                (static_cast<uint64>(1) << pos)...);
 }
 
+// Return the number of trailing 0-bits in x, starting at the least significant
+// bit of x position. If x is 0, result is undefined.
+inline int lsb(uint64 x) { return __builtin_ctzll(x); }
+
 }  // namespace blur
 
 #endif  // BLUR_COMMON_H

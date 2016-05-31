@@ -129,4 +129,8 @@ void Board::DebugPrint() const {
   cout << endl << "   a b c d e f g h i" << endl;
 }
 
+vector<Move> Board::GenerateMoves(Side side) const {
+  return {};
+}
+
 }  // namespace blur
