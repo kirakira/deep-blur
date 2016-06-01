@@ -89,6 +89,57 @@ class HalfBitBoard {
 // Value semantics.
 class BitBoard {
  public:
+  class Iterator {
+   public:
+    // Construct an uninitialized iterator.
+    Iterator() = default;
+
+    Iterator& operator++() {
+      ++iter_;
+      Canonicalize();
+      return *this;
+    }
+    Position operator*() const {
+      int original_value = (*iter_).value();
+      return lower_ ? Position(original_value) : Position(original_value + 45);
+    }
+
+    Iterator(const Iterator&) = default;
+    Iterator& operator=(const Iterator&) = default;
+
+    friend bool operator==(const Iterator i1, const Iterator i2) {
+      return i1.lower_ == i2.lower_ && i1.iter_ == i2.iter_;
+    }
+    friend bool operator!=(const Iterator i1, const Iterator i2) {
+      return !(i1 == i2);
+    }
+
+   private:
+    using HalfIterator = HalfBitBoard::Iterator;
+
+    Iterator(HalfIterator lower_iter_begin, HalfIterator lower_iter_end,
+             HalfIterator upper_iter_begin)
+        : iter_(lower_iter_begin),
+          lower_iter_end_(lower_iter_end),
+          upper_iter_begin_(upper_iter_begin) {
+      Canonicalize();
+    }
+
+    void Canonicalize() {
+      if (lower_ && iter_ == lower_iter_end_) {
+        lower_ = false;
+        iter_ = upper_iter_begin_;
+      }
+    }
+
+    friend class BitBoard;
+
+    bool lower_ = true;
+    HalfIterator iter_;
+    HalfIterator lower_iter_end_;
+    HalfIterator upper_iter_begin_;
+  };
+
   // An uninitialized BitBoard.
   BitBoard() = default;
   constexpr static BitBoard EmptyBoard();
@@ -102,6 +153,14 @@ class BitBoard {
   inline uint64 GetHorseOccupancy(Position pos) const;
   inline uint64 GetRowOccupancy(int row) const;
   inline uint64 GetColOccupancy(int col) const;
+
+  // Iterate over all set positions on this BitBoard.
+  Iterator begin() const {
+    return Iterator(halves_[0].begin(), halves_[0].end(), halves_[1].begin());
+  }
+  Iterator end() const {
+    return Iterator(halves_[0].end(), halves_[0].end(), halves_[1].end());
+  }
 
   inline BitBoard(const BitBoard&) = default;
   inline BitBoard& operator=(const BitBoard&) = default;
