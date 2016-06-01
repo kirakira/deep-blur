@@ -51,6 +51,12 @@ class Position {
   Position(const Position&) = default;
   Position& operator=(const Position&) = default;
 
+  friend bool operator==(Position x, Position y) {
+    return x.value_ == y.value_;
+  }
+
+  friend bool operator!=(Position x, Position y) { return !(x == y); }
+
  private:
   int value_;
 };

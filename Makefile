@@ -1,5 +1,5 @@
 COMPILER=c++
-COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -fconstexpr-steps=100000000
+COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -Wconversion -Wno-sign-conversion -fconstexpr-steps=100000000
 OUT=bin
 ifeq ($(build),opt)
 	COMPILER_FLAGS+=-O3 -march=native
@@ -8,7 +8,7 @@ else
 endif
 
 .PHONY: test
-test: $(OUT)/common_test $(OUT)/bittables_test $(OUT)/board_test
+test: $(OUT)/common_test $(OUT)/bittables_test $(OUT)/bitboard_test $(OUT)/board_test
 
 $(OUT)/common.o: src/common.h src/common.cc
 	mkdir -p $(OUT)
@@ -22,6 +22,9 @@ $(OUT)/board.o: $(OUT)/common.o $(OUT)/bittables.o src/board.h src/bitboard.h sr
 
 $(OUT)/common_test: $(OUT)/common.o src/common_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o src/common_test.cc
+
+$(OUT)/bitboard_test: $(OUT)/common.o src/board-base.h src/bitboard.h src/bitboard_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o src/bitboard_test.cc
 
 $(OUT)/bittables_test: $(OUT)/bittables.o $(OUT)/common.o src/bittables_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/bittables.o $(OUT)/common.o src/bittables_test.cc

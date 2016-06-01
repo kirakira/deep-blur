@@ -13,6 +13,34 @@ namespace blur {
 // Value semantics.
 class HalfBitBoard {
  public:
+  class Iterator {
+   public:
+    // Construct an uninitialized iterator.
+    Iterator() = default;
+
+    Iterator& operator++() {
+      value_ &= value_ - 1;
+      return *this;
+    }
+    Position operator*() const { return Position(lsb(value_)); }
+
+    Iterator(const Iterator&) = default;
+    Iterator& operator=(const Iterator&) = default;
+
+    friend bool operator==(const Iterator i1, const Iterator i2) {
+      return i1.value_ == i2.value_;
+    }
+    friend bool operator!=(const Iterator i1, const Iterator i2) {
+      return !(i1 == i2);
+    }
+
+   private:
+    Iterator(uint64 value) : value_(value) {}
+    friend class HalfBitBoard;
+
+    uint64 value_;
+  };
+
   // An uninitialized HalfBitBoard.
   HalfBitBoard() = default;
   constexpr static HalfBitBoard EmptyBoard();
@@ -29,6 +57,10 @@ class HalfBitBoard {
   inline uint64 GetHorseOccupancy(int pos) const;
   inline uint64 GetRowOccupancy(int row) const;
   inline uint64 GetColOccupancy(int col) const;
+
+  // Iterate over all set positions on this HalfBitBoard.
+  Iterator begin() const { return Iterator(value_); }
+  Iterator end() const { return Iterator(0); }
 
   inline HalfBitBoard(const HalfBitBoard&) = default;
   inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
