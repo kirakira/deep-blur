@@ -7,14 +7,6 @@ using std::vector;
 
 namespace blur {
 
-uint64 TestFunctionHa(BitBoard board) {
-  uint64 ans = 0;
-  for (auto pos : board) {
-    ans ^= pos.value();
-  }
-  return ans;
-}
-
 template <typename ContainerType>
 auto DumpElements(const ContainerType& container) {
   using value_type = std::decay_t<decltype(*container.begin())>;

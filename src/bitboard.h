@@ -95,20 +95,21 @@ class BitBoard {
     Iterator() = default;
 
     Iterator& operator++() {
-      ++iter_;
+      ++iterators_[0];
       Canonicalize();
       return *this;
     }
     Position operator*() const {
-      int original_value = (*iter_).value();
-      return lower_ ? Position(original_value) : Position(original_value + 45);
+      int original_value = (*(iterators_[0])).value();
+      return current_ == 0 ? Position(original_value)
+                           : Position(original_value + 45);
     }
 
     Iterator(const Iterator&) = default;
     Iterator& operator=(const Iterator&) = default;
 
     friend bool operator==(const Iterator i1, const Iterator i2) {
-      return i1.lower_ == i2.lower_ && i1.iter_ == i2.iter_;
+      return i1.current_ == i2.current_ && i1.iterators_[0] == i2.iterators_[0];
     }
     friend bool operator!=(const Iterator i1, const Iterator i2) {
       return !(i1 == i2);
@@ -117,27 +118,24 @@ class BitBoard {
    private:
     using HalfIterator = HalfBitBoard::Iterator;
 
-    Iterator(HalfIterator lower_iter_begin, HalfIterator lower_iter_end,
-             HalfIterator upper_iter_begin)
-        : iter_(lower_iter_begin),
-          lower_iter_end_(lower_iter_end),
-          upper_iter_begin_(upper_iter_begin) {
+    Iterator(HalfIterator lower_iter_begin, HalfIterator upper_iter_begin,
+             HalfIterator end)
+        : current_(0), iterators_{lower_iter_begin, upper_iter_begin, end} {
       Canonicalize();
     }
 
     void Canonicalize() {
-      if (lower_ && iter_ == lower_iter_end_) {
-        lower_ = false;
-        iter_ = upper_iter_begin_;
+      while (current_ < 2 && iterators_[0] == iterators_[2]) {
+        ++current_;
+        iterators_[0] = iterators_[current_];
       }
     }
 
     friend class BitBoard;
 
-    bool lower_ = true;
-    HalfIterator iter_;
-    HalfIterator lower_iter_end_;
-    HalfIterator upper_iter_begin_;
+    int current_;
+    // 0 stores current iterator, 2 stores end.
+    HalfIterator iterators_[3];
   };
 
   // An uninitialized BitBoard.
@@ -156,10 +154,17 @@ class BitBoard {
 
   // Iterate over all set positions on this BitBoard.
   Iterator begin() const {
-    return Iterator(halves_[0].begin(), halves_[0].end(), halves_[1].begin());
+    return Iterator(halves_[0].begin(), halves_[1].begin(), halves_[1].end());
   }
   Iterator end() const {
-    return Iterator(halves_[0].end(), halves_[0].end(), halves_[1].end());
+    return Iterator(halves_[0].end(), halves_[1].end(), halves_[1].end());
+  }
+
+  HalfBitBoard lower() const {
+    return halves_[0];
+  }
+  HalfBitBoard upper() const {
+    return halves_[1];
   }
 
   inline BitBoard(const BitBoard&) = default;
