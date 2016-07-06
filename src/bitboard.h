@@ -15,27 +15,18 @@ class HalfBitBoard {
  public:
   class Iterator {
    public:
-    // Construct an uninitialized iterator.
-    Iterator() = default;
+    bool HasNext() const {
+      return value_ != 0;
+    }
 
-    Iterator& operator++() {
+    Position Next() {
+      const int ans = lsb(value_);
       value_ &= value_ - 1;
-      return *this;
-    }
-    Position operator*() const { return Position(lsb(value_)); }
-
-    Iterator(const Iterator&) = default;
-    Iterator& operator=(const Iterator&) = default;
-
-    friend bool operator==(const Iterator i1, const Iterator i2) {
-      return i1.value_ == i2.value_;
-    }
-    friend bool operator!=(const Iterator i1, const Iterator i2) {
-      return !(i1 == i2);
+      return Position(ans);
     }
 
    private:
-    Iterator(uint64 value) : value_(value) {}
+    explicit Iterator(uint64 value) : value_(value) {}
     friend class HalfBitBoard;
 
     uint64 value_;
@@ -59,8 +50,7 @@ class HalfBitBoard {
   inline uint64 GetColOccupancy(int col) const;
 
   // Iterate over all set positions on this HalfBitBoard.
-  Iterator begin() const { return Iterator(value_); }
-  Iterator end() const { return Iterator(0); }
+  Iterator Positions() const { return Iterator(value_); }
 
   inline HalfBitBoard(const HalfBitBoard&) = default;
   inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
@@ -91,51 +81,25 @@ class BitBoard {
  public:
   class Iterator {
    public:
-    // Construct an uninitialized iterator.
-    Iterator() = default;
-
-    Iterator& operator++() {
-      ++iterators_[0];
-      Canonicalize();
-      return *this;
-    }
-    Position operator*() const {
-      int original_value = (*(iterators_[0])).value();
-      return current_ == 0 ? Position(original_value)
-                           : Position(original_value + 45);
+    bool HasNext() const {
+      return lower_iter_.HasNext() || upper_iter_.HasNext();
     }
 
-    Iterator(const Iterator&) = default;
-    Iterator& operator=(const Iterator&) = default;
-
-    friend bool operator==(const Iterator i1, const Iterator i2) {
-      return i1.current_ == i2.current_ && i1.iterators_[0] == i2.iterators_[0];
-    }
-    friend bool operator!=(const Iterator i1, const Iterator i2) {
-      return !(i1 == i2);
+    Position Next() {
+      if (lower_iter_.HasNext()) return lower_iter_.Next();
+      return Position(45 + upper_iter_.Next().value());
     }
 
    private:
     using HalfIterator = HalfBitBoard::Iterator;
 
-    Iterator(HalfIterator lower_iter_begin, HalfIterator upper_iter_begin,
-             HalfIterator end)
-        : current_(0), iterators_{lower_iter_begin, upper_iter_begin, end} {
-      Canonicalize();
-    }
-
-    void Canonicalize() {
-      while (current_ < 2 && iterators_[0] == iterators_[2]) {
-        ++current_;
-        iterators_[0] = iterators_[current_];
-      }
-    }
+    Iterator(HalfIterator lower_iter, HalfIterator upper_iter)
+        : lower_iter_(lower_iter), upper_iter_(upper_iter) {}
 
     friend class BitBoard;
 
-    int current_;
-    // 0 stores current iterator, 2 stores end.
-    HalfIterator iterators_[3];
+    HalfIterator lower_iter_;
+    HalfIterator upper_iter_;
   };
 
   // An uninitialized BitBoard.
@@ -153,11 +117,8 @@ class BitBoard {
   inline uint64 GetColOccupancy(int col) const;
 
   // Iterate over all set positions on this BitBoard.
-  Iterator begin() const {
-    return Iterator(halves_[0].begin(), halves_[1].begin(), halves_[1].end());
-  }
-  Iterator end() const {
-    return Iterator(halves_[0].end(), halves_[1].end(), halves_[1].end());
+  Iterator Positions() const {
+    return Iterator(halves_[0].Positions(), halves_[1].Positions());
   }
 
   HalfBitBoard lower() const {

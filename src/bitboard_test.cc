@@ -7,25 +7,24 @@ using std::vector;
 
 namespace blur {
 
-template <typename ContainerType>
-auto DumpElements(const ContainerType& container) {
-  using value_type = std::decay_t<decltype(*container.begin())>;
-  vector<value_type> dumped;
-  for (const auto& value : container) {
-    dumped.push_back(value);
+template <typename BoardType>
+auto DumpPositions(BoardType board) {
+  vector<Position> dumped;
+  for (auto iter = board.Positions(); iter.HasNext();) {
+    dumped.push_back(iter.Next());
   }
   return dumped;
 }
 
 bool TestIterateHalfBitBoard() {
   auto board = HalfBitBoard::EmptyBoard();
-  if (DumpElements(board).size() != 0) return false;
+  if (DumpPositions(board).size() != 0) return false;
   for (auto i : {0, 6, 7, 20, 44}) {
     board |= HalfBitBoard::Fill(Position(i));
   }
-  if (DumpElements(board) != vector<Position>{Position(0), Position(6),
-                                              Position(7), Position(20),
-                                              Position(44)}) {
+  if (DumpPositions(board) != vector<Position>{Position(0), Position(6),
+                                               Position(7), Position(20),
+                                               Position(44)}) {
     return false;
   }
   return true;
@@ -33,11 +32,11 @@ bool TestIterateHalfBitBoard() {
 
 bool TestIterateBitBoard1() {
   auto board = BitBoard::EmptyBoard();
-  if (DumpElements(board).size() != 0) return false;
+  if (DumpPositions(board).size() != 0) return false;
   for (auto i : {0, 6, 7, 20, 44, 45, 67, 88, 89}) {
     board |= BitBoard::Fill(Position(i));
   }
-  if (DumpElements(board) !=
+  if (DumpPositions(board) !=
       vector<Position>{Position(0), Position(6), Position(7), Position(20),
                        Position(44), Position(45), Position(67), Position(88),
                        Position(89)}) {
@@ -48,13 +47,13 @@ bool TestIterateBitBoard1() {
 
 bool TestIterateBitBoard2() {
   auto board = BitBoard::EmptyBoard();
-  if (DumpElements(board).size() != 0) return false;
+  if (DumpPositions(board).size() != 0) return false;
   for (auto i : {0, 6, 7, 20, 44}) {
     board |= BitBoard::Fill(Position(i));
   }
-  if (DumpElements(board) != vector<Position>{Position(0), Position(6),
-                                              Position(7), Position(20),
-                                              Position(44)}) {
+  if (DumpPositions(board) != vector<Position>{Position(0), Position(6),
+                                               Position(7), Position(20),
+                                               Position(44)}) {
     return false;
   }
   return true;
@@ -62,12 +61,12 @@ bool TestIterateBitBoard2() {
 
 bool TestIterateBitBoard3() {
   auto board = BitBoard::EmptyBoard();
-  if (DumpElements(board).size() != 0) return false;
+  if (DumpPositions(board).size() != 0) return false;
   for (auto i : {45, 67, 88, 89}) {
     board |= BitBoard::Fill(Position(i));
   }
-  if (DumpElements(board) != vector<Position>{Position(45), Position(67),
-                                              Position(88), Position(89)}) {
+  if (DumpPositions(board) != vector<Position>{Position(45), Position(67),
+                                               Position(88), Position(89)}) {
     return false;
   }
   return true;

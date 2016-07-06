@@ -11,7 +11,8 @@ namespace blur {
 uint64 TestFull(BitBoard board) {
   uint64 ans = 0;
   for (int i = 0; i < 50000000; ++i) {
-    for (auto pos : board) {
+    for (auto iter = board.Positions(); iter.HasNext();) {
+      auto pos = iter.Next();
       ans ^= pos.value();
     }
     /*
@@ -29,7 +30,8 @@ uint64 TestFull(BitBoard board) {
 uint64 TestHalf(HalfBitBoard board) {
   uint64 ans = 0;
   for (int i = 0; i < 50000000; ++i) {
-    for (auto pos : board) {
+    for (auto iter = board.Positions(); iter.HasNext();) {
+      auto pos = iter.Next();
       ans ^= pos.value();
     }
     ans <<= 1;

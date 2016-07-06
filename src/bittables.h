@@ -109,7 +109,7 @@ constexpr BitBoard RelativePositionsWithOccupancy(
 }
 
 constexpr BitBoard RedPawnMovesAt(size_t index) {
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   int i = pos.Row(), j = pos.Column();
   if (InRedHalf(i, j)) {
     return RelativePositions(i, j, InBoard, MakeOffsets(kAdjacentOffsets, 1));
@@ -120,7 +120,7 @@ constexpr BitBoard RedPawnMovesAt(size_t index) {
 }
 
 constexpr BitBoard BlackPawnMovesAt(size_t index) {
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   int i = pos.Row(), j = pos.Column();
   if (InBlackHalf(i, j)) {
     return RelativePositions(i, j, InBoard, MakeOffsets(kAdjacentOffsets, 3));
@@ -131,7 +131,7 @@ constexpr BitBoard BlackPawnMovesAt(size_t index) {
 }
 
 constexpr BitBoard KingMovesAt(size_t index) {
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   int i = pos.Row(), j = pos.Column();
   if (InPalace(i, j)) {
     return RelativePositions(i, j, InPalace,
@@ -142,7 +142,7 @@ constexpr BitBoard KingMovesAt(size_t index) {
 }
 
 constexpr BitBoard AssistantMovesAt(size_t index) {
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   int i = pos.Row(), j = pos.Column();
   if (InPalace(i, j)) {
     return RelativePositions(i, j, InPalace,
@@ -161,7 +161,7 @@ constexpr bool CheckBlackElephantPosition(int i, int j, int occupancy_bit) {
 }
 
 constexpr BitBoard ElephantMovesWithOccupancy(size_t index, uint64 occupancy) {
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   int i = pos.Row(), j = pos.Column();
   if (InRedHalf(i, j)) {
     return RelativePositionsWithOccupancy(
@@ -182,7 +182,7 @@ constexpr bool CheckHorsePosition(int i, int j, int occupancy_bit) {
 }
 
 constexpr BitBoard HorseMovesWithOccupancy(size_t index, uint64 occupancy) {
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   int i = pos.Row(), j = pos.Column();
   return RelativePositionsWithOccupancy(i, j, occupancy, CheckHorsePosition,
                                         kHorseMovePattern);
@@ -195,7 +195,7 @@ constexpr auto HorseMovesAt(size_t index) {
 
 constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   const int i = pos.Row(), j = pos.Column();
   for (int dir = -1; dir <= 1; dir += 2) {
     int pieces_met = 0;
@@ -224,7 +224,7 @@ constexpr auto CannonRowMovesAt(size_t index) {
 
 constexpr BitBoard CannonColMovesWithOccupancy(size_t index, uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   const int i = pos.Row(), j = pos.Column();
   for (int dir = -1; dir <= 1; dir += 2) {
     int pieces_met = 0;
@@ -253,7 +253,7 @@ constexpr auto CannonColMovesAt(size_t index) {
 
 constexpr auto RookRowMovesWithOccupancy(size_t index, uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   const int i = pos.Row(), j = pos.Column();
   for (int dir = -1; dir <= 1; dir += 2) {
     for (int ni = i, nj = j + dir; InBoard(ni, nj); nj += dir) {
@@ -271,7 +271,7 @@ constexpr auto RookRowMovesAt(size_t index) {
 
 constexpr auto RookColMovesWithOccupancy(size_t index, uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
-  Position pos(index);
+  Position pos(static_cast<int>(index));
   const int i = pos.Row(), j = pos.Column();
   for (int dir = -1; dir <= 1; dir += 2) {
     for (int ni = i + dir, nj = j; InBoard(ni, nj); ni += dir) {
