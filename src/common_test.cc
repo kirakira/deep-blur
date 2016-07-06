@@ -1,3 +1,4 @@
+#include <functional>
 #include <iostream>
 #include <string>
 
@@ -16,7 +17,9 @@ bool RunTest(Function f, const string& test_name) {
 
 namespace blur {
 
-constexpr int ArrayGenerator(size_t t) { return (t % 3) * 5 + 2; }
+constexpr int ArrayGenerator(size_t t) {
+  return (static_cast<int>(t) % 3) * 5 + 2;
+}
 
 bool TestGenerateArray() {
   constexpr auto a = GenerateArray<int, 5>(ArrayGenerator);
