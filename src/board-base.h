@@ -1,6 +1,8 @@
 #ifndef BLUR_BOARD_BASE_H
 #define BLUR_BOARD_BASE_H
 
+#include <string>
+
 namespace blur {
 
 // Numbering board positions
@@ -29,6 +31,8 @@ const int kNumColumns = 9;
 // Value semantics.
 class Position {
  public:
+  // Construct an uninitialized Position.
+  Position() = default;
   constexpr Position(int row, int col) : Position(row * kNumColumns + col) {}
   // For example, "a0" -> 0; "d8" -> 75.
   explicit Position(const std::string& str);
@@ -66,7 +70,7 @@ class Move {
  public:
   // An unintialized move.
   Move() = default;
-  explicit Move(Position from, Position to);
+  Move(Position from, Position to) : from_(from), to_(to) {}
   explicit Move(const std::string& str);
 
   // Return value ranges in [0, 2^14).
@@ -96,6 +100,11 @@ enum class PieceType {
 
 enum class Side { kRed = 0, kBlack = 1 };
 
+// Helper function to negate side.
+constexpr Side OtherSide(Side side) {
+  return side == Side::kRed ? Side::kBlack : Side::kRed;
+}
+
 // A piece is a pair of (Side, PieceType). Value semantics.
 class Piece {
  public:
@@ -107,16 +116,16 @@ class Piece {
   // call side() or type() on it.
   constexpr static Piece EmptyPiece() { return Piece(0); }
 
-  inline Side side() const {
+  constexpr Side side() const {
     return static_cast<Side>(value_ >> 3);
   }
 
-  inline PieceType type() const {
+  constexpr PieceType type() const {
     return static_cast<PieceType>(value_ & 7);
   }
 
   // value ranges in [0, 16).
-  inline int value() const {
+  constexpr int value() const {
     return value_;
   }
 

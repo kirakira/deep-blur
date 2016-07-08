@@ -31,6 +31,7 @@ class Board {
 
  private:
   Piece board_[kNumRows][kNumColumns];
+  // Indexed by piece.value().
   BitBoard piece_bitboards_[16];
 };
 

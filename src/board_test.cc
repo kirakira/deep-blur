@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -46,10 +47,24 @@ bool CheckSetBadBoard() {
   return true;
 }
 
+bool CheckGenerateMoves() {
+  Board board;
+  auto moves = board.GenerateMoves(Side::kRed);
+  vector<string> moves_string;
+  for (auto move : moves) {
+    moves_string.push_back(move.ToString());
+  }
+  std::sort(moves_string.begin(), moves_string.end());
+  for (const auto& s : moves_string) cout << s << " ";
+  cout << endl << moves.size() << endl;
+  return true;
+}
+
 int main() {
   bool success = true;
   success = success && CheckSetBoard();
   success = success && CheckSetBadBoard();
+  success = success && CheckGenerateMoves();
   cout << (success ? "Success." : "Failed.") << endl;
   return success ? 0 : 1;
 }
