@@ -128,6 +128,17 @@ constexpr BitBoard RedPawnMovesAt(size_t index) {
   }
 }
 
+constexpr BitBoard RedPawnReverseMovesAt(size_t index) {
+  Position pos(static_cast<int>(index));
+  int i = pos.Row(), j = pos.Column();
+  if (InRedHalf(i, j)) {
+    return RelativePositions(i, j, InBoard, MakeOffsets(kAdjacentOffsets, 3));
+  } else {
+    return RelativePositions(i, j, InBoard,
+                             MakeOffsets(kAdjacentOffsets, 0, 2, 3));
+  }
+}
+
 constexpr BitBoard BlackPawnMovesAt(size_t index) {
   Position pos(static_cast<int>(index));
   int i = pos.Row(), j = pos.Column();
@@ -136,6 +147,17 @@ constexpr BitBoard BlackPawnMovesAt(size_t index) {
   } else {
     return RelativePositions(i, j, InBoard,
                              MakeOffsets(kAdjacentOffsets, 0, 2, 3));
+  }
+}
+
+constexpr BitBoard BlackPawnReverseMovesAt(size_t index) {
+  Position pos(static_cast<int>(index));
+  int i = pos.Row(), j = pos.Column();
+  if (InBlackHalf(i, j)) {
+    return RelativePositions(i, j, InBoard, MakeOffsets(kAdjacentOffsets, 1));
+  } else {
+    return RelativePositions(i, j, InBoard,
+                             MakeOffsets(kAdjacentOffsets, 0, 1, 2));
   }
 }
 
@@ -202,7 +224,8 @@ constexpr auto HorseMovesAt(size_t index) {
       CurryFront(HorseMovesWithOccupancy, index));
 }
 
-constexpr BitBoard HorseReverseMovesWithOccupancy(size_t index, uint64 occupancy) {
+constexpr BitBoard HorseReverseMovesWithOccupancy(size_t index,
+                                                  uint64 occupancy) {
   Position pos(static_cast<int>(index));
   int i = pos.Row(), j = pos.Column();
   return RelativePositionsWithOccupancy(i, j, occupancy, CheckHorsePosition,
@@ -315,8 +338,13 @@ class BitTables {
  public:
   static constexpr std::array<BitBoard, kNumPositions> red_pawn_moves =
       GenerateArray<BitBoard, kNumPositions>(impl::RedPawnMovesAt);
+  static constexpr std::array<BitBoard, kNumPositions> red_pawn_reverse_moves =
+      GenerateArray<BitBoard, kNumPositions>(impl::RedPawnReverseMovesAt);
   static constexpr std::array<BitBoard, kNumPositions> black_pawn_moves =
       GenerateArray<BitBoard, kNumPositions>(impl::BlackPawnMovesAt);
+  static constexpr std::array<BitBoard, kNumPositions>
+      black_pawn_reverse_moves =
+          GenerateArray<BitBoard, kNumPositions>(impl::BlackPawnReverseMovesAt);
   static constexpr std::array<BitBoard, kNumPositions> king_moves =
       GenerateArray<BitBoard, kNumPositions>(impl::KingMovesAt);
   static constexpr std::array<BitBoard, kNumPositions> assistant_moves =

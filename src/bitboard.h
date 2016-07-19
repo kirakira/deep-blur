@@ -15,9 +15,7 @@ class HalfBitBoard {
  public:
   class Iterator {
    public:
-    bool HasNext() const {
-      return value_ != 0;
-    }
+    bool HasNext() const { return value_ != 0; }
 
     Position Next() {
       const int ans = lsb(value_);
@@ -121,12 +119,8 @@ class BitBoard {
     return Iterator(halves_[0].Positions(), halves_[1].Positions());
   }
 
-  HalfBitBoard lower() const {
-    return halves_[0];
-  }
-  HalfBitBoard upper() const {
-    return halves_[1];
-  }
+  HalfBitBoard lower() const { return halves_[0]; }
+  HalfBitBoard upper() const { return halves_[1]; }
 
   inline BitBoard(const BitBoard&) = default;
   inline BitBoard& operator=(const BitBoard&) = default;

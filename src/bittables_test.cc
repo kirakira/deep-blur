@@ -18,6 +18,20 @@ void PrintPawnTables() {
   }
 }
 
+bool TestPawnReverseTables() {
+  if (BitTables::red_pawn_reverse_moves[36] != BitBoard::Fill(Position(27)))
+    return false;
+  if (BitTables::red_pawn_reverse_moves[45] !=
+      (BitBoard::Fill(Position(36)) | BitBoard::Fill(Position(46))))
+    return false;
+  if (BitTables::black_pawn_reverse_moves[36] !=
+      (BitBoard::Fill(Position(45)) | BitBoard::Fill(Position(37))))
+    return false;
+  if (BitTables::black_pawn_reverse_moves[45] != BitBoard::Fill(Position(54)))
+    return false;
+  return true;
+}
+
 void PrintKingTables() {
   for (int i = 0; i < kNumPositions; ++i) {
     cout << i << ": " << endl << BitTables::king_moves[i] << endl;
@@ -235,6 +249,7 @@ bool CheckRookColTables() {
 
 int main() {
   bool success = true;
+  success = success && TestPawnReverseTables();
   success = success && TestElephantOccupancy();
   success = success && TestHorseOccupancy();
   success = success && CheckHorseTables();
