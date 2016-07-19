@@ -139,6 +139,14 @@ bool CheckHorseTables() {
   return expected == occ;
 }
 
+bool CheckHorseReverseTables() {
+  auto board = BitBoard::Fill(Position(46 + 10));
+  uint64 occ = board.GetElephantOccupancy(Position(46));
+  return BitTables::horse_reverse_moves[46][occ] ==
+         (BitBoard::Fill(Position(27)) | BitBoard::Fill(Position(29)) |
+          BitBoard::Fill(Position(39)) | BitBoard::Fill(Position(63)));
+}
+
 bool TestRowOccupancy() {
   for (int row = 0; row < kNumRows; ++row) {
     for (uint64 x = 0; x < (1 << kNumColumns); ++x) {
@@ -230,6 +238,7 @@ int main() {
   success = success && TestElephantOccupancy();
   success = success && TestHorseOccupancy();
   success = success && CheckHorseTables();
+  success = success && CheckHorseReverseTables();
   success = success && TestRowOccupancy();
   success = success && CheckCannonRowTables();
   success = success && TestColOccupancy();

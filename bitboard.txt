@@ -63,7 +63,7 @@ standing for: b-1, b-9, b+1, b+9
 // shift = b + 6;
 
 
-Elephant move
+Elephant move (also horse reverse move)
 ======
 relevant bits: b-10, b-8, b+8, b+10
 magic number: 0, 17

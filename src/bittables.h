@@ -48,6 +48,15 @@ constexpr std::array<std::array<int, 3>, 8> kHorseMovePattern = {
      {{-2, -1, 1}},
      {{-2, 1, 1}},
      {{-1, 2, 2}}}};
+constexpr std::array<std::array<int, 3>, 8> kHorseReverseMovePattern = {
+    {{{1, 2, 3}},
+     {{2, 1, 3}},
+     {{2, -1, 1}},
+     {{1, -2, 1}},
+     {{-1, -2, 0}},
+     {{-2, -1, 0}},
+     {{-2, 1, 2}},
+     {{-1, 2, 2}}}};
 
 constexpr bool InBoard(int i, int j) { return Position::IsValidPosition(i, j); }
 
@@ -193,6 +202,18 @@ constexpr auto HorseMovesAt(size_t index) {
       CurryFront(HorseMovesWithOccupancy, index));
 }
 
+constexpr BitBoard HorseReverseMovesWithOccupancy(size_t index, uint64 occupancy) {
+  Position pos(static_cast<int>(index));
+  int i = pos.Row(), j = pos.Column();
+  return RelativePositionsWithOccupancy(i, j, occupancy, CheckHorsePosition,
+                                        kHorseReverseMovePattern);
+}
+
+constexpr auto HorseReverseMovesAt(size_t index) {
+  return GenerateArray<BitBoard, 16>(
+      CurryFront(HorseReverseMovesWithOccupancy, index));
+}
+
 constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
   Position pos(static_cast<int>(index));
@@ -310,6 +331,12 @@ class BitTables {
   static constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
       horse_moves = GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
           impl::HorseMovesAt);
+  // horse_reverse_moves[pos][occupancy]. Occupancy ranges from [0, 2^4).
+  // Occupancy same as elephant occupancy: BL, TL, BR, TR.
+  static constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
+      horse_reverse_moves =
+          GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
+              impl::HorseReverseMovesAt);
   // cannon_row_moves[pos][row]. Row ranges from [0, 2^9) encoding 1 bit for
   // each position in the row (1 for occupied, 0 for unoccupied) from left to
   // right.
