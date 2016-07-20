@@ -55,8 +55,20 @@ bool CheckGenerateMoves() {
     moves_string.push_back(move.ToString());
   }
   std::sort(moves_string.begin(), moves_string.end());
-  for (const auto& s : moves_string) cout << s << " ";
-  cout << endl << moves.size() << endl;
+  if (moves_string !=
+      vector<string>{"a0a1", "a0a2", "a3a4", "b0a2", "b0c2", "b2a2", "b2b1",
+                     "b2b3", "b2b4", "b2b5", "b2b6", "b2b9", "b2c2", "b2d2",
+                     "b2e2", "b2f2", "b2g2", "c0a2", "c0e2", "c3c4", "d0e1",
+                     "e0e1", "e3e4", "f0e1", "g0e2", "g0i2", "g3g4", "h0g2",
+                     "h0i2", "h2c2", "h2d2", "h2e2", "h2f2", "h2g2", "h2h1",
+                     "h2h3", "h2h4", "h2h5", "h2h6", "h2h9", "h2i2", "i0i1",
+                     "i0i2", "i3i4"}) {
+    return false;
+  }
+  if (board.IsAttacked(Position("a0")).first) return false;
+  if (board.IsAttacked(Position("b0")) != make_pair(true, Position("b7"))) {
+    return false;
+  }
   return true;
 }
 

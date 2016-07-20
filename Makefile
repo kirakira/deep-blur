@@ -14,7 +14,7 @@ $(OUT)/common.o: src/common.h src/common.cc
 	mkdir -p $(OUT)
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/common.cc
 
-$(OUT)/board-base.o: src/common.h src/board-base.h src/board.cc
+$(OUT)/board-base.o: src/common.h src/board-base.h src/board-base.cc
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/board-base.cc
 
 $(OUT)/bittables.o: $(OUT)/common.o src/board-base.h src/bitboard.h src/bittables.h src/bittables.cc

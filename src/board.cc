@@ -65,11 +65,7 @@ bool Board::SetBoard(const string& fen) {
   if (col != kNumColumns) return false;
   if (!rk_found || !bk_found) return false;
 
-  for (int i = 0; i < kNumRows; ++i) {
-    for (int j = 0; j < kNumColumns; ++j) {
-      board_[i][j] = Piece::EmptyPiece();
-    }
-  }
+  for (int i = 0; i < kNumPositions; ++i) board_[i] = Piece::EmptyPiece();
   for (int i = 0; i < 16; ++i) {
     piece_bitboards_[i] = BitBoard::EmptyBoard();
   }
@@ -83,7 +79,7 @@ bool Board::SetBoard(const string& fen) {
       col = 0;
     } else {
       Piece piece = char_piece_map[c];
-      board_[row][col] = piece;
+      board_[Position(row, col).value()] = piece;
       piece_bitboards_[piece.value()] |= BitBoard::Fill(Position(row, col));
 
       ++col;
@@ -104,9 +100,9 @@ string Board::ToString() const {
   };
   for (int i = kNumRows - 1; i >= 0; --i) {
     for (int j = 0; j < kNumColumns; ++j) {
-      if (board_[i][j] != Piece::EmptyPiece()) {
+      if (board_[Position(i, j).value()] != Piece::EmptyPiece()) {
         append_gap();
-        ans += board_[i][j].ToLetter();
+        ans += board_[Position(i, j).value()].ToLetter();
       } else {
         ++gap;
       }
@@ -122,10 +118,10 @@ void Board::DebugPrint() const {
   for (int i = kNumRows - 1; i >= 0; --i) {
     cout << i << "  ";
     for (int j = 0; j < kNumColumns; ++j) {
-      if (board_[i][j] == Piece::EmptyPiece()) {
+      if (board_[Position(i, j).value()] == Piece::EmptyPiece()) {
         cout << ".";
       } else {
-        cout << board_[i][j].ToLetter();
+        cout << board_[Position(i, j).value()].ToLetter();
       }
       cout << " ";
     }
@@ -144,51 +140,87 @@ void InsertMoves(Position from, BitBoard to, vector<Move>* moves) {
   }
 }
 
+BitBoard RookDestinations(Position from, BitBoard board,
+                          BitBoard allowed_mask) {
+  auto to = BitTables::rook_row_moves[from.value()]
+                                     [board.GetRowOccupancy(from.Row())];
+  to |= BitTables::rook_col_moves[from.value()]
+                                 [board.GetColOccupancy(from.Column())];
+  to &= allowed_mask;
+  return to;
+}
+
 void GenerateRookMoves(BitBoard rooks, BitBoard all, BitBoard allowed,
                        vector<Move>* moves) {
   for (auto iter = rooks.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
-    auto to = BitTables::rook_row_moves[from.value()]
-                                       [all.GetRowOccupancy(from.Row())];
-    to |= BitTables::rook_col_moves[from.value()]
-                                   [all.GetColOccupancy(from.Column())];
-    to &= allowed;
-    InsertMoves(from, to, moves);
+    InsertMoves(from, RookDestinations(from, all, allowed), moves);
   }
+}
+
+BitBoard HorseDestinations(Position from, BitBoard board,
+                           BitBoard allowed_mask) {
+  auto to = BitTables::horse_moves[from.value()][board.GetHorseOccupancy(from)];
+  to &= allowed_mask;
+  return to;
 }
 
 void GenerateHorseMoves(BitBoard source, BitBoard all, BitBoard allowed,
                         vector<Move>* moves) {
   for (auto iter = source.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
-    auto to = BitTables::horse_moves[from.value()][all.GetHorseOccupancy(from)];
-    to &= allowed;
-    InsertMoves(from, to, moves);
+    InsertMoves(from, HorseDestinations(from, all, allowed), moves);
   }
+}
+
+BitBoard HorseReverseDestinations(Position from, BitBoard board,
+                                  BitBoard allowed_mask) {
+  auto to = BitTables::horse_reverse_moves[from.value()]
+                                          [board.GetElephantOccupancy(from)];
+  to &= allowed_mask;
+  return to;
+}
+
+BitBoard CannonDestinations(Position from, BitBoard board,
+                            BitBoard allowed_mask) {
+  auto to = BitTables::cannon_row_moves[from.value()]
+                                       [board.GetRowOccupancy(from.Row())];
+  to |= BitTables::cannon_col_moves[from.value()]
+                                   [board.GetColOccupancy(from.Column())];
+  to &= allowed_mask;
+  return to;
 }
 
 void GenerateCannonMoves(BitBoard source, BitBoard all, BitBoard allowed,
                          vector<Move>* moves) {
   for (auto iter = source.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
-    auto to = BitTables::cannon_row_moves[from.value()]
-                                         [all.GetRowOccupancy(from.Row())];
-    to |= BitTables::cannon_col_moves[from.value()]
-                                     [all.GetColOccupancy(from.Column())];
-    to &= allowed;
-    InsertMoves(from, to, moves);
+    InsertMoves(from, CannonDestinations(from, all, allowed), moves);
   }
+}
+
+BitBoard ElephantDestinations(Position from, BitBoard board,
+                              BitBoard allowed_mask) {
+  auto to =
+      BitTables::elephant_moves[from.value()][board.GetElephantOccupancy(from)];
+  to &= allowed_mask;
+  return to;
 }
 
 void GenerateElephantMoves(BitBoard source, BitBoard all, BitBoard allowed,
                            vector<Move>* moves) {
   for (auto iter = source.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
-    auto to =
-        BitTables::elephant_moves[from.value()][all.GetElephantOccupancy(from)];
-    to &= allowed;
-    InsertMoves(from, to, moves);
+    InsertMoves(from, ElephantDestinations(from, all, allowed), moves);
   }
+}
+
+BitBoard SimplePieceDestinations(
+    Position from, BitBoard allowed_mask,
+    const std::array<BitBoard, kNumPositions>& table) {
+  auto to = table[from.value()];
+  to &= allowed_mask;
+  return to;
 }
 
 void GenerateSimplePieceMoves(BitBoard source, BitBoard allowed,
@@ -196,9 +228,7 @@ void GenerateSimplePieceMoves(BitBoard source, BitBoard allowed,
                               vector<Move>* moves) {
   for (auto iter = source.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
-    auto to = table[from.value()];
-    to &= allowed;
-    InsertMoves(from, to, moves);
+    InsertMoves(from, SimplePieceDestinations(from, allowed, table), moves);
   }
 }
 
@@ -217,6 +247,14 @@ void GenerateBlackPawnMoves(BitBoard source, BitBoard allowed,
   GenerateSimplePieceMoves(source, allowed, BitTables::black_pawn_moves, moves);
 }
 
+BitBoard KingSlidingDestinations(Position from, BitBoard board,
+                                 BitBoard allowed_mask) {
+  auto to = BitTables::rook_col_moves[from.value()]
+                                     [board.GetColOccupancy(from.Column())];
+  to &= allowed_mask;
+  return to;
+}
+
 void GenerateKingMoves(BitBoard source, BitBoard all, BitBoard allowed,
                        BitBoard other_king, vector<Move>* moves) {
   // Case 1: normal king moves.
@@ -224,10 +262,7 @@ void GenerateKingMoves(BitBoard source, BitBoard all, BitBoard allowed,
   // Case 2: special king-to-king move.
   for (auto iter = source.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
-    auto to = BitTables::rook_col_moves[from.value()]
-                                       [all.GetColOccupancy(from.Column())];
-    to &= other_king;
-    InsertMoves(from, to, moves);
+    InsertMoves(from, KingSlidingDestinations(from, all, other_king), moves);
   }
 }
 
@@ -281,6 +316,80 @@ vector<Move> Board::GenerateMoves(Side side) const {
       &moves);
 
   return moves;
+}
+
+std::pair<bool, Position> Board::IsAttacked(Position pos) const {
+  DCHECK(board_[pos.value()] != Piece::EmptyPiece());
+  const Side my_side = board_[pos.value()].side(),
+             other_side = OtherSide(my_side);
+
+  BitBoard all_pieces = BitBoard::EmptyBoard();
+  for (auto s : all_sides) {
+    for (auto pt : all_piece_types) {
+      Piece piece(s, pt);
+      all_pieces |= piece_bitboards_[piece.value()];
+    }
+  }
+
+  const bool in_local_half =
+      my_side == Side::kRed ? pos.InRedHalf() : !pos.InRedHalf();
+
+#define RETURN_IF_NONEMPTY(x)                                \
+  {                                                          \
+    const auto value = x;                                    \
+    if (value != BitBoard::EmptyBoard()) {                   \
+      return std::make_pair(true, value.Positions().Next()); \
+    }                                                        \
+  }
+  // Pawn
+  if (my_side == Side::kRed) {
+    RETURN_IF_NONEMPTY(SimplePieceDestinations(
+        pos, piece_bitboards_[Piece(other_side, PieceType::kPawn).value()],
+        BitTables::black_pawn_reverse_moves));
+  } else {
+    RETURN_IF_NONEMPTY(SimplePieceDestinations(
+        pos, piece_bitboards_[Piece(other_side, PieceType::kPawn).value()],
+        BitTables::red_pawn_reverse_moves));
+  }
+  // Assistant
+  if (!in_local_half) {
+    RETURN_IF_NONEMPTY(SimplePieceDestinations(
+        pos, piece_bitboards_[Piece(other_side, PieceType::kAssistant).value()],
+        BitTables::assistant_moves));
+  }
+  // Elephant
+  if (!in_local_half) {
+    RETURN_IF_NONEMPTY(ElephantDestinations(
+        pos, all_pieces,
+        piece_bitboards_[Piece(other_side, PieceType::kElephant).value()]));
+  }
+  // Horse
+  RETURN_IF_NONEMPTY(HorseReverseDestinations(
+      pos, all_pieces,
+      piece_bitboards_[Piece(other_side, PieceType::kHorse).value()]));
+  // Cannon
+  RETURN_IF_NONEMPTY(CannonDestinations(
+      pos, all_pieces,
+      piece_bitboards_[Piece(other_side, PieceType::kCannon).value()]));
+  // Rook
+  RETURN_IF_NONEMPTY(RookDestinations(
+      pos, all_pieces,
+      piece_bitboards_[Piece(other_side, PieceType::kRook).value()]));
+  // King
+  // Case 1: normal king moves.
+  if (!in_local_half) {
+    RETURN_IF_NONEMPTY(SimplePieceDestinations(
+        pos, piece_bitboards_[Piece(other_side, PieceType::kKing).value()],
+        BitTables::king_moves));
+  }
+  // Case 2: special king-to-king move.
+  if (in_local_half && board_[pos.value()].type() == PieceType::kKing) {
+    RETURN_IF_NONEMPTY(KingSlidingDestinations(
+        pos, all_pieces,
+        piece_bitboards_[Piece(other_side, PieceType::kKing).value()]));
+  }
+#undef RETURN_IF_NONEMPTY
+  return std::make_pair(false, Position());
 }
 
 }  // namespace blur

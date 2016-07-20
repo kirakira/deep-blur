@@ -77,6 +77,6 @@ standing for: b-10, b+8, b-8, b+10
 Board representation
 ======
 class Board {
-  Piece board_[10][9];  // To quickly find what a piece is at a position.
+  Piece board_[90];  // To quickly find what a piece is at a position.
   BitBoard pieces_[kMaxPieceId + 1];  // To speed up IsAttacked().
 };

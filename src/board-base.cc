@@ -10,7 +10,7 @@ Position::Position(const string& str) {
   assert(str.length() == 2);
   assert(str[0] >= 'a' && str[0] <= 'i');
   assert(str[1] >= '0' && str[1] <= '9');
-  value_ = kNumColumns * (str[1] - '9') + (str[0] - 'a');
+  value_ = kNumColumns * (str[1] - '0') + (str[0] - 'a');
 }
 
 string Position::ToString() const {
