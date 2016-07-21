@@ -37,8 +37,6 @@ class HalfBitBoard {
   // Requires: position.value() < 45.
   constexpr static HalfBitBoard Fill(Position position);
 
-  inline void Move(Move move);
-
   // Returns lower 4 bits. From least significant: BL, TL, BR, TR.
   inline uint64 GetElephantOccupancy(Position pos) const;
   // Returns lower 4 bits. From least significant: L, B, R, T.
@@ -105,7 +103,8 @@ class BitBoard {
   constexpr static BitBoard EmptyBoard();
   constexpr static BitBoard Fill(Position position);
 
-  inline void Move(Move move);
+  inline void Make(Move move);
+  inline void Unmake(Move move);
 
   // Returns lower 4 bits. From least significant: BL, TL, BR, TR.
   inline uint64 GetElephantOccupancy(Position pos) const;
@@ -277,6 +276,27 @@ constexpr BitBoard BitBoard::Fill(Position pos) {
              ? BitBoard(HalfBitBoard::Fill(pos), HalfBitBoard::EmptyBoard())
              : BitBoard(HalfBitBoard::EmptyBoard(),
                         HalfBitBoard::Fill(Position(pos.value() - 45)));
+}
+
+void BitBoard::Make(Move move) {
+  HalfBitBoard lower_mask = HalfBitBoard::EmptyBoard(),
+               upper_mask = HalfBitBoard::EmptyBoard();
+  if (move.from().InRedHalf()) {
+    lower_mask |= HalfBitBoard::Fill(move.from());
+  } else {
+    upper_mask |= HalfBitBoard::Fill(Position(move.from().value() - 45));
+  }
+  if (move.to().InRedHalf()) {
+    lower_mask |= HalfBitBoard::Fill(move.to());
+  } else {
+    upper_mask |= HalfBitBoard::Fill(Position(move.to().value() - 45));
+  }
+  halves_[0] ^= lower_mask;
+  halves_[1] ^= upper_mask;
+}
+
+void BitBoard::Unmake(Move move) {
+  Make(move);
 }
 
 uint64 BitBoard::GetElephantOccupancy(Position pos) const {

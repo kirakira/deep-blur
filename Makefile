@@ -26,7 +26,7 @@ $(OUT)/board.o: $(OUT)/common.o src/bittables.h src/board.h src/bitboard.h src/b
 $(OUT)/common_test: $(OUT)/common.o src/common_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o src/common_test.cc
 
-$(OUT)/bitboard_test: $(OUT)/common.o src/board-base.o src/bitboard.h src/bitboard_test.cc
+$(OUT)/bitboard_test: $(OUT)/common.o $(OUT)/board-base.o src/bitboard.h src/bitboard_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o $(OUT)/board-base.o src/bitboard_test.cc
 
 $(OUT)/bittables_test: $(OUT)/common.o $(OUT)/bittables.o $(OUT)/board-base.o src/bittables_test.cc

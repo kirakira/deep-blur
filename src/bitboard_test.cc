@@ -72,6 +72,46 @@ bool TestIterateBitBoard3() {
   return true;
 }
 
+bool TestMake() {
+  auto board = BitBoard::Fill(Position(0)) | BitBoard::Fill(Position(23)) |
+               BitBoard::Fill(Position(57)) | BitBoard::Fill(Position(87));
+  Move move(Position(23), Position(16));
+  board.Make(move);
+  if (DumpPositions(board) !=
+      vector<Position>{Position(0), Position(16), Position(57), Position(87)}) {
+    return false;
+  }
+  board.Unmake(move);
+  if (DumpPositions(board) !=
+      vector<Position>{Position(0), Position(23), Position(57), Position(87)}) {
+    return false;
+  }
+  move = Move(Position(0), Position(45));
+  board.Make(move);
+  if (DumpPositions(board) != vector<Position>{Position(23), Position(45),
+                                               Position(57), Position(87)}) {
+    return false;
+  }
+  move = Move(Position(87), Position(89));
+  board.Make(move);
+  if (DumpPositions(board) != vector<Position>{Position(23), Position(45),
+                                               Position(57), Position(89)}) {
+    return false;
+  }
+  move = Move(Position(89), Position(0));
+  board.Make(move);
+  if (DumpPositions(board) !=
+      vector<Position>{Position(0), Position(23), Position(45), Position(57)}) {
+    return false;
+  }
+  board.Unmake(move);
+  if (DumpPositions(board) != vector<Position>{Position(23), Position(45),
+                                               Position(57), Position(89)}) {
+    return false;
+  }
+  return true;
+}
+
 }  // namespace blur
 
 int main() {
@@ -82,6 +122,7 @@ int main() {
   success = success && TestIterateBitBoard1();
   success = success && TestIterateBitBoard2();
   success = success && TestIterateBitBoard3();
+  success = success && TestMake();
   if (success) {
     std::cout << "Success." << std::endl;
   } else {
