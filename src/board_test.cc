@@ -44,6 +44,10 @@ bool TestSetBadBoard() {
   if (board.ToString() != board_fen) return false;
   if (board.SetBoard("4k4/9/9/9/9/9/9/9/9/4K4r")) return false;
   if (board.ToString() != board_fen) return false;
+  if (board.SetBoard("4kk3/9/9/9/9/9/9/9/9/4K3r")) return false;
+  if (board.ToString() != board_fen) return false;
+  if (board.SetBoard("4k4/9/9/9/9/9/9/9/rr7/4K3r")) return false;
+  if (board.ToString() != board_fen) return false;
   return true;
 }
 

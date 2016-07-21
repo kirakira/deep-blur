@@ -31,16 +31,30 @@ Board::Board() {
 }
 
 bool Board::SetBoard(const string& fen) {
-  map<char, Piece> char_piece_map;
-  for (auto side : all_sides) {
-    for (auto piece_type : all_piece_types) {
-      Piece piece(side, piece_type);
-      char_piece_map[piece.ToLetter()] = piece;
+  static map<char, Piece> char_piece_map = []() {
+    map<char, Piece> cpm;
+    for (auto side : all_sides) {
+      for (auto piece_type : all_piece_types) {
+        Piece piece(side, piece_type);
+        cpm[piece.ToLetter()] = piece;
+      }
     }
-  }
+    return cpm;
+  }();
+  static vector<int> max_piece_count = []() {
+    vector<int> mpc(8);
+    mpc[static_cast<int>(PieceType::kKing)] = 1;
+    mpc[static_cast<int>(PieceType::kPawn)] = 5;
+    mpc[static_cast<int>(PieceType::kAssistant)] = 2;
+    mpc[static_cast<int>(PieceType::kElephant)] = 2;
+    mpc[static_cast<int>(PieceType::kHorse)] = 2;
+    mpc[static_cast<int>(PieceType::kCannon)] = 2;
+    mpc[static_cast<int>(PieceType::kRook)] = 2;
+    return mpc;
+  }();
 
   int row = 9, col = 0;
-  bool rk_found = false, bk_found = false;
+  vector<int> piece_count(32, 0);
   for (char c : fen) {
     if (c >= '0' && c <= '9') {
       col += (c - '0');
@@ -53,18 +67,25 @@ bool Board::SetBoard(const string& fen) {
       if (char_piece_map.count(c) == 0) return false;
       if (char_piece_map[c] == Piece(Side::kRed, PieceType::kKing)) {
         if (!(row <= 2 && col >= 3 && col <= 5)) return false;
-        rk_found = true;
       } else if (char_piece_map[c] == Piece(Side::kBlack, PieceType::kKing)) {
         if (!(row >= 7 && col >= 3 && col <= 5)) return false;
-        bk_found = true;
       }
       if (col >= kNumColumns) return false;
       ++col;
+      ++piece_count[char_piece_map[c].value()];
     }
   }
   if (row != 0) return false;
   if (col != kNumColumns) return false;
-  if (!rk_found || !bk_found) return false;
+  for (auto s : all_sides) {
+    if (piece_count[Piece(s, PieceType::kKing).value()] != 1) return false;
+    for (auto pt : all_piece_types) {
+      if (piece_count[Piece(s, pt).value()] >
+          max_piece_count[static_cast<int>(pt)]) {
+        return false;
+      }
+    }
+  }
 
   for (int i = 0; i < kNumPositions; ++i) board_[i] = Piece::EmptyPiece();
   for (int i = 0; i < 16; ++i) {
