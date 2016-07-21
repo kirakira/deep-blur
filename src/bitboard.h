@@ -278,22 +278,7 @@ constexpr BitBoard BitBoard::Fill(Position pos) {
                         HalfBitBoard::Fill(Position(pos.value() - 45)));
 }
 
-void BitBoard::Make(Move move) {
-  HalfBitBoard lower_mask = HalfBitBoard::EmptyBoard(),
-               upper_mask = HalfBitBoard::EmptyBoard();
-  if (move.from().InRedHalf()) {
-    lower_mask |= HalfBitBoard::Fill(move.from());
-  } else {
-    upper_mask |= HalfBitBoard::Fill(Position(move.from().value() - 45));
-  }
-  if (move.to().InRedHalf()) {
-    lower_mask |= HalfBitBoard::Fill(move.to());
-  } else {
-    upper_mask |= HalfBitBoard::Fill(Position(move.to().value() - 45));
-  }
-  halves_[0] ^= lower_mask;
-  halves_[1] ^= upper_mask;
-}
+void BitBoard::Make(Move move) { *this ^= Fill(move.from()) | Fill(move.to()); }
 
 void BitBoard::Unmake(Move move) {
   Make(move);

@@ -8,7 +8,7 @@
 using namespace blur;
 using namespace std;
 
-bool CheckSetBoard() {
+bool TestSetBoard() {
   Board board;
   if (board.ToString() !=
       "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR")
@@ -24,7 +24,7 @@ bool CheckSetBoard() {
   return true;
 }
 
-bool CheckSetBadBoard() {
+bool TestSetBadBoard() {
   Board board;
   const string board_fen =
       "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR";
@@ -47,7 +47,7 @@ bool CheckSetBadBoard() {
   return true;
 }
 
-bool CheckGenerateMoves() {
+bool TestGenerateMoves() {
   Board board;
   auto moves = board.GenerateMoves(Side::kRed);
   vector<string> moves_string;
@@ -72,7 +72,7 @@ bool CheckGenerateMoves() {
   return true;
 }
 
-bool CheckIsAttacked() {
+bool TestIsAttacked() {
   Board board;
   if (!board.SetBoard("2eakae2/3P5/9/9/9/9/9/9/9/4K4")) return false;
   if (board.IsAttacked(Position("d8")).first) return false;
@@ -82,11 +82,38 @@ bool CheckIsAttacked() {
   return true;
 }
 
+bool TestMake() {
+  Board board;
+  board.Make(Move("b2b9"));
+  if (board.ToString() !=
+      "rCeakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEHR") {
+    return false;
+  }
+  board.Make(Move("h7h0"));
+  if (board.ToString() !=
+      "rCeakaehr/9/1c7/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEcR") {
+    return false;
+  }
+  board.Unmake();
+  if (board.ToString() !=
+      "rCeakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEHR") {
+    return false;
+  }
+  board.Unmake();
+  if (board.ToString() !=
+      "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR") {
+    return false;
+  }
+  return true;
+}
+
 int main() {
   bool success = true;
-  success = success && CheckSetBoard();
-  success = success && CheckSetBadBoard();
-  success = success && CheckGenerateMoves();
+  success = success && TestSetBoard();
+  success = success && TestSetBadBoard();
+  success = success && TestGenerateMoves();
+  success = success && TestIsAttacked();
+  success = success && TestMake();
   cout << (success ? "Success." : "Failed.") << endl;
   return success ? 0 : 1;
 }

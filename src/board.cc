@@ -27,6 +27,7 @@ constexpr std::initializer_list<PieceType> all_piece_types{
 Board::Board() {
   assert(
       SetBoard("rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR"));
+  history_.reserve(200);
 }
 
 bool Board::SetBoard(const string& fen) {
@@ -390,6 +391,41 @@ std::pair<bool, Position> Board::IsAttacked(Position pos) const {
   }
 #undef RETURN_IF_NONEMPTY
   return std::make_pair(false, Position());
+}
+
+void Board::Make(Move move) {
+  const Piece from_piece = board_[move.from().value()],
+              to_piece = board_[move.to().value()];
+  DCHECK(from_piece != Piece::EmptyPiece());
+  DCHECK(from_piece != to_piece);
+  // 1. Update history.
+  history_.push_back({move, to_piece});
+  // 2. Update bitboards.
+  piece_bitboards_[from_piece.value()].Make(move);
+  if (to_piece != Piece::EmptyPiece()) {
+    piece_bitboards_[to_piece.value()] &= ~BitBoard::Fill(move.to());
+  }
+  // 3. Update board_.
+  board_[move.to().value()] = board_[move.from().value()];
+  board_[move.from().value()] = Piece::EmptyPiece();
+}
+
+void Board::Unmake() {
+  DCHECK(!history_.empty());
+  const auto history_move = history_.back();
+  const auto move = history_move.move;
+  const auto from_piece = board_[move.to().value()],
+             to_piece = history_move.capture;
+  // 1. Restore board_.
+  board_[move.from().value()] = from_piece;
+  board_[move.to().value()] = to_piece;
+  // 2. Restore bitboards.
+  if (to_piece != Piece::EmptyPiece()) {
+    piece_bitboards_[to_piece.value()] |= BitBoard::Fill(move.to());
+  }
+  piece_bitboards_[from_piece.value()].Unmake(move);
+  // 3. Restore history_;
+  history_.pop_back();
 }
 
 }  // namespace blur

@@ -38,9 +38,15 @@ class Board {
   void DebugPrint() const;
 
  private:
+  struct HistoryMove {
+    Move move;
+    Piece capture;
+  };
+
   Piece board_[kNumPositions];
   // Indexed by piece.value().
   BitBoard piece_bitboards_[16];
+  std::vector<HistoryMove> history_;
 };
 
 }  // namespace blur
