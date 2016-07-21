@@ -72,6 +72,16 @@ bool CheckGenerateMoves() {
   return true;
 }
 
+bool CheckIsAttacked() {
+  Board board;
+  if (!board.SetBoard("2eakae2/3P5/9/9/9/9/9/9/9/4K4")) return false;
+  if (board.IsAttacked(Position("d8")).first) return false;
+  if (board.IsAttacked(Position("e0")) != make_pair(true, Position("e9"))) {
+    return false;
+  }
+  return true;
+}
+
 int main() {
   bool success = true;
   success = success && CheckSetBoard();
