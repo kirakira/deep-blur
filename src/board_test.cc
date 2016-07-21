@@ -107,6 +107,20 @@ bool TestMake() {
   return true;
 }
 
+bool TestInCheck() {
+  Board board;
+  if (!board.SetBoard("2eakae2/3P5/9/9/9/9/9/9/9/4K4")) return false;
+  if (!board.InCheck(Side::kRed)) return false;
+  if (!board.InCheck(Side::kBlack)) return false;
+  if (!board.SetBoard(
+          "rheakaehr/9/1c5c1/p1p1p1p1p/9/4C4/P1P1P1P1P/1C7/9/RHEAKAEHR")) {
+    return false;
+  }
+  if (board.InCheck(Side::kRed)) return false;
+  if (!board.InCheck(Side::kBlack)) return false;
+  return true;
+}
+
 int main() {
   bool success = true;
   success = success && TestSetBoard();
@@ -114,6 +128,7 @@ int main() {
   success = success && TestGenerateMoves();
   success = success && TestIsAttacked();
   success = success && TestMake();
+  success = success && TestInCheck();
   cout << (success ? "Success." : "Failed.") << endl;
   return success ? 0 : 1;
 }

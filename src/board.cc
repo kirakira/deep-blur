@@ -428,4 +428,11 @@ void Board::Unmake() {
   history_.pop_back();
 }
 
+bool Board::InCheck(Side side) const {
+  return IsAttacked(piece_bitboards_[Piece(side, PieceType::kKing).value()]
+                        .Positions()
+                        .Next())
+      .first;
+}
+
 }  // namespace blur
