@@ -27,7 +27,6 @@ constexpr std::initializer_list<PieceType> all_piece_types{
 Board::Board() {
   assert(
       SetBoard("rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR"));
-  history_.reserve(200);
 }
 
 bool Board::SetBoard(const string& fen) {
@@ -91,6 +90,8 @@ bool Board::SetBoard(const string& fen) {
   for (int i = 0; i < 16; ++i) {
     piece_bitboards_[i] = BitBoard::EmptyBoard();
   }
+  history_.clear();
+  history_.reserve(200);
 
   row = 9, col = 0;
   for (char c : fen) {
