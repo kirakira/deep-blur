@@ -30,6 +30,8 @@ class Board {
   bool InCheck(Side side) const;
 
   void Make(Move m);
+  // This only accepts legal moves (no suicides). King captures are ok.
+  bool CheckedMake(Side side, Move m);
   void Unmake();
 
   // Returns false if this is a bad board position.
@@ -44,6 +46,10 @@ class Board {
     Move move;
     Piece capture;
   };
+
+  // TODO: Cache the following?
+  BitBoard AllPiecesMask() const;
+  BitBoard SidePiecesMask(Side side) const;
 
   Piece board_[kNumPositions];
   // Indexed by piece.value().

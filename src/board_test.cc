@@ -125,6 +125,54 @@ bool TestInCheck() {
   return true;
 }
 
+bool TestCheckedMoveForBoard(Board board) {
+  static constexpr std::initializer_list<Side> all_sides{Side::kRed,
+                                                         Side::kBlack};
+  for (auto s : all_sides) {
+    auto moves = board.GenerateMoves(s);
+    for (int i = 0; i < kNumPositions; ++i) {
+      for (int j = 0; j < kNumPositions; ++j) {
+        Move move{Position(i), Position(j)};
+        bool valid = moves.end() !=
+                     std::find_if(moves.begin(), moves.end(), [move](Move m) {
+                       return move.from() == m.from() && move.to() == m.to();
+                     });
+        if (valid) {
+          board.Make(move);
+          if (board.InCheck(s)) valid = false;
+          board.Unmake();
+        }
+        if (board.CheckedMake(s, move)) {
+          if (!valid) return false;
+          board.Unmake();
+        } else {
+          if (valid) return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+bool TestCheckedMove() {
+  Board board;
+  cout << "A" << endl;
+  if (!TestCheckedMoveForBoard(board)) return false;
+  cout << "B" << endl;
+  if (!board.SetBoard("2eakae2/3P5/9/9/9/9/9/9/9/4K4")) return false;
+  cout << "C" << endl;
+  if (!TestCheckedMoveForBoard(board)) return false;
+  cout << "D" << endl;
+  if (!board.SetBoard(
+          "rCeakaehr/9/1c7/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEcR")) {
+    return false;
+  }
+  cout << "E" << endl;
+  if (!TestCheckedMoveForBoard(board)) return false;
+  cout << "F" << endl;
+  return true;
+}
+
 int main() {
   bool success = true;
   success = success && TestSetBoard();
@@ -133,6 +181,7 @@ int main() {
   success = success && TestIsAttacked();
   success = success && TestMake();
   success = success && TestInCheck();
+  success = success && TestCheckedMove();
   cout << (success ? "Success." : "Failed.") << endl;
   return success ? 0 : 1;
 }

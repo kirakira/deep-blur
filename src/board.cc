@@ -288,18 +288,34 @@ void GenerateKingMoves(BitBoard source, BitBoard all, BitBoard allowed,
   }
 }
 
-}  // namespace
-
-vector<Move> Board::GenerateMoves(Side side) const {
-  BitBoard all_pieces = BitBoard::EmptyBoard();
-  BitBoard allowed_dests = ~BitBoard::EmptyBoard();
+// Return the binary or of all piece bitboards on which f returns true.
+template <typename Predicate>
+BitBoard ComputePiecesMask(const BitBoard piece_bitboards[], Predicate f) {
+  BitBoard ans = BitBoard::EmptyBoard();
   for (auto s : all_sides) {
     for (auto pt : all_piece_types) {
       Piece piece(s, pt);
-      all_pieces |= piece_bitboards_[piece.value()];
-      if (side == s) allowed_dests &= ~piece_bitboards_[piece.value()];
+      if (f(piece)) ans |= piece_bitboards[piece.value()];
     }
   }
+  return ans;
+}
+
+}  // namespace
+
+BitBoard Board::AllPiecesMask() const {
+  return ComputePiecesMask(piece_bitboards_, [](Piece) { return true; });
+}
+
+BitBoard Board::SidePiecesMask(Side side) const {
+  return ComputePiecesMask(piece_bitboards_,
+                           [side](Piece p) { return p.side() == side; });
+}
+
+vector<Move> Board::GenerateMoves(Side side) const {
+  const BitBoard all_pieces = AllPiecesMask();
+  const BitBoard allowed_dests =
+      ~BitBoard::EmptyBoard() & ~SidePiecesMask(side);
 
   vector<Move> moves;
   moves.reserve(50);
@@ -345,14 +361,7 @@ std::pair<bool, Position> Board::IsAttacked(Position pos) const {
   const Side my_side = board_[pos.value()].side(),
              other_side = OtherSide(my_side);
 
-  BitBoard all_pieces = BitBoard::EmptyBoard();
-  for (auto s : all_sides) {
-    for (auto pt : all_piece_types) {
-      Piece piece(s, pt);
-      all_pieces |= piece_bitboards_[piece.value()];
-    }
-  }
-
+  const BitBoard all_pieces = AllPiecesMask();
   const bool in_local_half =
       my_side == Side::kRed ? pos.InRedHalf() : !pos.InRedHalf();
 
@@ -418,7 +427,7 @@ void Board::Make(Move move) {
   const Piece from_piece = board_[move.from().value()],
               to_piece = board_[move.to().value()];
   DCHECK(from_piece != Piece::EmptyPiece());
-  DCHECK(from_piece != to_piece);
+  DCHECK(move.from() != move.to());
   // 1. Update history.
   history_.push_back({move, to_piece});
   // 2. Update bitboards.
@@ -454,6 +463,63 @@ bool Board::InCheck(Side side) const {
                         .Positions()
                         .Next())
       .first;
+}
+
+bool Board::CheckedMake(Side side, Move move) {
+  const auto from = move.from(), to = move.to();
+  const Piece from_piece = board_[from.value()];
+  if (from_piece == Piece::EmptyPiece()) return false;
+  if (from_piece.side() != side) return false;
+
+  const BitBoard all_pieces = AllPiecesMask();
+  const BitBoard allowed_dests =
+      ~BitBoard::EmptyBoard() & ~SidePiecesMask(side);
+  BitBoard dests = BitBoard::EmptyBoard();
+
+  switch (from_piece.type()) {
+    case PieceType::kKing: {
+      dests =
+          SimplePieceDestinations(from, allowed_dests, BitTables::king_moves);
+      dests |= KingSlidingDestinations(
+          from, all_pieces,
+          piece_bitboards_[Piece(OtherSide(side), PieceType::kKing).value()]);
+    } break;
+    case PieceType::kPawn: {
+      if (side == Side::kRed) {
+        dests = SimplePieceDestinations(from, allowed_dests,
+                                        BitTables::red_pawn_moves);
+      } else {
+        dests = SimplePieceDestinations(from, allowed_dests,
+                                        BitTables::black_pawn_moves);
+      }
+    } break;
+    case PieceType::kAssistant: {
+      dests = SimplePieceDestinations(from, allowed_dests,
+                                      BitTables::assistant_moves);
+    } break;
+    case PieceType::kElephant: {
+      dests = ElephantDestinations(from, all_pieces, allowed_dests);
+    } break;
+    case PieceType::kHorse: {
+      dests = HorseDestinations(from, all_pieces, allowed_dests);
+    } break;
+    case PieceType::kCannon: {
+      dests = CannonDestinations(from, all_pieces, allowed_dests);
+    } break;
+    case PieceType::kRook: {
+      dests = RookDestinations(from, all_pieces, allowed_dests);
+    } break;
+  }
+
+  if (!dests[to]) return false;
+
+  Make(move);
+  if (InCheck(side)) {
+    Unmake();
+    return false;
+  }
+
+  return true;
 }
 
 }  // namespace blur

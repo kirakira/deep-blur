@@ -51,6 +51,10 @@ class HalfBitBoard {
   inline HalfBitBoard(const HalfBitBoard&) = default;
   inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
 
+  // Extract a bit.
+  // Requires: 0 <= pos < 45.
+  inline bool operator[](int pos) const { return GetBit(value_, pos) == 1; }
+
   friend inline HalfBitBoard operator~(HalfBitBoard b);
   friend inline HalfBitBoard operator&(HalfBitBoard b1, HalfBitBoard b2);
   friend constexpr HalfBitBoard operator|(HalfBitBoard b1, HalfBitBoard b2);
@@ -120,6 +124,8 @@ class BitBoard {
 
   HalfBitBoard lower() const { return halves_[0]; }
   HalfBitBoard upper() const { return halves_[1]; }
+  // Is the specified position set?
+  inline bool operator[](Position pos) const;
 
   inline BitBoard(const BitBoard&) = default;
   inline BitBoard& operator=(const BitBoard&) = default;
@@ -305,6 +311,14 @@ uint64 BitBoard::GetRowOccupancy(int row) const {
 uint64 BitBoard::GetColOccupancy(int col) const {
   return halves_[0].GetColOccupancy(col) |
          (halves_[1].GetColOccupancy(col) << 5);
+}
+
+bool BitBoard::operator[](Position pos) const {
+  if (pos.value() < 45) {
+    return halves_[0][pos.value()];
+  } else {
+    return halves_[1][pos.value() - 45];
+  }
 }
 
 BitBoard operator~(BitBoard b) {
