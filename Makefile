@@ -8,7 +8,7 @@ else
 endif
 
 .PHONY: test
-test: $(OUT)/common_test $(OUT)/bittables_test $(OUT)/bitboard_test $(OUT)/board_test $(OUT)/genmove_test.cc
+test: $(OUT)/common_test $(OUT)/bittables_test $(OUT)/bitboard_test $(OUT)/board_test $(OUT)/genmove_test
 
 $(OUT)/common.o: src/common.h src/common.cc
 	mkdir -p $(OUT)
