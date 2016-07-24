@@ -523,4 +523,10 @@ bool Board::CheckedMake(Side side, Move move) {
   return true;
 }
 
+bool Board::CheckedUnmake() {
+  if (history_.empty()) return false;
+  Unmake();
+  return true;
+}
+
 }  // namespace blur

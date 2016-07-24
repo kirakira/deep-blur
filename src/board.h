@@ -33,6 +33,7 @@ class Board {
   // This only accepts legal moves (no suicides). King captures are ok.
   bool CheckedMake(Side side, Move m);
   void Unmake();
+  bool CheckedUnmake();
 
   // Returns false if this is a bad board position.
   bool SetBoard(const std::string& fen);

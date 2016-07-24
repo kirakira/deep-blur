@@ -154,22 +154,28 @@ bool TestCheckedMoveForBoard(Board board) {
   return true;
 }
 
-bool TestCheckedMove() {
+bool TestCheckedMake() {
   Board board;
-  cout << "A" << endl;
   if (!TestCheckedMoveForBoard(board)) return false;
-  cout << "B" << endl;
   if (!board.SetBoard("2eakae2/3P5/9/9/9/9/9/9/9/4K4")) return false;
-  cout << "C" << endl;
   if (!TestCheckedMoveForBoard(board)) return false;
-  cout << "D" << endl;
   if (!board.SetBoard(
           "rCeakaehr/9/1c7/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEcR")) {
     return false;
   }
-  cout << "E" << endl;
   if (!TestCheckedMoveForBoard(board)) return false;
-  cout << "F" << endl;
+  return true;
+}
+
+bool TestCheckedUnmake() {
+  Board board;
+  if (board.CheckedUnmake()) return false;
+  board.Make(Move("b2c2"));
+  if (!board.CheckedUnmake()) return false;
+  if (board.ToString() !=
+      "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR") {
+    return false;
+  }
   return true;
 }
 
@@ -181,7 +187,8 @@ int main() {
   success = success && TestIsAttacked();
   success = success && TestMake();
   success = success && TestInCheck();
-  success = success && TestCheckedMove();
+  success = success && TestCheckedMake();
+  success = success && TestCheckedUnmake();
   cout << (success ? "Success." : "Failed.") << endl;
   return success ? 0 : 1;
 }
