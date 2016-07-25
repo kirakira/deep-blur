@@ -38,6 +38,9 @@ $(OUT)/board_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/bittables.o $(OUT)/boar
 $(OUT)/genmove_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/bittables.o $(OUT)/board-base.o src/genmove_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/bittables.o $(OUT)/common.o $(OUT)/board-base.o src/genmove_test.cc
 
+$(OUT)/board_benchmark: $(OUT)/common.o $(OUT)/board.o $(OUT)/bittables.o $(OUT)/board-base.o src/board_benchmark.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/bittables.o $(OUT)/common.o $(OUT)/board-base.o src/board_benchmark.cc
+
 .PHONY: clean
 clean:
 	rm -f $(OUT)/*.o $(OUT)/*_test
