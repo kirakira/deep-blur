@@ -13,23 +13,6 @@ namespace blur {
 // Value semantics.
 class HalfBitBoard {
  public:
-  class Iterator {
-   public:
-    bool HasNext() const { return value_ != 0; }
-
-    Position Next() {
-      const int ans = lsb(value_);
-      value_ &= value_ - 1;
-      return Position(ans);
-    }
-
-   private:
-    explicit Iterator(uint64 value) : value_(value) {}
-    friend class HalfBitBoard;
-
-    uint64 value_;
-  };
-
   // An uninitialized HalfBitBoard.
   HalfBitBoard() = default;
   constexpr static HalfBitBoard EmptyBoard();
@@ -45,8 +28,21 @@ class HalfBitBoard {
   inline uint64 GetRowOccupancy(int row) const;
   inline uint64 GetColOccupancy(int col) const;
 
-  // Iterate over all set positions on this HalfBitBoard.
-  Iterator Positions() const { return Iterator(value_); }
+  // Visit all positions set in this HalfBitBoard.
+  template <typename Function>
+  inline void VisitPositions(Function f) const {
+    uint64 current = value_;
+    while (current != 0) {
+      f(Position(lsb(current)));
+      current &= (current - 1);
+    }
+  }
+
+  // Return any of the positions set. Requires non-empty board.
+  inline Position AnyPosition() const {
+    DCHECK(value_ != 0);
+    return Position(lsb(value_));
+  }
 
   inline HalfBitBoard(const HalfBitBoard&) = default;
   inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
@@ -79,29 +75,6 @@ class HalfBitBoard {
 // Value semantics.
 class BitBoard {
  public:
-  class Iterator {
-   public:
-    bool HasNext() const {
-      return lower_iter_.HasNext() || upper_iter_.HasNext();
-    }
-
-    Position Next() {
-      if (lower_iter_.HasNext()) return lower_iter_.Next();
-      return Position(45 + upper_iter_.Next().value());
-    }
-
-   private:
-    using HalfIterator = HalfBitBoard::Iterator;
-
-    Iterator(HalfIterator lower_iter, HalfIterator upper_iter)
-        : lower_iter_(lower_iter), upper_iter_(upper_iter) {}
-
-    friend class BitBoard;
-
-    HalfIterator lower_iter_;
-    HalfIterator upper_iter_;
-  };
-
   // An uninitialized BitBoard.
   BitBoard() = default;
   constexpr static BitBoard EmptyBoard();
@@ -117,9 +90,19 @@ class BitBoard {
   inline uint64 GetRowOccupancy(int row) const;
   inline uint64 GetColOccupancy(int col) const;
 
-  // Iterate over all set positions on this BitBoard.
-  Iterator Positions() const {
-    return Iterator(halves_[0].Positions(), halves_[1].Positions());
+  // Visit all positions set in this BitBoard.
+  template <typename Function>
+  void VisitPositions(Function f) const {
+    halves_[0].VisitPositions(f);
+    halves_[1].VisitPositions(
+        [f](Position pos) { f(Position(pos.value() + 45)); });
+  }
+
+  // Return any of the set positions. Requires non-empty board.
+  inline Position AnyPosition() const {
+    return halves_[0] == HalfBitBoard::EmptyBoard()
+               ? Position(halves_[1].AnyPosition().value() + 45)
+               : halves_[0].AnyPosition();
   }
 
   HalfBitBoard lower() const { return halves_[0]; }
@@ -286,9 +269,7 @@ constexpr BitBoard BitBoard::Fill(Position pos) {
 
 void BitBoard::Make(Move move) { *this ^= Fill(move.from()) | Fill(move.to()); }
 
-void BitBoard::Unmake(Move move) {
-  Make(move);
-}
+void BitBoard::Unmake(Move move) { Make(move); }
 
 uint64 BitBoard::GetElephantOccupancy(Position pos) const {
   return pos.InRedHalf()

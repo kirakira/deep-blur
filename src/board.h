@@ -27,6 +27,8 @@ class Board {
   //    pos must be occupied by a piece.
   std::pair<bool, Position> IsAttacked(Position pos) const;
   // Is side being checked?
+  // Requires:
+  //    King of side must exist.
   bool InCheck(Side side) const;
 
   void Make(Move m);

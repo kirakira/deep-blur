@@ -10,9 +10,7 @@ namespace blur {
 template <typename BoardType>
 auto DumpPositions(BoardType board) {
   vector<Position> dumped;
-  for (auto iter = board.Positions(); iter.HasNext();) {
-    dumped.push_back(iter.Next());
-  }
+  board.VisitPositions([&dumped](Position pos) { dumped.push_back(pos); });
   return dumped;
 }
 

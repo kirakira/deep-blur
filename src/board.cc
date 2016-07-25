@@ -158,9 +158,7 @@ namespace {
 // Helper function to add all moves to a vector whose start positions are fixed
 // and whose end positions are given in a BitBoard.
 void InsertMoves(Position from, BitBoard to, MoveList* moves) {
-  for (auto iter = to.Positions(); iter.HasNext();) {
-    moves->Add(from, iter.Next());
-  }
+  to.VisitPositions([from, moves](Position pos) { moves->Add(from, pos); });
 }
 
 BitBoard RookDestinations(Position from, BitBoard board,
@@ -173,12 +171,11 @@ BitBoard RookDestinations(Position from, BitBoard board,
   return to;
 }
 
-void GenerateRookMoves(BitBoard rooks, BitBoard all, BitBoard allowed,
+void GenerateRookMoves(BitBoard source, BitBoard all, BitBoard allowed,
                        MoveList* moves) {
-  for (auto iter = rooks.Positions(); iter.HasNext();) {
-    const auto from = iter.Next();
+  source.VisitPositions([all, allowed, moves](Position from) {
     InsertMoves(from, RookDestinations(from, all, allowed), moves);
-  }
+  });
 }
 
 BitBoard HorseDestinations(Position from, BitBoard board,
@@ -190,10 +187,9 @@ BitBoard HorseDestinations(Position from, BitBoard board,
 
 void GenerateHorseMoves(BitBoard source, BitBoard all, BitBoard allowed,
                         MoveList* moves) {
-  for (auto iter = source.Positions(); iter.HasNext();) {
-    const auto from = iter.Next();
+  source.VisitPositions([all, allowed, moves](Position from) {
     InsertMoves(from, HorseDestinations(from, all, allowed), moves);
-  }
+  });
 }
 
 BitBoard HorseReverseDestinations(Position from, BitBoard board,
@@ -216,10 +212,9 @@ BitBoard CannonDestinations(Position from, BitBoard board,
 
 void GenerateCannonMoves(BitBoard source, BitBoard all, BitBoard allowed,
                          MoveList* moves) {
-  for (auto iter = source.Positions(); iter.HasNext();) {
-    const auto from = iter.Next();
+  source.VisitPositions([all, allowed, moves](Position from) {
     InsertMoves(from, CannonDestinations(from, all, allowed), moves);
-  }
+  });
 }
 
 BitBoard ElephantDestinations(Position from, BitBoard board,
@@ -232,10 +227,9 @@ BitBoard ElephantDestinations(Position from, BitBoard board,
 
 void GenerateElephantMoves(BitBoard source, BitBoard all, BitBoard allowed,
                            MoveList* moves) {
-  for (auto iter = source.Positions(); iter.HasNext();) {
-    const auto from = iter.Next();
+  source.VisitPositions([all, allowed, moves](Position from) {
     InsertMoves(from, ElephantDestinations(from, all, allowed), moves);
-  }
+  });
 }
 
 BitBoard SimplePieceDestinations(
@@ -249,10 +243,9 @@ BitBoard SimplePieceDestinations(
 void GenerateSimplePieceMoves(BitBoard source, BitBoard allowed,
                               const std::array<BitBoard, kNumPositions>& table,
                               MoveList* moves) {
-  for (auto iter = source.Positions(); iter.HasNext();) {
-    const auto from = iter.Next();
+  source.VisitPositions([allowed, &table, moves](Position from) {
     InsertMoves(from, SimplePieceDestinations(from, allowed, table), moves);
-  }
+  });
 }
 
 void GenerateAssistantMoves(BitBoard source, BitBoard allowed,
@@ -282,10 +275,9 @@ void GenerateKingMoves(BitBoard source, BitBoard all, BitBoard allowed,
   // Case 1: normal king moves.
   GenerateSimplePieceMoves(source, allowed, BitTables::king_moves, moves);
   // Case 2: special king-to-king move.
-  for (auto iter = source.Positions(); iter.HasNext();) {
-    const auto from = iter.Next();
+  source.VisitPositions([all, other_king, moves](Position from) {
     InsertMoves(from, KingSlidingDestinations(from, all, other_king), moves);
-  }
+  });
 }
 
 // Return the binary or of all piece bitboards on which f returns true.
@@ -364,12 +356,12 @@ std::pair<bool, Position> Board::IsAttacked(Position pos) const {
   const bool in_local_half =
       my_side == Side::kRed ? pos.InRedHalf() : !pos.InRedHalf();
 
-#define RETURN_IF_NONEMPTY(x)                                \
-  {                                                          \
-    const auto value = x;                                    \
-    if (value != BitBoard::EmptyBoard()) {                   \
-      return std::make_pair(true, value.Positions().Next()); \
-    }                                                        \
+#define RETURN_IF_NONEMPTY(x)                           \
+  {                                                     \
+    const auto value = x;                               \
+    if (value != BitBoard::EmptyBoard()) {              \
+      return std::make_pair(true, value.AnyPosition()); \
+    }                                                   \
   }
   // Pawn
   if (my_side == Side::kRed) {
@@ -459,8 +451,7 @@ void Board::Unmake() {
 
 bool Board::InCheck(Side side) const {
   return IsAttacked(piece_bitboards_[Piece(side, PieceType::kKing).value()]
-                        .Positions()
-                        .Next())
+                        .AnyPosition())
       .first;
 }
 
