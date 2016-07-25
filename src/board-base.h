@@ -147,6 +147,24 @@ class Piece {
   int value_;
 };
 
+class MoveList {
+ public:
+  template <typename... Args>
+  inline void Add(Args&&... args) {
+    moves_[size_++] = Move(std::forward<Args>(args)...);
+  }
+  int size() const { return size_; }
+
+  inline Move* begin() { return &moves_[0]; }
+  inline Move* end() { return &moves_[size_]; }
+  inline const Move* begin() const { return &moves_[0]; }
+  inline const Move* end() const { return &moves_[size_]; }
+
+ private:
+  Move moves_[120];
+  int size_ = 0;
+};
+
 }  // namespace blur
 
 #endif  // BLUR_BOARD_BASE_H

@@ -18,7 +18,7 @@ class Board {
 
   // Generate all pseudo-legal moves for the specified side. This includes
   // all legal moves plus suicides and perpectual checks and/or attacks.
-  std::vector<Move> GenerateMoves(Side side) const;
+  MoveList GenerateMoves(Side side) const;
   // Is the position being attacked (by pieces of the other side). Returns
   // true/false and, in the case of true, position of the attacking piece with
   // least material value. Material values are ordered in this way:

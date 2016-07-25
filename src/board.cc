@@ -157,9 +157,9 @@ namespace {
 
 // Helper function to add all moves to a vector whose start positions are fixed
 // and whose end positions are given in a BitBoard.
-void InsertMoves(Position from, BitBoard to, vector<Move>* moves) {
+void InsertMoves(Position from, BitBoard to, MoveList* moves) {
   for (auto iter = to.Positions(); iter.HasNext();) {
-    moves->emplace_back(from, iter.Next());
+    moves->Add(from, iter.Next());
   }
 }
 
@@ -174,7 +174,7 @@ BitBoard RookDestinations(Position from, BitBoard board,
 }
 
 void GenerateRookMoves(BitBoard rooks, BitBoard all, BitBoard allowed,
-                       vector<Move>* moves) {
+                       MoveList* moves) {
   for (auto iter = rooks.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
     InsertMoves(from, RookDestinations(from, all, allowed), moves);
@@ -189,7 +189,7 @@ BitBoard HorseDestinations(Position from, BitBoard board,
 }
 
 void GenerateHorseMoves(BitBoard source, BitBoard all, BitBoard allowed,
-                        vector<Move>* moves) {
+                        MoveList* moves) {
   for (auto iter = source.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
     InsertMoves(from, HorseDestinations(from, all, allowed), moves);
@@ -215,7 +215,7 @@ BitBoard CannonDestinations(Position from, BitBoard board,
 }
 
 void GenerateCannonMoves(BitBoard source, BitBoard all, BitBoard allowed,
-                         vector<Move>* moves) {
+                         MoveList* moves) {
   for (auto iter = source.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
     InsertMoves(from, CannonDestinations(from, all, allowed), moves);
@@ -231,7 +231,7 @@ BitBoard ElephantDestinations(Position from, BitBoard board,
 }
 
 void GenerateElephantMoves(BitBoard source, BitBoard all, BitBoard allowed,
-                           vector<Move>* moves) {
+                           MoveList* moves) {
   for (auto iter = source.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
     InsertMoves(from, ElephantDestinations(from, all, allowed), moves);
@@ -248,7 +248,7 @@ BitBoard SimplePieceDestinations(
 
 void GenerateSimplePieceMoves(BitBoard source, BitBoard allowed,
                               const std::array<BitBoard, kNumPositions>& table,
-                              vector<Move>* moves) {
+                              MoveList* moves) {
   for (auto iter = source.Positions(); iter.HasNext();) {
     const auto from = iter.Next();
     InsertMoves(from, SimplePieceDestinations(from, allowed, table), moves);
@@ -256,17 +256,16 @@ void GenerateSimplePieceMoves(BitBoard source, BitBoard allowed,
 }
 
 void GenerateAssistantMoves(BitBoard source, BitBoard allowed,
-                            vector<Move>* moves) {
+                            MoveList* moves) {
   GenerateSimplePieceMoves(source, allowed, BitTables::assistant_moves, moves);
 }
 
-void GenerateRedPawnMoves(BitBoard source, BitBoard allowed,
-                          vector<Move>* moves) {
+void GenerateRedPawnMoves(BitBoard source, BitBoard allowed, MoveList* moves) {
   GenerateSimplePieceMoves(source, allowed, BitTables::red_pawn_moves, moves);
 }
 
 void GenerateBlackPawnMoves(BitBoard source, BitBoard allowed,
-                            vector<Move>* moves) {
+                            MoveList* moves) {
   GenerateSimplePieceMoves(source, allowed, BitTables::black_pawn_moves, moves);
 }
 
@@ -279,7 +278,7 @@ BitBoard KingSlidingDestinations(Position from, BitBoard board,
 }
 
 void GenerateKingMoves(BitBoard source, BitBoard all, BitBoard allowed,
-                       BitBoard other_king, vector<Move>* moves) {
+                       BitBoard other_king, MoveList* moves) {
   // Case 1: normal king moves.
   GenerateSimplePieceMoves(source, allowed, BitTables::king_moves, moves);
   // Case 2: special king-to-king move.
@@ -313,13 +312,12 @@ BitBoard Board::SidePiecesMask(Side side) const {
                            [side](Piece p) { return p.side() == side; });
 }
 
-vector<Move> Board::GenerateMoves(Side side) const {
+MoveList Board::GenerateMoves(Side side) const {
   const BitBoard all_pieces = AllPiecesMask();
   const BitBoard allowed_dests =
       ~BitBoard::EmptyBoard() & ~SidePiecesMask(side);
 
-  vector<Move> moves;
-  moves.reserve(50);
+  MoveList moves;
   // Rook
   GenerateRookMoves(piece_bitboards_[Piece(side, PieceType::kRook).value()],
                     all_pieces, allowed_dests, &moves);

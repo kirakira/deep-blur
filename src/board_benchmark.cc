@@ -30,10 +30,14 @@ class Timer {
 namespace blur {
 
 void RunGenerateMoves(Board board) {
-  Timer timer("GenerateMoves");
-  for (int i = 0; i < kGenerateMovesCycles; ++i) {
-    board.GenerateMoves(Side::kRed);
+  uint64 ans = 0;
+  {
+    Timer timer("GenerateMoves");
+    for (int i = 0; i < kGenerateMovesCycles; ++i) {
+      ans += board.GenerateMoves(Side::kRed).size();
+    }
   }
+  std::cout << "Total moves: " << ans << std::endl;
 }
 
 }  // namespace blur
