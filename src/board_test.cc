@@ -73,6 +73,17 @@ bool TestGenerateMoves() {
   if (board.IsAttacked(Position("b0")) != make_pair(true, Position("b7"))) {
     return false;
   }
+
+  moves_string.clear();
+  moves = board.GenerateCaptures(Side::kRed);
+  for (auto move : moves) {
+    moves_string.push_back(move.ToString());
+  }
+  std::sort(moves_string.begin(), moves_string.end());
+  if (moves_string != vector<string>{"b2b9", "h2h9"}) {
+    return false;
+  }
+
   return true;
 }
 

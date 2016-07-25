@@ -5,6 +5,7 @@
 #include <string>
 
 const int kGenerateMovesCycles = 50000000;
+const int kGenerateCapturesCycles = 50000000;
 
 using std::string;
 
@@ -40,10 +41,22 @@ void RunGenerateMoves(Board board) {
   std::cout << "Total moves: " << ans << std::endl;
 }
 
+void RunGenerateCaptures(Board board) {
+  uint64 ans = 0;
+  {
+    Timer timer("GenerateMoves");
+    for (int i = 0; i < kGenerateCapturesCycles; ++i) {
+      ans += board.GenerateCaptures(Side::kRed).size();
+    }
+  }
+  std::cout << "Total captures: " << ans << std::endl;
+}
+
 }  // namespace blur
 
 int main() {
   blur::Board board;
   blur::RunGenerateMoves(board);
+  blur::RunGenerateCaptures(board);
   return 0;
 }

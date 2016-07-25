@@ -30,19 +30,10 @@ class HalfBitBoard {
 
   // Visit all positions set in this HalfBitBoard.
   template <typename Function>
-  inline void VisitPositions(Function f) const {
-    uint64 current = value_;
-    while (current != 0) {
-      f(Position(lsb(current)));
-      current &= (current - 1);
-    }
-  }
+  inline void VisitPositions(Function f) const;
 
   // Return any of the positions set. Requires non-empty board.
-  inline Position AnyPosition() const {
-    DCHECK(value_ != 0);
-    return Position(lsb(value_));
-  }
+  inline Position AnyPosition() const;
 
   inline HalfBitBoard(const HalfBitBoard&) = default;
   inline HalfBitBoard& operator=(const HalfBitBoard&) = default;
@@ -92,18 +83,10 @@ class BitBoard {
 
   // Visit all positions set in this BitBoard.
   template <typename Function>
-  void VisitPositions(Function f) const {
-    halves_[0].VisitPositions(f);
-    halves_[1].VisitPositions(
-        [f](Position pos) { f(Position(pos.value() + 45)); });
-  }
+  inline void VisitPositions(Function f) const;
 
   // Return any of the set positions. Requires non-empty board.
-  inline Position AnyPosition() const {
-    return halves_[0] == HalfBitBoard::EmptyBoard()
-               ? Position(halves_[1].AnyPosition().value() + 45)
-               : halves_[0].AnyPosition();
-  }
+  inline Position AnyPosition() const;
 
   HalfBitBoard lower() const { return halves_[0]; }
   HalfBitBoard upper() const { return halves_[1]; }
@@ -175,7 +158,7 @@ constexpr uint64 GenerateColRelevantBits(int col) {
 
 }  // namespace impl
 
-inline uint64 HalfBitBoard::GetElephantOccupancy(Position pos) const {
+uint64 HalfBitBoard::GetElephantOccupancy(Position pos) const {
   const int b = pos.value();
   static constexpr auto relevant_bits =
       GenerateArray<uint64, 45>(impl::GenerateElephantRelevantBits);
@@ -183,7 +166,7 @@ inline uint64 HalfBitBoard::GetElephantOccupancy(Position pos) const {
                     static_cast<uint64>(15));
 }
 
-inline uint64 HalfBitBoard::GetHorseOccupancy(int pos) const {
+uint64 HalfBitBoard::GetHorseOccupancy(int pos) const {
   static constexpr auto relevant_bits =
       GenerateArray<uint64, 63>(impl::GenerateHorseRelevantBits);
   // Magic is shifted by 3 bits because pos could be -9 at minimum.
@@ -191,17 +174,33 @@ inline uint64 HalfBitBoard::GetHorseOccupancy(int pos) const {
                     static_cast<uint64>(15));
 }
 
-inline uint64 HalfBitBoard::GetRowOccupancy(int row) const {
+uint64 HalfBitBoard::GetRowOccupancy(int row) const {
   static constexpr uint64 row_mask = (1 << kNumColumns) - 1;
   return (value_ >> (row * kNumColumns)) & row_mask;
 }
 
-inline uint64 HalfBitBoard::GetColOccupancy(int col) const {
+uint64 HalfBitBoard::GetColOccupancy(int col) const {
   static constexpr uint64 magic = FillBits(0, 8, 16, 24, 32);
   static constexpr auto col_relevant_bits =
       GenerateArray<uint64, kNumColumns>(impl::GenerateColRelevantBits);
   return GatherBits(col_relevant_bits[col], magic, col + 32,
                     static_cast<uint64>(31));
+}
+
+// Visit all positions set in this HalfBitBoard.
+template <typename Function>
+void HalfBitBoard::VisitPositions(Function f) const {
+  uint64 current = value_;
+  while (current != 0) {
+    f(Position(lsb(current)));
+    current &= (current - 1);
+  }
+}
+
+// Return any of the positions set. Requires non-empty board.
+Position HalfBitBoard::AnyPosition() const {
+  DCHECK(value_ != 0);
+  return Position(lsb(value_));
 }
 
 HalfBitBoard operator~(HalfBitBoard b) {
@@ -292,6 +291,19 @@ uint64 BitBoard::GetRowOccupancy(int row) const {
 uint64 BitBoard::GetColOccupancy(int col) const {
   return halves_[0].GetColOccupancy(col) |
          (halves_[1].GetColOccupancy(col) << 5);
+}
+
+template <typename Function>
+void BitBoard::VisitPositions(Function f) const {
+  halves_[0].VisitPositions(f);
+  halves_[1].VisitPositions(
+      [f](Position pos) { f(Position(pos.value() + 45)); });
+}
+
+Position BitBoard::AnyPosition() const {
+  return halves_[0] == HalfBitBoard::EmptyBoard()
+             ? Position(halves_[1].AnyPosition().value() + 45)
+             : halves_[0].AnyPosition();
 }
 
 bool BitBoard::operator[](Position pos) const {

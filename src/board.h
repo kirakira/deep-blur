@@ -13,12 +13,14 @@ namespace blur {
 
 class Board {
  public:
-  // Default constructor initializes the board to a start position.
+  // Default constructor initializes the board to the start position.
   Board();
 
   // Generate all pseudo-legal moves for the specified side. This includes
   // all legal moves plus suicides and perpectual checks and/or attacks.
   MoveList GenerateMoves(Side side) const;
+  // Generate all pseudo-legal captures for the specified side.
+  MoveList GenerateCaptures(Side side) const;
   // Is the position being attacked (by pieces of the other side). Returns
   // true/false and, in the case of true, position of the attacking piece with
   // least material value. Material values are ordered in this way:
@@ -53,6 +55,9 @@ class Board {
   // TODO: Cache the following?
   BitBoard AllPiecesMask() const;
   BitBoard SidePiecesMask(Side side) const;
+  // Generate moves for side whose destinations are restricted to a subset of
+  // positions of board specified by allowed.
+  MoveList GenerateMovesWithAllowedMask(Side side, BitBoard allowed) const;
 
   Piece board_[kNumPositions];
   // Indexed by piece.value().

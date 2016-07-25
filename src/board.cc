@@ -304,10 +304,9 @@ BitBoard Board::SidePiecesMask(Side side) const {
                            [side](Piece p) { return p.side() == side; });
 }
 
-MoveList Board::GenerateMoves(Side side) const {
+MoveList Board::GenerateMovesWithAllowedMask(Side side,
+                                             BitBoard allowed_dests) const {
   const BitBoard all_pieces = AllPiecesMask();
-  const BitBoard allowed_dests =
-      ~BitBoard::EmptyBoard() & ~SidePiecesMask(side);
 
   MoveList moves;
   // Rook
@@ -345,6 +344,17 @@ MoveList Board::GenerateMoves(Side side) const {
       &moves);
 
   return moves;
+}
+
+MoveList Board::GenerateMoves(Side side) const {
+  const BitBoard allowed_dests =
+      ~BitBoard::EmptyBoard() & ~SidePiecesMask(side);
+  return GenerateMovesWithAllowedMask(side, allowed_dests);
+}
+
+MoveList Board::GenerateCaptures(Side side) const {
+  const BitBoard allowed_dests = SidePiecesMask(OtherSide(side));
+  return GenerateMovesWithAllowedMask(side, allowed_dests);
 }
 
 std::pair<bool, Position> Board::IsAttacked(Position pos) const {
