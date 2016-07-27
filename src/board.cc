@@ -5,6 +5,7 @@
 #include <map>
 
 #include "bittables.h"
+#include "board-hash.h"
 
 using std::cout;
 using std::endl;
@@ -92,6 +93,7 @@ bool Board::SetBoard(const string& fen) {
   }
   history_.clear();
   history_.reserve(200);
+  hash_ = 0;
 
   row = 9, col = 0;
   for (char c : fen) {
@@ -101,9 +103,11 @@ bool Board::SetBoard(const string& fen) {
       --row;
       col = 0;
     } else {
+      Position pos(row, col);
       Piece piece = char_piece_map[c];
-      board_[Position(row, col).value()] = piece;
+      board_[pos.value()] = piece;
       piece_bitboards_[piece.value()] |= BitBoard::Fill(Position(row, col));
+      hash_ ^= BoardHash::piece_position_hash[piece.value()][pos.value()];
 
       ++col;
     }
@@ -439,6 +443,15 @@ void Board::Make(Move move) {
   // 3. Update board_.
   board_[move.to().value()] = board_[move.from().value()];
   board_[move.from().value()] = Piece::EmptyPiece();
+  // 4. Update hash_.
+  hash_ ^=
+      BoardHash::piece_position_hash[from_piece.value()][move.from().value()];
+  hash_ ^=
+      BoardHash::piece_position_hash[from_piece.value()][move.to().value()];
+  if (to_piece != Piece::EmptyPiece()) {
+    hash_ ^=
+        BoardHash::piece_position_hash[to_piece.value()][move.to().value()];
+  }
 }
 
 void Board::Unmake() {
@@ -447,15 +460,24 @@ void Board::Unmake() {
   const auto move = history_move.move;
   const auto from_piece = board_[move.to().value()],
              to_piece = history_move.capture;
-  // 1. Restore board_.
+  // 1. Restore hash_.
+  hash_ ^=
+      BoardHash::piece_position_hash[from_piece.value()][move.from().value()];
+  hash_ ^=
+      BoardHash::piece_position_hash[from_piece.value()][move.to().value()];
+  if (to_piece != Piece::EmptyPiece()) {
+    hash_ ^=
+        BoardHash::piece_position_hash[to_piece.value()][move.to().value()];
+  }
+  // 2. Restore board_.
   board_[move.from().value()] = from_piece;
   board_[move.to().value()] = to_piece;
-  // 2. Restore bitboards.
+  // 3. Restore bitboards.
   if (to_piece != Piece::EmptyPiece()) {
     piece_bitboards_[to_piece.value()] |= BitBoard::Fill(move.to());
   }
   piece_bitboards_[from_piece.value()].Unmake(move);
-  // 3. Restore history_;
+  // 4. Restore history_;
   history_.pop_back();
 }
 
@@ -526,6 +548,10 @@ bool Board::CheckedUnmake() {
   if (history_.empty()) return false;
   Unmake();
   return true;
+}
+
+uint64 Board::HashCode(Side side) const {
+  return side == Side::kRed ? hash_ : hash_ ^ BoardHash::side_hash;
 }
 
 }  // namespace blur

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -98,27 +99,51 @@ bool TestIsAttacked() {
 }
 
 bool TestMake() {
+  set<uint64> hashes;
   Board board;
+  const auto hash00 = board.HashCode(Side::kRed),
+             hash01 = board.HashCode(Side::kBlack);
+  hashes.insert(hash00);
+  hashes.insert(hash01);
+
   board.Make(Move("b2b9"));
   if (board.ToString() !=
       "rCeakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEHR") {
     return false;
   }
+  const auto hash10 = board.HashCode(Side::kRed),
+             hash11 = board.HashCode(Side::kBlack);
+  hashes.insert(hash10);
+  hashes.insert(hash11);
+
   board.Make(Move("h7h0"));
   if (board.ToString() !=
       "rCeakaehr/9/1c7/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEcR") {
     return false;
   }
+  const auto hash20 = board.HashCode(Side::kRed),
+             hash21 = board.HashCode(Side::kBlack);
+  hashes.insert(hash20);
+  hashes.insert(hash21);
+
+  if (hashes.size() != 6) return false;
+
   board.Unmake();
   if (board.ToString() !=
       "rCeakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEHR") {
     return false;
   }
+  if (board.HashCode(Side::kRed) != hash10) return false;
+  if (board.HashCode(Side::kBlack) != hash11) return false;
+
   board.Unmake();
   if (board.ToString() !=
       "rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR") {
     return false;
   }
+  if (board.HashCode(Side::kRed) != hash00) return false;
+  if (board.HashCode(Side::kBlack) != hash01) return false;
+
   return true;
 }
 

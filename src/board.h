@@ -39,6 +39,8 @@ class Board {
   void Unmake();
   bool CheckedUnmake();
 
+  uint64 HashCode(Side side) const;
+
   // Returns false if this is a bad board position.
   bool SetBoard(const std::string& fen);
   // Return the fen string of the current position.
@@ -63,6 +65,7 @@ class Board {
   // Indexed by piece.value().
   BitBoard piece_bitboards_[16];
   std::vector<HistoryMove> history_;
+  uint64 hash_;
 };
 
 }  // namespace blur
