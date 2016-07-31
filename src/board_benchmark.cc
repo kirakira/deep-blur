@@ -44,7 +44,7 @@ void RunGenerateMoves(Board board) {
 void RunGenerateCaptures(Board board) {
   uint64 ans = 0;
   {
-    Timer timer("GenerateMoves");
+    Timer timer("GenerateCaptures");
     for (int i = 0; i < kGenerateCapturesCycles; ++i) {
       ans += board.GenerateCaptures(Side::kRed).size();
     }
