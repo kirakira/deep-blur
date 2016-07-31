@@ -163,7 +163,7 @@ bool CheckHorseReverseTables() {
 
 bool TestRowOccupancy() {
   for (int row = 0; row < kNumRows; ++row) {
-    for (uint64 x = 0; x < (1 << kNumColumns); ++x) {
+    for (int x = 0; x < (1 << kNumColumns); ++x) {
       auto board = BitBoard::EmptyBoard();
       for (int pos = 0; pos < kNumPositions; ++pos) {
         Position p(pos);
@@ -182,9 +182,8 @@ bool TestRowOccupancy() {
 bool CheckCannonRowTables() {
   auto board = BitBoard::Fill(Position(5, 0)) | BitBoard::Fill(Position(5, 1)) |
                BitBoard::Fill(Position(5, 5)) | BitBoard::Fill(Position(5, 7));
-  auto moves =
-      BitTables::cannon_row_moves[Position(5, 1)
-                                      .value()][board.GetRowOccupancy(5)];
+  auto moves = BitTables::cannon_row_moves[Position(5, 1).value()]
+                                          [board.GetRowOccupancy(5)];
   auto expected_moves =
       BitBoard::Fill(Position(5, 2)) | BitBoard::Fill(Position(5, 3)) |
       BitBoard::Fill(Position(5, 4)) | BitBoard::Fill(Position(5, 7));
@@ -193,7 +192,7 @@ bool CheckCannonRowTables() {
 
 bool TestColOccupancy() {
   for (int col = 0; col < kNumColumns; ++col) {
-    for (uint64 x = 0; x < (1 << kNumRows); ++x) {
+    for (int x = 0; x < (1 << kNumRows); ++x) {
       auto board = BitBoard::EmptyBoard();
       for (int pos = 0; pos < kNumPositions; ++pos) {
         Position p(pos);

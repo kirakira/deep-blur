@@ -21,12 +21,12 @@ class HalfBitBoard {
   constexpr static HalfBitBoard Fill(Position position);
 
   // Returns lower 4 bits. From least significant: BL, TL, BR, TR.
-  inline uint64 GetElephantOccupancy(Position pos) const;
+  inline int GetElephantOccupancy(Position pos) const;
   // Returns lower 4 bits. From least significant: L, B, R, T.
   // Requires pos range: [-9, 53].
-  inline uint64 GetHorseOccupancy(int pos) const;
-  inline uint64 GetRowOccupancy(int row) const;
-  inline uint64 GetColOccupancy(int col) const;
+  inline int GetHorseOccupancy(int pos) const;
+  inline int GetRowOccupancy(int row) const;
+  inline int GetColOccupancy(int col) const;
 
   // Visit all positions set in this HalfBitBoard.
   template <typename Function>
@@ -75,11 +75,11 @@ class BitBoard {
   inline void Unmake(Move move);
 
   // Returns lower 4 bits. From least significant: BL, TL, BR, TR.
-  inline uint64 GetElephantOccupancy(Position pos) const;
+  inline int GetElephantOccupancy(Position pos) const;
   // Returns lower 4 bits. From least significant: L, B, R, T.
-  inline uint64 GetHorseOccupancy(Position pos) const;
-  inline uint64 GetRowOccupancy(int row) const;
-  inline uint64 GetColOccupancy(int col) const;
+  inline int GetHorseOccupancy(Position pos) const;
+  inline int GetRowOccupancy(int row) const;
+  inline int GetColOccupancy(int col) const;
 
   // Visit all positions set in this BitBoard.
   template <typename Function>
@@ -158,33 +158,34 @@ constexpr uint64 GenerateColRelevantBits(int col) {
 
 }  // namespace impl
 
-uint64 HalfBitBoard::GetElephantOccupancy(Position pos) const {
+int HalfBitBoard::GetElephantOccupancy(Position pos) const {
   const int b = pos.value();
   static constexpr auto relevant_bits =
       GenerateArray<uint64, 45>(impl::GenerateElephantRelevantBits);
-  return GatherBits(relevant_bits[b], FillBits(0, 17), b + 7,
-                    static_cast<uint64>(15));
+  return static_cast<int>(GatherBits(relevant_bits[b], FillBits(0, 17), b + 7,
+                                     static_cast<uint64>(15)));
 }
 
-uint64 HalfBitBoard::GetHorseOccupancy(int pos) const {
+int HalfBitBoard::GetHorseOccupancy(int pos) const {
   static constexpr auto relevant_bits =
       GenerateArray<uint64, 63>(impl::GenerateHorseRelevantBits);
   // Magic is shifted by 3 bits because pos could be -9 at minimum.
-  return GatherBits(relevant_bits[pos + 9], FillBits(3, 10, 19), pos + 9,
-                    static_cast<uint64>(15));
+  return static_cast<int>(GatherBits(relevant_bits[pos + 9],
+                                     FillBits(3, 10, 19), pos + 9,
+                                     static_cast<uint64>(15)));
 }
 
-uint64 HalfBitBoard::GetRowOccupancy(int row) const {
+int HalfBitBoard::GetRowOccupancy(int row) const {
   static constexpr uint64 row_mask = (1 << kNumColumns) - 1;
   return (value_ >> (row * kNumColumns)) & row_mask;
 }
 
-uint64 HalfBitBoard::GetColOccupancy(int col) const {
+int HalfBitBoard::GetColOccupancy(int col) const {
   static constexpr uint64 magic = FillBits(0, 8, 16, 24, 32);
   static constexpr auto col_relevant_bits =
       GenerateArray<uint64, kNumColumns>(impl::GenerateColRelevantBits);
-  return GatherBits(col_relevant_bits[col], magic, col + 32,
-                    static_cast<uint64>(31));
+  return static_cast<int>(GatherBits(col_relevant_bits[col], magic, col + 32,
+                                     static_cast<uint64>(31)));
 }
 
 // Visit all positions set in this HalfBitBoard.
@@ -270,25 +271,25 @@ void BitBoard::Make(Move move) { *this ^= Fill(move.from()) | Fill(move.to()); }
 
 void BitBoard::Unmake(Move move) { Make(move); }
 
-uint64 BitBoard::GetElephantOccupancy(Position pos) const {
+int BitBoard::GetElephantOccupancy(Position pos) const {
   return pos.InRedHalf()
              ? halves_[0].GetElephantOccupancy(pos)
              : halves_[1].GetElephantOccupancy(Position(pos.value() - 45));
 }
 
-uint64 BitBoard::GetHorseOccupancy(Position pos) const {
-  uint64 ans = 0;
+int BitBoard::GetHorseOccupancy(Position pos) const {
+  int ans = 0;
   if (pos.value() <= 53) ans |= halves_[0].GetHorseOccupancy(pos.value());
   if (pos.value() >= 36) ans |= halves_[1].GetHorseOccupancy(pos.value() - 45);
   return ans;
 }
 
-uint64 BitBoard::GetRowOccupancy(int row) const {
+int BitBoard::GetRowOccupancy(int row) const {
   return row < 5 ? halves_[0].GetRowOccupancy(row)
                  : halves_[1].GetRowOccupancy(row - 5);
 }
 
-uint64 BitBoard::GetColOccupancy(int col) const {
+int BitBoard::GetColOccupancy(int col) const {
   return halves_[0].GetColOccupancy(col) |
          (halves_[1].GetColOccupancy(col) << 5);
 }
