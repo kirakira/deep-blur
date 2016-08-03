@@ -1,4 +1,10 @@
-Table size: 2^x
-Requires: x >= 21 (2M * 8 = 16MB)
-uint64 entry = hash_upper, score, score_type, depth
-                   43        13        2        6
+Entry:
+hash_upper: 38 bits
+depth: 8 bits
+score_type: 2 bits
+move: 16 bits
+score: 16 bits
+(total 10 bytes)
+
+Each line contains 3 entries + 2-byte padding
+Number of lines to minimize collision: 2^26

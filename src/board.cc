@@ -113,6 +113,8 @@ bool Board::SetBoard(const string& fen) {
     }
   }
 
+  eval_.SetBoard(board_);
+
   return true;
 }
 
@@ -155,6 +157,8 @@ void Board::DebugPrint() const {
     cout << " " << i << endl;
   }
   cout << endl << "   a b c d e f g h i" << endl;
+  cout << "hash: " << hash_ << endl;
+  cout << "eval: " << eval_.CurrentScore() << endl;
 }
 
 namespace {
@@ -452,6 +456,8 @@ void Board::Make(Move move) {
     hash_ ^=
         BoardHash::piece_position_hash[to_piece.value()][move.to().value()];
   }
+  // 5. Update board evaluation.
+  eval_.OnMake(move, from_piece, to_piece);
 }
 
 void Board::Unmake() {
@@ -460,7 +466,9 @@ void Board::Unmake() {
   const auto move = history_move.move;
   const auto from_piece = board_[move.to().value()],
              to_piece = history_move.capture;
-  // 1. Restore hash_.
+  // 1. Update board evaluation.
+  eval_.OnUnmake(move, from_piece, to_piece);
+  // 2. Restore hash_.
   hash_ ^=
       BoardHash::piece_position_hash[from_piece.value()][move.from().value()];
   hash_ ^=
@@ -469,15 +477,15 @@ void Board::Unmake() {
     hash_ ^=
         BoardHash::piece_position_hash[to_piece.value()][move.to().value()];
   }
-  // 2. Restore board_.
+  // 3. Restore board_.
   board_[move.from().value()] = from_piece;
   board_[move.to().value()] = to_piece;
-  // 3. Restore bitboards.
+  // 4. Restore bitboards.
   if (to_piece != Piece::EmptyPiece()) {
     piece_bitboards_[to_piece.value()] |= BitBoard::Fill(move.to());
   }
   piece_bitboards_[from_piece.value()].Unmake(move);
-  // 4. Restore history_;
+  // 5. Restore history_;
   history_.pop_back();
 }
 

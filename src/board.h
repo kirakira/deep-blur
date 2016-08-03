@@ -8,12 +8,13 @@
 #include "bitboard.h"
 #include "board-base.h"
 #include "common.h"
+#include "eval.h"
 
 namespace blur {
 
 class Board {
  public:
-  // Default constructor initializes the board to the start position.
+  // Initialize the board to the start position.
   Board();
 
   // Generate all pseudo-legal moves for the specified side. This includes
@@ -48,6 +49,8 @@ class Board {
   // Print the current board.
   void DebugPrint() const;
 
+  Score Evaluation() const { return eval_.CurrentScore(); }
+
  private:
   struct HistoryMove {
     Move move;
@@ -66,6 +69,7 @@ class Board {
   BitBoard piece_bitboards_[16];
   std::vector<HistoryMove> history_;
   uint64 hash_;
+  Evaluator eval_;
 };
 
 }  // namespace blur
