@@ -14,6 +14,9 @@ struct SearchResult {
 
 SearchResult Search(Board& board, Side side, int depth);
 
+// This is no-op when macro NDEBUG is defined.
+void DebugPrintLogs();
+
 }  // namespace blur
 
 #endif  // BLUR_SEARCH_H

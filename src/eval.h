@@ -32,6 +32,10 @@ inline Score operator+(Score x, Score y) {
   return static_cast<Score>(static_cast<int>(x) + static_cast<int>(y));
 }
 
+inline Score operator-(Score x, Score y) {
+  return static_cast<Score>(static_cast<int>(x) - static_cast<int>(y));
+}
+
 inline Score operator-(Score x) {
   return static_cast<Score>(-static_cast<int>(x));
 }

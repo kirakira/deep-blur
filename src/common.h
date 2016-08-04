@@ -138,7 +138,7 @@ inline int lsb(uint64 x) { return __builtin_ctzll(x); }
 }  // namespace blur
 
 // TODO: implement these.
-#define DCHECK(x)
-#define CHECK(x)
+#define DCHECK(x) ((void)(x))
+#define CHECK(x) ((void)(x))
 
 #endif  // BLUR_COMMON_H

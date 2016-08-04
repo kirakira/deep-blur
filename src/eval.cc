@@ -35,7 +35,7 @@ Score UpdateScore(Piece captured_piece, Score score) {
     delta = kPieceValues[captured_piece.value()];
     if (!make) delta *= -1;
   }
-  return score + delta;
+  return score - delta;
 }
 
 void Evaluator::OnMake(Move, Piece, Piece captured_piece) {

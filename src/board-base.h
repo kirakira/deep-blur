@@ -32,7 +32,7 @@ const int kNumColumns = 9;
 class Position {
  public:
   // Construct an uninitialized Position.
-  Position() = default;
+  Position() : Position(0) {}
   constexpr Position(int row, int col) : Position(row * kNumColumns + col) {}
   // For example, "a0" -> 0; "d8" -> 75.
   explicit Position(const std::string& str);
