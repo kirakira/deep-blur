@@ -32,7 +32,6 @@ class Logger {
  public:
   struct SearchNode {
     Move from_move;
-    string board;
     Side side;
     int depth;
     Score alpha;
@@ -55,10 +54,9 @@ class Logger {
     next_move_ = move;
   }
 
-  void RecursionStart(const Board& board, Side side, int depth, Score alpha,
+  void RecursionStart(const Board&, Side side, int depth, Score alpha,
                       Score beta) {
     CHECK(!stack_.empty());
-    nodes_[stack_.back()].board = board.ToString();
     nodes_[stack_.back()].side = side;
     nodes_[stack_.back()].depth = depth;
     nodes_[stack_.back()].alpha = alpha;
@@ -95,13 +93,9 @@ class Logger {
     for (auto root : roots_) cout << root;
     cout << endl;
     for (int i = 0; i < static_cast<int>(nodes_.size()); ++i) {
-      cout << "node " << i;
-      if (!nodes_[i].board.empty()) {
-        cout << " " << nodes_[i].board << " "
-             << (nodes_[i].side == Side::kRed ? "r" : "b") << " depth "
-             << nodes_[i].depth << " alpha " << nodes_[i].alpha << " beta "
-             << nodes_[i].beta;
-      }
+      cout << "node " << i << " " << (nodes_[i].side == Side::kRed ? "r" : "b")
+           << " depth " << nodes_[i].depth << " alpha " << nodes_[i].alpha
+           << " beta " << nodes_[i].beta;
       cout << " children ";
       for (int c : nodes_[i].children) {
         cout << c << "(" << nodes_[c].from_move.ToString() << " "
