@@ -41,6 +41,9 @@ class HalfBitBoard {
   // Extract a bit.
   // Requires: 0 <= pos < 45.
   inline bool operator[](int pos) const { return GetBit(value_, pos) == 1; }
+  // Shift x bits to left. Return the shifted board and overflow.
+  // Requires: 0 <= x < 45.
+  constexpr std::pair<HalfBitBoard, HalfBitBoard> ShiftLeft(int x) const;
 
   friend inline HalfBitBoard operator~(HalfBitBoard b);
   friend inline HalfBitBoard operator&(HalfBitBoard b1, HalfBitBoard b2);
@@ -98,6 +101,7 @@ class BitBoard {
 
   friend inline BitBoard operator~(BitBoard b);
   friend inline BitBoard operator&(BitBoard b1, BitBoard b2);
+  friend constexpr BitBoard operator<<(BitBoard b, int x);
   friend constexpr BitBoard operator|(BitBoard b1, BitBoard b2);
   friend inline BitBoard operator^(BitBoard b1, BitBoard b2);
   inline BitBoard& operator&=(BitBoard b);
@@ -211,6 +215,16 @@ HalfBitBoard operator~(HalfBitBoard b) {
 
 HalfBitBoard operator&(HalfBitBoard b1, HalfBitBoard b2) {
   return HalfBitBoard(b1.value_ & b2.value_);
+}
+
+constexpr std::pair<HalfBitBoard, HalfBitBoard> HalfBitBoard::ShiftLeft(
+    int x) const {
+  const auto board_mask = (static_cast<uint64>(1) << (kNumPositions / 2)) - 1;
+  const auto lower_mask =
+      (static_cast<uint64>(1) << (kNumPositions / 2 - x)) - 1;
+  return std::make_pair(
+      HalfBitBoard(board_mask & (value_ << x)),
+      HalfBitBoard((value_ & ~lower_mask) >> (kNumPositions / 2 - x)));
 }
 
 HalfBitBoard& HalfBitBoard::operator&=(HalfBitBoard b) {
@@ -331,6 +345,19 @@ constexpr BitBoard& BitBoard::operator|=(BitBoard b) {
 
 BitBoard operator&(BitBoard b1, BitBoard b2) {
   return BitBoard(b1.halves_[0] & b2.halves_[0], b1.halves_[1] & b2.halves_[1]);
+}
+
+constexpr BitBoard operator<<(BitBoard b, int x) {
+  BitBoard result = BitBoard::EmptyBoard();
+  if (x < 45) {
+    const auto lower_result = b.halves_[0].ShiftLeft(x);
+    result.halves_[0] = lower_result.first;
+    result.halves_[1] = b.halves_[1].ShiftLeft(x).first | lower_result.second;
+  } else {
+    result.halves_[0] = HalfBitBoard::EmptyBoard();
+    result.halves_[1] = b.halves_[0].ShiftLeft(x - kNumPositions / 2).first;
+  }
+  return result;
 }
 
 BitBoard& BitBoard::operator&=(BitBoard b) {

@@ -47,7 +47,8 @@ class CurriedFunction {
  public:
   template <typename... UndecayedCurryTypes>
   constexpr CurriedFunction(Function f, UndecayedCurryTypes&&... curry)
-      : f_(f), curry_(std::make_tuple(std::forward<CurryTypes>(curry)...)) {}
+      : f_(f),
+        curry_(std::make_tuple(std::forward<UndecayedCurryTypes>(curry)...)) {}
 
   template <typename... Params>
   constexpr auto operator()(Params&&... params) const {

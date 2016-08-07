@@ -110,6 +110,31 @@ bool TestMake() {
   return true;
 }
 
+bool TestShiftLeft() {
+  vector<int> test_pos = {0, 27, 28, 44, 45, 79, 80, 89};
+
+  const auto get_board = [](const vector<int>& pos) {
+    BitBoard b = BitBoard::EmptyBoard();
+    for (int p : pos) b |= BitBoard::Fill(Position(p));
+    return b;
+  };
+  const auto shift_vector = [](const vector<int>& pos, int delta) {
+    vector<int> ans;
+    for (int p : pos) {
+      if (p + delta >= 0 && p + delta < kNumPositions) {
+        ans.push_back(p + delta);
+      }
+    }
+    return ans;
+  };
+
+  const BitBoard b = get_board(test_pos);
+  for (int x = 0; x < kNumPositions; ++x) {
+    if ((b << x) != get_board(shift_vector(test_pos, x))) return false;
+  }
+  return true;
+}
+
 }  // namespace blur
 
 int main() {
@@ -121,6 +146,7 @@ int main() {
   success = success && TestIterateBitBoard2();
   success = success && TestIterateBitBoard3();
   success = success && TestMake();
+  success = success && TestShiftLeft();
   if (success) {
     std::cout << "Success." << std::endl;
   } else {
