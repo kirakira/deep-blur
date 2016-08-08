@@ -52,4 +52,4 @@ $(OUT)/board_benchmark: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/boar
 
 .PHONY: clean
 clean:
-	rm -f $(OUT)/*.o $(OUT)/*_test
+	rm -f $(OUT)/*.o $(OUT)/*_test $(OUT)/xboard $(OUT)/board_benchmark
