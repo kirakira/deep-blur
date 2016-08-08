@@ -16,6 +16,12 @@ namespace blur {
 
 namespace {
 
+constexpr BitTables kBitTables{};
+// Use static_assert to make sure the tables are generated in compile-time.
+static_assert(kBitTables.rook_col_moves[89][1023] ==
+                  BitBoard::Fill(Position(80)),
+              "Bad bittables");
+
 constexpr std::initializer_list<Side> all_sides{Side::kRed, Side::kBlack};
 constexpr std::initializer_list<PieceType> all_piece_types{
     PieceType::kRook,     PieceType::kHorse,     PieceType::kCannon,
@@ -170,10 +176,11 @@ void InsertMoves(Position from, BitBoard to, MoveList* moves) {
 
 BitBoard RookDestinations(Position from, BitBoard board,
                           BitBoard allowed_mask) {
-  auto to = BitTables::rook_row_moves[from.value()]
-                                     [board.GetRowOccupancy(from.Row())];
-  to |= BitTables::rook_col_moves[from.value()]
-                                 [board.GetColOccupancy(from.Column())];
+  auto to =
+      kBitTables
+          .rook_row_moves[from.value()][board.GetRowOccupancy(from.Row())];
+  to |= kBitTables
+            .rook_col_moves[from.value()][board.GetColOccupancy(from.Column())];
   to &= allowed_mask;
   return to;
 }
@@ -187,7 +194,7 @@ void GenerateRookMoves(BitBoard source, BitBoard all, BitBoard allowed,
 
 BitBoard HorseDestinations(Position from, BitBoard board,
                            BitBoard allowed_mask) {
-  auto to = BitTables::horse_moves[from.value()][board.GetHorseOccupancy(from)];
+  auto to = kBitTables.horse_moves[from.value()][board.GetHorseOccupancy(from)];
   to &= allowed_mask;
   return to;
 }
@@ -201,18 +208,21 @@ void GenerateHorseMoves(BitBoard source, BitBoard all, BitBoard allowed,
 
 BitBoard HorseReverseDestinations(Position from, BitBoard board,
                                   BitBoard allowed_mask) {
-  auto to = BitTables::horse_reverse_moves[from.value()]
-                                          [board.GetElephantOccupancy(from)];
+  auto to =
+      kBitTables
+          .horse_reverse_moves[from.value()][board.GetElephantOccupancy(from)];
   to &= allowed_mask;
   return to;
 }
 
 BitBoard CannonDestinations(Position from, BitBoard board,
                             BitBoard allowed_mask) {
-  auto to = BitTables::cannon_row_moves[from.value()]
-                                       [board.GetRowOccupancy(from.Row())];
-  to |= BitTables::cannon_col_moves[from.value()]
-                                   [board.GetColOccupancy(from.Column())];
+  auto to =
+      kBitTables
+          .cannon_row_moves[from.value()][board.GetRowOccupancy(from.Row())];
+  to |=
+      kBitTables
+          .cannon_col_moves[from.value()][board.GetColOccupancy(from.Column())];
   to &= allowed_mask;
   return to;
 }
@@ -227,7 +237,7 @@ void GenerateCannonMoves(BitBoard source, BitBoard all, BitBoard allowed,
 BitBoard ElephantDestinations(Position from, BitBoard board,
                               BitBoard allowed_mask) {
   auto to =
-      BitTables::elephant_moves[from.value()][board.GetElephantOccupancy(from)];
+      kBitTables.elephant_moves[from.value()][board.GetElephantOccupancy(from)];
   to &= allowed_mask;
   return to;
 }
@@ -257,22 +267,23 @@ void GenerateSimplePieceMoves(BitBoard source, BitBoard allowed,
 
 void GenerateAssistantMoves(BitBoard source, BitBoard allowed,
                             MoveList* moves) {
-  GenerateSimplePieceMoves(source, allowed, BitTables::assistant_moves, moves);
+  GenerateSimplePieceMoves(source, allowed, kBitTables.assistant_moves, moves);
 }
 
 void GenerateRedPawnMoves(BitBoard source, BitBoard allowed, MoveList* moves) {
-  GenerateSimplePieceMoves(source, allowed, BitTables::red_pawn_moves, moves);
+  GenerateSimplePieceMoves(source, allowed, kBitTables.red_pawn_moves, moves);
 }
 
 void GenerateBlackPawnMoves(BitBoard source, BitBoard allowed,
                             MoveList* moves) {
-  GenerateSimplePieceMoves(source, allowed, BitTables::black_pawn_moves, moves);
+  GenerateSimplePieceMoves(source, allowed, kBitTables.black_pawn_moves, moves);
 }
 
 BitBoard KingSlidingDestinations(Position from, BitBoard board,
                                  BitBoard allowed_mask) {
-  auto to = BitTables::rook_col_moves[from.value()]
-                                     [board.GetColOccupancy(from.Column())];
+  auto to =
+      kBitTables
+          .rook_col_moves[from.value()][board.GetColOccupancy(from.Column())];
   to &= allowed_mask;
   return to;
 }
@@ -280,7 +291,7 @@ BitBoard KingSlidingDestinations(Position from, BitBoard board,
 void GenerateKingMoves(BitBoard source, BitBoard all, BitBoard allowed,
                        BitBoard other_king, MoveList* moves) {
   // Case 1: normal king moves.
-  GenerateSimplePieceMoves(source, allowed, BitTables::king_moves, moves);
+  GenerateSimplePieceMoves(source, allowed, kBitTables.king_moves, moves);
   // Case 2: special king-to-king move.
   source.VisitPositions([all, other_king, moves](Position from) {
     InsertMoves(from, KingSlidingDestinations(from, all, other_king), moves);
@@ -384,17 +395,17 @@ std::pair<bool, Position> Board::IsAttacked(Position pos) const {
   if (my_side == Side::kRed) {
     RETURN_IF_NONEMPTY(SimplePieceDestinations(
         pos, piece_bitboards_[Piece(other_side, PieceType::kPawn).value()],
-        BitTables::black_pawn_reverse_moves));
+        kBitTables.black_pawn_reverse_moves));
   } else {
     RETURN_IF_NONEMPTY(SimplePieceDestinations(
         pos, piece_bitboards_[Piece(other_side, PieceType::kPawn).value()],
-        BitTables::red_pawn_reverse_moves));
+        kBitTables.red_pawn_reverse_moves));
   }
   // Assistant
   if (!in_local_half) {
     RETURN_IF_NONEMPTY(SimplePieceDestinations(
         pos, piece_bitboards_[Piece(other_side, PieceType::kAssistant).value()],
-        BitTables::assistant_moves));
+        kBitTables.assistant_moves));
   }
   // Elephant
   if (!in_local_half) {
@@ -419,7 +430,7 @@ std::pair<bool, Position> Board::IsAttacked(Position pos) const {
   if (!in_local_half) {
     RETURN_IF_NONEMPTY(SimplePieceDestinations(
         pos, piece_bitboards_[Piece(other_side, PieceType::kKing).value()],
-        BitTables::king_moves));
+        kBitTables.king_moves));
   }
   // Case 2: special king-to-king move.
   if (in_local_half && board_[pos.value()].type() == PieceType::kKing) {
@@ -508,7 +519,7 @@ bool Board::CheckedMake(Side side, Move move) {
   switch (from_piece.type()) {
     case PieceType::kKing: {
       dests =
-          SimplePieceDestinations(from, allowed_dests, BitTables::king_moves);
+          SimplePieceDestinations(from, allowed_dests, kBitTables.king_moves);
       dests |= KingSlidingDestinations(
           from, all_pieces,
           piece_bitboards_[Piece(OtherSide(side), PieceType::kKing).value()]);
@@ -516,15 +527,15 @@ bool Board::CheckedMake(Side side, Move move) {
     case PieceType::kPawn: {
       if (side == Side::kRed) {
         dests = SimplePieceDestinations(from, allowed_dests,
-                                        BitTables::red_pawn_moves);
+                                        kBitTables.red_pawn_moves);
       } else {
         dests = SimplePieceDestinations(from, allowed_dests,
-                                        BitTables::black_pawn_moves);
+                                        kBitTables.black_pawn_moves);
       }
     } break;
     case PieceType::kAssistant: {
       dests = SimplePieceDestinations(from, allowed_dests,
-                                      BitTables::assistant_moves);
+                                      kBitTables.assistant_moves);
     } break;
     case PieceType::kElephant: {
       dests = ElephantDestinations(from, all_pieces, allowed_dests);

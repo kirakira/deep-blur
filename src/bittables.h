@@ -336,62 +336,58 @@ constexpr auto RookColMovesAt(size_t index) {
 // Lookup tables related to bitboard.
 class BitTables {
  public:
-  static constexpr std::array<BitBoard, kNumPositions> red_pawn_moves =
+  constexpr BitTables() = default;
+
+  const std::array<BitBoard, kNumPositions> red_pawn_moves =
       GenerateArray<BitBoard, kNumPositions>(impl::RedPawnMovesAt);
-  static constexpr std::array<BitBoard, kNumPositions> red_pawn_reverse_moves =
+  const std::array<BitBoard, kNumPositions> red_pawn_reverse_moves =
       GenerateArray<BitBoard, kNumPositions>(impl::RedPawnReverseMovesAt);
-  static constexpr std::array<BitBoard, kNumPositions> black_pawn_moves =
+  const std::array<BitBoard, kNumPositions> black_pawn_moves =
       GenerateArray<BitBoard, kNumPositions>(impl::BlackPawnMovesAt);
-  static constexpr std::array<BitBoard, kNumPositions>
-      black_pawn_reverse_moves =
-          GenerateArray<BitBoard, kNumPositions>(impl::BlackPawnReverseMovesAt);
-  static constexpr std::array<BitBoard, kNumPositions> king_moves =
+  const std::array<BitBoard, kNumPositions> black_pawn_reverse_moves =
+      GenerateArray<BitBoard, kNumPositions>(impl::BlackPawnReverseMovesAt);
+  const std::array<BitBoard, kNumPositions> king_moves =
       GenerateArray<BitBoard, kNumPositions>(impl::KingMovesAt);
-  static constexpr std::array<BitBoard, kNumPositions> assistant_moves =
+  const std::array<BitBoard, kNumPositions> assistant_moves =
       GenerateArray<BitBoard, kNumPositions>(impl::AssistantMovesAt);
   // elephant_moves[pos][occupancy]. Occupancy ranges from [0, 2^4).
   // Bits order of occupancy from its least significant bit: BL, TL, BR, TR.
-  static constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
-      elephant_moves = GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
+  const std::array<std::array<BitBoard, 16>, kNumPositions> elephant_moves =
+      GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
           impl::ElephantMovesAt);
   // horse_moves[pos][occupancy]. Occupancy ranges from [0, 2^4).
   // Bits order of occupancy from its least significant bit: L, B, R, T.
-  static constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
-      horse_moves = GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
+  const std::array<std::array<BitBoard, 16>, kNumPositions> horse_moves =
+      GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
           impl::HorseMovesAt);
   // horse_reverse_moves[pos][occupancy]. Occupancy ranges from [0, 2^4).
   // Occupancy same as elephant occupancy: BL, TL, BR, TR.
-  static constexpr std::array<std::array<BitBoard, 16>, kNumPositions>
+  const std::array<std::array<BitBoard, 16>, kNumPositions>
       horse_reverse_moves =
           GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
               impl::HorseReverseMovesAt);
   // cannon_row_moves[pos][row]. Row ranges from [0, 2^9) encoding 1 bit for
   // each position in the row (1 for occupied, 0 for unoccupied) from left to
   // right.
-  static constexpr std::array<std::array<BitBoard, 512>, kNumPositions>
-      cannon_row_moves =
-          GenerateArray<std::array<BitBoard, 512>, kNumPositions>(
-              impl::CannonRowMovesAt);
+  const std::array<std::array<BitBoard, 512>, kNumPositions> cannon_row_moves =
+      GenerateArray<std::array<BitBoard, 512>, kNumPositions>(
+          impl::CannonRowMovesAt);
   // cannon_col_moves[pos][col]. Col ranges from [0, 2^10) encoding 1 bit for
   // each position in the column (1 for occupied, 0 for unoccupied) from down to
   // top.
-  static constexpr std::array<std::array<BitBoard, 1024>, kNumPositions>
-      cannon_col_moves =
-          GenerateArray<std::array<BitBoard, 1024>, kNumPositions>(
-              impl::CannonColMovesAt);
+  const std::array<std::array<BitBoard, 1024>, kNumPositions> cannon_col_moves =
+      GenerateArray<std::array<BitBoard, 1024>, kNumPositions>(
+          impl::CannonColMovesAt);
   // rook_row_moves[pos][row]. Row ranges from [0, 2^9) encoding 1 bit for each
   // position in the row (1 for occupied, 0 for unoccupied) from left to right.
-  static constexpr std::array<std::array<BitBoard, 512>, kNumPositions>
-      rook_row_moves = GenerateArray<std::array<BitBoard, 512>, kNumPositions>(
+  const std::array<std::array<BitBoard, 512>, kNumPositions> rook_row_moves =
+      GenerateArray<std::array<BitBoard, 512>, kNumPositions>(
           impl::RookRowMovesAt);
   // rook_col_moves[pos][col]. Col ranges from [0, 2^10) encoding 1 bit for each
   // position in the column (1 for occupied, 0 for unoccupied) from down to top.
-  static constexpr std::array<std::array<BitBoard, 1024>, kNumPositions>
-      rook_col_moves = GenerateArray<std::array<BitBoard, 1024>, kNumPositions>(
+  const std::array<std::array<BitBoard, 1024>, kNumPositions> rook_col_moves =
+      GenerateArray<std::array<BitBoard, 1024>, kNumPositions>(
           impl::RookColMovesAt);
-
- private:
-  BitTables() = delete;
 };
 
 }  // namespace blur

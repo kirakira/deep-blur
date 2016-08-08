@@ -52,7 +52,7 @@ class HalfBitBoard {
   inline HalfBitBoard& operator&=(HalfBitBoard b);
   constexpr HalfBitBoard& operator|=(HalfBitBoard b);
   inline HalfBitBoard& operator^=(HalfBitBoard b);
-  friend inline bool operator==(HalfBitBoard b1, HalfBitBoard b2);
+  friend constexpr bool operator==(HalfBitBoard b1, HalfBitBoard b2);
   friend inline bool operator!=(HalfBitBoard b1, HalfBitBoard b2);
 
   // For debug output only.
@@ -107,7 +107,7 @@ class BitBoard {
   inline BitBoard& operator&=(BitBoard b);
   constexpr BitBoard& operator|=(BitBoard b);
   inline BitBoard& operator^=(BitBoard b);
-  friend inline bool operator==(BitBoard b1, BitBoard b2);
+  friend constexpr bool operator==(BitBoard b1, BitBoard b2);
   friend inline bool operator!=(BitBoard b1, BitBoard b2);
 
   // For debug output only.
@@ -250,7 +250,7 @@ HalfBitBoard& HalfBitBoard::operator^=(HalfBitBoard b) {
   return *this;
 }
 
-bool operator==(HalfBitBoard b1, HalfBitBoard b2) {
+constexpr bool operator==(HalfBitBoard b1, HalfBitBoard b2) {
   return b1.value_ == b2.value_;
 }
 
@@ -376,7 +376,7 @@ BitBoard& BitBoard::operator^=(BitBoard b) {
   return *this;
 }
 
-bool operator==(BitBoard b1, BitBoard b2) {
+constexpr bool operator==(BitBoard b1, BitBoard b2) {
   return b1.halves_[0] == b2.halves_[0] && b1.halves_[1] == b2.halves_[1];
 }
 

@@ -7,40 +7,46 @@
 using namespace blur;
 using namespace std;
 
+namespace {
+
+constexpr BitTables kBitTables{};
+
+}  // namespace
+
 void PrintPawnTables() {
   cout << "Red" << endl;
   for (int i = 0; i < kNumPositions; ++i) {
-    cout << i << ": " << endl << BitTables::red_pawn_moves[i] << endl;
+    cout << i << ": " << endl << kBitTables.red_pawn_moves[i] << endl;
   }
   cout << "Black" << endl;
   for (int i = 0; i < kNumPositions; ++i) {
-    cout << i << ": " << endl << BitTables::black_pawn_moves[i] << endl;
+    cout << i << ": " << endl << kBitTables.black_pawn_moves[i] << endl;
   }
 }
 
 bool TestPawnReverseTables() {
-  if (BitTables::red_pawn_reverse_moves[36] != BitBoard::Fill(Position(27)))
+  if (kBitTables.red_pawn_reverse_moves[36] != BitBoard::Fill(Position(27)))
     return false;
-  if (BitTables::red_pawn_reverse_moves[45] !=
+  if (kBitTables.red_pawn_reverse_moves[45] !=
       (BitBoard::Fill(Position(36)) | BitBoard::Fill(Position(46))))
     return false;
-  if (BitTables::black_pawn_reverse_moves[36] !=
+  if (kBitTables.black_pawn_reverse_moves[36] !=
       (BitBoard::Fill(Position(45)) | BitBoard::Fill(Position(37))))
     return false;
-  if (BitTables::black_pawn_reverse_moves[45] != BitBoard::Fill(Position(54)))
+  if (kBitTables.black_pawn_reverse_moves[45] != BitBoard::Fill(Position(54)))
     return false;
   return true;
 }
 
 void PrintKingTables() {
   for (int i = 0; i < kNumPositions; ++i) {
-    cout << i << ": " << endl << BitTables::king_moves[i] << endl;
+    cout << i << ": " << endl << kBitTables.king_moves[i] << endl;
   }
 }
 
 void PrintAssistantTables() {
   for (int i = 0; i < kNumPositions; ++i) {
-    cout << i << ": " << endl << BitTables::assistant_moves[i] << endl;
+    cout << i << ": " << endl << kBitTables.assistant_moves[i] << endl;
   }
 }
 
@@ -88,7 +94,7 @@ void PrintElephantTables() {
   for (int i = 0; i < kNumPositions; ++i) {
     for (uint64 occ = 0; occ < (1 << 4); ++occ)
       cout << "Pos: " << i << ", occupancy: " << occ << endl
-           << BitTables::elephant_moves[i][occ] << endl;
+           << kBitTables.elephant_moves[i][occ] << endl;
   }
 }
 
@@ -102,7 +108,7 @@ void PrintHorseTables() {
       if (GetBit(occ, 3)) occ_str += "T";
       if (occ_str == "") occ_str = "NONE";
       cout << "Pos: " << i << ", occupancy: " << occ_str << endl
-           << BitTables::horse_moves[i][occ] << endl;
+           << kBitTables.horse_moves[i][occ] << endl;
     }
   }
 }
@@ -156,7 +162,7 @@ bool CheckHorseTables() {
 bool CheckHorseReverseTables() {
   auto board = BitBoard::Fill(Position(46 + 10));
   uint64 occ = board.GetElephantOccupancy(Position(46));
-  return BitTables::horse_reverse_moves[46][occ] ==
+  return kBitTables.horse_reverse_moves[46][occ] ==
          (BitBoard::Fill(Position(27)) | BitBoard::Fill(Position(29)) |
           BitBoard::Fill(Position(39)) | BitBoard::Fill(Position(63)));
 }
@@ -182,8 +188,9 @@ bool TestRowOccupancy() {
 bool CheckCannonRowTables() {
   auto board = BitBoard::Fill(Position(5, 0)) | BitBoard::Fill(Position(5, 1)) |
                BitBoard::Fill(Position(5, 5)) | BitBoard::Fill(Position(5, 7));
-  auto moves = BitTables::cannon_row_moves[Position(5, 1).value()]
-                                          [board.GetRowOccupancy(5)];
+  auto moves =
+      kBitTables
+          .cannon_row_moves[Position(5, 1).value()][board.GetRowOccupancy(5)];
   auto expected_moves =
       BitBoard::Fill(Position(5, 2)) | BitBoard::Fill(Position(5, 3)) |
       BitBoard::Fill(Position(5, 4)) | BitBoard::Fill(Position(5, 7));
@@ -212,8 +219,9 @@ bool CheckCannonColTables() {
   auto board = BitBoard::Fill(Position(5, 1)) | BitBoard::Fill(Position(6, 1)) |
                BitBoard::Fill(Position(7, 1)) | BitBoard::Fill(Position(9, 1)) |
                BitBoard::Fill(Position(3, 1)) | BitBoard::Fill(Position(1, 1));
-  auto moves = BitTables::cannon_col_moves[Position(5, 1).value()]
-                                          [board.GetColOccupancy(1)];
+  auto moves =
+      kBitTables
+          .cannon_col_moves[Position(5, 1).value()][board.GetColOccupancy(1)];
 
   auto expected_moves = BitBoard::Fill(Position(7, 1)) |
                         BitBoard::Fill(Position(4, 1)) |
@@ -224,8 +232,9 @@ bool CheckCannonColTables() {
 bool CheckRookRowTables() {
   auto board = BitBoard::Fill(Position(5, 1)) | BitBoard::Fill(Position(5, 5)) |
                BitBoard::Fill(Position(5, 7));
-  auto moves = BitTables::rook_row_moves[Position(5, 1).value()]
-                                        [board.GetRowOccupancy(5)];
+  auto moves =
+      kBitTables
+          .rook_row_moves[Position(5, 1).value()][board.GetRowOccupancy(5)];
   auto expected_moves =
       BitBoard::Fill(Position(5, 0)) | BitBoard::Fill(Position(5, 2)) |
       BitBoard::Fill(Position(5, 3)) | BitBoard::Fill(Position(5, 4)) |
@@ -237,8 +246,9 @@ bool CheckRookColTables() {
   auto board = BitBoard::Fill(Position(5, 1)) | BitBoard::Fill(Position(6, 1)) |
                BitBoard::Fill(Position(7, 1)) | BitBoard::Fill(Position(9, 1)) |
                BitBoard::Fill(Position(3, 1)) | BitBoard::Fill(Position(1, 1));
-  auto moves = BitTables::cannon_col_moves[Position(5, 1).value()]
-                                          [board.GetColOccupancy(1)];
+  auto moves =
+      kBitTables
+          .cannon_col_moves[Position(5, 1).value()][board.GetColOccupancy(1)];
 
   auto expected_moves = BitBoard::Fill(Position(3, 1)) |
                         BitBoard::Fill(Position(4, 1)) |
