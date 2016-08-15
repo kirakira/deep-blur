@@ -1,10 +1,10 @@
 COMPILER=g++
 COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -Wconversion -Wno-sign-conversion -fconstexpr-steps=100000000
 OUT=bin
-ifeq ($(build),opt)
-	COMPILER_FLAGS+=-O3 -march=native -DNDEBUG
-else
+ifeq ($(build),dbg)
 	COMPILER_FLAGS+=-g
+else
+	COMPILER_FLAGS+=-O3 -march=native -DNDEBUG
 endif
 
 .PHONY: test
@@ -23,14 +23,17 @@ $(OUT)/board-hash.o: src/common.h src/board-base.h src/board-hash.h src/board-ha
 $(OUT)/eval.o: src/board-base.h src/eval.h src/eval.cc
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/eval.cc
 
+$(OUT)/logger.o: src/logger.h src/logger.cc src/common.h src/board-base.h src/eval.h
+	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/logger.cc
+
 $(OUT)/board.o: src/common.h src/eval.h src/bittables.h src/board.h src/bitboard.h src/board-base.h src/board-hash.h src/board.cc
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/board.cc
 
-$(OUT)/search.o: src/search.h src/search.cc src/board.h src/common.h src/eval.h src/bittables.h src/bitboard.h src/board-base.h src/board-hash.h
+$(OUT)/search.o: src/search.h src/search.cc src/board.h src/common.h src/eval.h src/bittables.h src/bitboard.h src/board-base.h src/board-hash.h src/logger.h
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/search.cc
 
-$(OUT)/xboard: $(OUT)/common.o $(OUT)/search.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o src/search.h src/xboard.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ src/xboard.cc $(OUT)/common.o $(OUT)/search.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o
+$(OUT)/xboard: $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o src/search.h src/xboard.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ src/xboard.cc $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o
 
 $(OUT)/common_test: $(OUT)/common.o src/common_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o src/common_test.cc

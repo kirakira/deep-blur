@@ -12,7 +12,7 @@ struct SearchResult {
   Move best_move;
 };
 
-SearchResult Search(Board& board, Side side, int depth);
+SearchResult Search(Board* board, Side side, int depth);
 
 // This is no-op when macro NDEBUG is defined.
 void DebugPrintLogs();

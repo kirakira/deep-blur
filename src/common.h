@@ -8,6 +8,7 @@
 namespace blur {
 
 // using int64 = std::int64_t;
+using int64 = std::int64_t;
 using uint64 = std::uint64_t;
 using size_t = std::size_t;
 
