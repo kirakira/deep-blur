@@ -98,6 +98,9 @@ bool Board::SetBoard(const string& fen) {
   }
   history_.clear();
   history_.reserve(200);
+  irreversible_moves_.clear();
+  history_.reserve(50);
+  irreversible_moves_.push_back(-1);
   hash_ = 0;
   repetition_start_ = 0;
 
@@ -448,17 +451,21 @@ void Board::MakeWithoutRepetitionDetection(Move move) {
               to_piece = board_[move.to().value()];
   DCHECK(from_piece != Piece::EmptyPiece());
   DCHECK(move.from() != move.to());
-  // 1. Update history.
+  // 1. Update irreversible_moves_.
+  if (to_piece != Piece::EmptyPiece()) {
+    irreversible_moves_.push_back(static_cast<int>(history_.size()));
+  }
+  // 2. Update history.
   history_.push_back({hash_, move, to_piece});
-  // 2. Update bitboards.
+  // 3. Update bitboards.
   piece_bitboards_[from_piece.value()].Make(move);
   if (to_piece != Piece::EmptyPiece()) {
     piece_bitboards_[to_piece.value()] &= ~BitBoard::Fill(move.to());
   }
-  // 3. Update board_.
+  // 4. Update board_.
   board_[move.to().value()] = board_[move.from().value()];
   board_[move.from().value()] = Piece::EmptyPiece();
-  // 4. Update hash_.
+  // 5. Update hash_.
   hash_ ^=
       BoardHash::piece_position_hash[from_piece.value()][move.from().value()];
   hash_ ^=
@@ -467,7 +474,7 @@ void Board::MakeWithoutRepetitionDetection(Move move) {
     hash_ ^=
         BoardHash::piece_position_hash[to_piece.value()][move.to().value()];
   }
-  // 5. Update board evaluation.
+  // 6. Update board evaluation.
   eval_.OnMake(move, from_piece, to_piece);
 }
 
@@ -475,8 +482,8 @@ MoveType Board::Make(Move move) {
   MakeWithoutRepetitionDetection(move);
   // Determine move type.
   MoveType move_type = MoveType::kRegular;
-  for (int i = static_cast<int>(history_.size()) - 1; i >= repetition_start_;
-       --i) {
+  for (int i = static_cast<int>(history_.size()) - 1;
+       i >= std::max(repetition_start_, irreversible_moves_.back() + 1); --i) {
     if (history_[i].hash_before_move == hash_) {
       move_type = GetRepetitionType(i);
       break;
@@ -569,8 +576,12 @@ void Board::Unmake() {
     piece_bitboards_[to_piece.value()] |= BitBoard::Fill(move.to());
   }
   piece_bitboards_[from_piece.value()].Unmake(move);
-  // 5. Restore history_;
+  // 5. Restore history_.
   history_.pop_back();
+  // 6. Restore irreversible_moves_.
+  if (irreversible_moves_.back() == static_cast<int>(history_.size())) {
+    irreversible_moves_.pop_back();
+  }
 }
 
 bool Board::InCheck(Side side) const {

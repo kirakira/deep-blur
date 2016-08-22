@@ -76,6 +76,7 @@ class Board {
   // Indexed by piece.value().
   BitBoard piece_bitboards_[16];
   std::vector<HistoryMove> history_;
+  std::vector<int> irreversible_moves_;
   int repetition_start_ = 0;
   uint64 hash_;
   Evaluator eval_;

@@ -222,16 +222,16 @@ bool VerifyRepetitionSequence(const string& board_string,
   for (size_t i = 0; i < moves.size(); ++i) {
     if (moves[i] == "x") {
       board.ResetRepetitionHistory();
+    } else if (moves[i] == "u") {
+      board.Unmake();
     } else {
       const auto result = board.Make(Move(moves[i]));
       if (i + 1 == moves.size()) {
         if (result != expected) {
-          cout << "A" << endl;
           return false;
         }
       } else {
         if (result != MoveType::kRegular) {
-          cout << "B " << i << " " << static_cast<int>(result) << endl;
           return false;
         }
       }
@@ -269,6 +269,11 @@ bool TestRepetition() {
   }
   if (!VerifyRepetitionSequence("2Rk5/9/9/9/9/9/9/9/9/5K3", {"d9d8", "d8d9"},
                                 MoveType::kRepetition)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("1cR6/3k5/9/9/9/9/9/9/9/5K3",
+                                {"c9b9", "u", "c9c8", "d8d9", "c8c9", "d9d8"},
+                                MoveType::kPerpetualAttackee)) {
     return false;
   }
   return true;
