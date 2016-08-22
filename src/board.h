@@ -66,9 +66,16 @@ class Board {
   // TODO: Cache the following?
   BitBoard AllPiecesMask() const;
   BitBoard SidePiecesMask(Side side) const;
+  // Generate all pseudo-legal moves and self-captures for side, and call f on
+  // every move generated. visitor should have the following signature:
+  // void f(Position from, BitBoard to).
+  template <typename Function>
+  void VisitMoves(Side side, Function visitor) const;
   // Generate moves for side whose destinations are restricted to a subset of
   // positions of board specified by allowed.
   MoveList GenerateMovesWithAllowedMask(Side side, BitBoard allowed) const;
+  // Return a bitboard of positions controlled by side.
+  BitBoard ControlledPositions(Side side) const;
   MoveType GetRepetitionType(int first_move_index);
   bool IsChasing(Position pos) const;
 

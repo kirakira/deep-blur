@@ -276,6 +276,71 @@ bool TestRepetition() {
                                 MoveType::kPerpetualAttackee)) {
     return false;
   }
+  if (!VerifyRepetitionSequence("r2k5/9/9/p1p6/9/C8/9/9/9/4K4",
+                                {"a9c9", "a4c4", "c9a9", "c4a4"},
+                                MoveType::kPerpetualAttacker)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("r2k5/9/9/p1p6/C8/9/9/9/9/4K4",
+                                {"a9c9", "a5c5", "c9a9", "c5a5"},
+                                MoveType::kRepetition)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("r2k5/9/1H7/9/9/9/9/9/9/4K4",
+                                {"a9a8", "b7c9", "a8a9", "c9b7"},
+                                MoveType::kPerpetualAttacker)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("1r2k4/9/2H6/9/9/9/9/9/9/5K3",
+                                {"b9b8", "c7d9", "b8b9", "d9c7"},
+                                MoveType::kRepetition)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("h2k5/9/2R6/9/9/9/9/9/9/4K4",
+                                {"c7a7", "a9c8", "a7c7", "c8a9"},
+                                MoveType::kPerpetualAttackee)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("c2k5/9/2R6/9/9/9/9/9/9/4K4",
+                                {"c7a7", "a9c9", "a7c7", "c9a9"},
+                                MoveType::kPerpetualAttackee)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("r2k5/5C3/1H7/9/9/9/9/9/9/4K4",
+                                {"a9a8", "b7c9", "a8a9", "c9b7"},
+                                MoveType::kRepetition)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("r2k5/3C5/1H7/9/9/9/9/9/9/4K4",
+                                {"a9a8", "b7c9", "a8a9", "c9b7"},
+                                MoveType::kPerpetualAttacker)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("C1hk5/9/8r/9/9/9/9/9/9/5K3",
+                                {"c9d7", "a9a7", "d7c9", "a7a9"},
+                                MoveType::kPerpetualAttacker)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("C1hk5/9/8h/9/9/9/9/9/9/5K3",
+                                {"c9d7", "a9a7", "d7c9", "a7a9"},
+                                MoveType::kPerpetualAttacker)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("C1hk5/9/8h/8r/9/9/9/9/9/5K3",
+                                {"c9d7", "a9a7", "d7c9", "a7a9"},
+                                MoveType::kRepetition)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("c4k3/9/1H7/9/9/9/9/9/9/3K5",
+                                {"a9a8", "b7c9", "a8a9", "c9b7"},
+                                MoveType::kPerpetualAttacker)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("c4k2c/9/1H7/9/9/9/9/9/9/3K5",
+                                {"a9a8", "b7c9", "a8a9", "c9b7"},
+                                MoveType::kRepetition)) {
+    return false;
+  }
   return true;
 }
 

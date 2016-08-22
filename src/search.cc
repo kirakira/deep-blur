@@ -113,7 +113,9 @@ SearchResult Search(Board* const board, const Side side, const int depth,
     for (const auto move : board->GenerateMoves(side)) {
       CheckedMoveMaker move_maker(board, side, move);
       if (!move_maker.move_made()) continue;
-      if (move_maker.move_type() == MoveType::kRepetition) {
+      if (move_maker.move_type() == MoveType::kRepetition ||
+          move_maker.move_type() == MoveType::kPerpetualAttacker ||
+          move_maker.move_type() == MoveType::kPerpetualAttackee) {
         ++(stats->repetition_detected);
       }
 
