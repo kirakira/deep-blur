@@ -178,7 +178,7 @@ bool TestCheckedMoveForBoard(Board board) {
           if (board.InCheck(s)) valid = false;
           board.Unmake();
         }
-        if (board.CheckedMake(s, move)) {
+        if (board.CheckedMake(s, move).first) {
           if (!valid) return false;
           board.Unmake();
         } else {
@@ -215,6 +215,65 @@ bool TestCheckedUnmake() {
   return true;
 }
 
+bool VerifyRepetitionSequence(const string& board_string,
+                              const vector<string>& moves, MoveType expected) {
+  Board board;
+  if (!board.SetBoard(board_string)) return false;
+  for (size_t i = 0; i < moves.size(); ++i) {
+    if (moves[i] == "x") {
+      board.ResetRepetitionHistory();
+    } else {
+      const auto result = board.Make(Move(moves[i]));
+      if (i + 1 == moves.size()) {
+        if (result != expected) {
+          cout << "A" << endl;
+          return false;
+        }
+      } else {
+        if (result != MoveType::kRegular) {
+          cout << "B " << i << " " << static_cast<int>(result) << endl;
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
+
+bool TestRepetition() {
+  if (!VerifyRepetitionSequence("3k5/9/3R5/9/9/9/9/9/9/5K3",
+                                {"d9e9", "d7e7", "e9d9", "e7d7"},
+                                MoveType::kPerpetualAttacker)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("3k5/9/4R4/9/9/9/9/9/9/5K3",
+                                {"e7d7", "d9e9", "d7e7", "e9d9"},
+                                MoveType::kPerpetualAttackee)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("3k5/9/4R4/9/9/9/9/9/9/5K3",
+                                {"e7f7", "d9e9", "f7e7", "e9d9"},
+                                MoveType::kRepetition)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence(
+          "C1ck5/1R7/9/9/9/9/9/9/9/5K3",
+          {"c9c8", "b8b9", "c8c9", "b9b7", "c9c8", "b7b9"},
+          MoveType::kPerpetualAttacker)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("C1ck5/1R7/9/9/9/9/9/9/9/5K3",
+                                {"c9c8", "x", "b8b9", "c8c9", "b9b8", "c9c8"},
+                                MoveType::kPerpetualAttackee)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("2Rk5/9/9/9/9/9/9/9/9/5K3", {"d9d8", "d8d9"},
+                                MoveType::kRepetition)) {
+    return false;
+  }
+  return true;
+}
+
 int main() {
   bool success = true;
   success = success && TestSetBoard();
@@ -225,6 +284,7 @@ int main() {
   success = success && TestInCheck();
   success = success && TestCheckedMake();
   success = success && TestCheckedUnmake();
+  success = success && TestRepetition();
   cout << (success ? "Success." : "Failed.") << endl;
   return success ? 0 : 1;
 }

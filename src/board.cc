@@ -99,6 +99,7 @@ bool Board::SetBoard(const string& fen) {
   history_.clear();
   history_.reserve(200);
   hash_ = 0;
+  repetition_start_ = 0;
 
   row = 9, col = 0;
   for (char c : fen) {
@@ -442,13 +443,13 @@ std::pair<bool, Position> Board::IsAttacked(Position pos) const {
   return std::make_pair(false, Position());
 }
 
-void Board::Make(Move move) {
+void Board::MakeWithoutRepetitionDetection(Move move) {
   const Piece from_piece = board_[move.from().value()],
               to_piece = board_[move.to().value()];
   DCHECK(from_piece != Piece::EmptyPiece());
   DCHECK(move.from() != move.to());
   // 1. Update history.
-  history_.push_back({move, to_piece});
+  history_.push_back({hash_, move, to_piece});
   // 2. Update bitboards.
   piece_bitboards_[from_piece.value()].Make(move);
   if (to_piece != Piece::EmptyPiece()) {
@@ -470,6 +471,86 @@ void Board::Make(Move move) {
   eval_.OnMake(move, from_piece, to_piece);
 }
 
+MoveType Board::Make(Move move) {
+  MakeWithoutRepetitionDetection(move);
+  // Determine move type.
+  MoveType move_type = MoveType::kRegular;
+  for (int i = static_cast<int>(history_.size()) - 1; i >= repetition_start_;
+       --i) {
+    if (history_[i].hash_before_move == hash_) {
+      move_type = GetRepetitionType(i);
+      break;
+    }
+  }
+  return move_type;
+}
+
+bool Board::IsChasing(Position) const { return false; }
+
+MoveType Board::GetRepetitionType(int first_move_index) {
+  DCHECK(!history_.empty() &&
+         first_move_index <= static_cast<int>(history_.size()) - 2);
+
+  std::vector<Move> unwinded_moves;
+  unwinded_moves.reserve(
+      std::max(0, static_cast<int>(history_.size()) - first_move_index));
+
+  const Side last_move_side = board_[history_.back().move.to().value()].side();
+  Side last_side = OtherSide(last_move_side);
+  bool perpetual_check[2] = {true, true}, perpetual_chase[2] = {true, true};
+  bool early_break = false;
+  while (static_cast<int>(history_.size()) > first_move_index) {
+    const Move current_move = history_.back().move;
+    const Side move_side = board_[current_move.to().value()].side();
+    // If one side has made two moves in a row, abort.
+    if (move_side == last_side) {
+      early_break = true;
+      break;
+    }
+    last_side = move_side;
+
+    // Test for check and chase.
+    int move_side_int = static_cast<int>(move_side);
+    perpetual_check[move_side_int] =
+        perpetual_check[move_side_int] && InCheck(OtherSide(move_side));
+    perpetual_chase[move_side_int] =
+        perpetual_chase[move_side_int] && IsChasing(current_move.to());
+
+    // Test for early break.
+    if (perpetual_check[0] == false && perpetual_check[1] == false &&
+        perpetual_chase[0] == false && perpetual_chase[1] == false) {
+      early_break = true;
+      break;
+    }
+
+    // Unwind current move.
+    unwinded_moves.push_back(current_move);
+    Unmake();
+  }
+  for (auto it = unwinded_moves.rbegin(); it != unwinded_moves.rend(); ++it) {
+    MakeWithoutRepetitionDetection(*it);
+  }
+
+  if (early_break) {
+    return MoveType::kRepetition;
+  } else if (perpetual_check[0] && perpetual_check[1]) {
+    return MoveType::kRepetition;
+  } else if (perpetual_check[static_cast<int>(last_move_side)] &&
+             !perpetual_check[static_cast<int>(OtherSide(last_move_side))]) {
+    return MoveType::kPerpetualAttacker;
+  } else if (perpetual_check[static_cast<int>(OtherSide(last_move_side))] &&
+             !perpetual_check[static_cast<int>(last_move_side)]) {
+    return MoveType::kPerpetualAttackee;
+  } else if (perpetual_chase[0] == perpetual_chase[1]) {
+    return MoveType::kRepetition;
+  } else if (perpetual_chase[static_cast<int>(last_move_side)] &&
+             !perpetual_chase[static_cast<int>(OtherSide(last_move_side))]) {
+    return MoveType::kPerpetualAttacker;
+  } else {
+    return MoveType::kPerpetualAttackee;
+  }
+}
+
 void Board::Unmake() {
   DCHECK(!history_.empty());
   const auto history_move = history_.back();
@@ -479,14 +560,7 @@ void Board::Unmake() {
   // 1. Update board evaluation.
   eval_.OnUnmake(move, from_piece, to_piece);
   // 2. Restore hash_.
-  hash_ ^=
-      BoardHash::piece_position_hash[from_piece.value()][move.from().value()];
-  hash_ ^=
-      BoardHash::piece_position_hash[from_piece.value()][move.to().value()];
-  if (to_piece != Piece::EmptyPiece()) {
-    hash_ ^=
-        BoardHash::piece_position_hash[to_piece.value()][move.to().value()];
-  }
+  hash_ = history_move.hash_before_move;
   // 3. Restore board_.
   board_[move.from().value()] = from_piece;
   board_[move.to().value()] = to_piece;
@@ -505,11 +579,16 @@ bool Board::InCheck(Side side) const {
       .first;
 }
 
-bool Board::CheckedMake(Side side, Move move) {
+void Board::ResetRepetitionHistory() {
+  repetition_start_ = static_cast<int>(history_.size());
+}
+
+std::pair<bool, MoveType> Board::CheckedMake(Side side, Move move) {
   const auto from = move.from(), to = move.to();
   const Piece from_piece = board_[from.value()];
-  if (from_piece == Piece::EmptyPiece()) return false;
-  if (from_piece.side() != side) return false;
+  if (from_piece == Piece::EmptyPiece() || from_piece.side() != side) {
+    return std::make_pair(false, MoveType::kRegular);
+  }
 
   const BitBoard all_pieces = AllPiecesMask();
   const BitBoard allowed_dests =
@@ -551,15 +630,15 @@ bool Board::CheckedMake(Side side, Move move) {
     } break;
   }
 
-  if (!dests[to]) return false;
+  if (!dests[to]) return std::make_pair(false, MoveType::kRegular);
 
-  Make(move);
+  const MoveType mt = Make(move);
   if (InCheck(side)) {
     Unmake();
-    return false;
+    return std::make_pair(false, mt);
   }
 
-  return true;
+  return std::make_pair(true, mt);
 }
 
 bool Board::CheckedUnmake() {

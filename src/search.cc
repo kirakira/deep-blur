@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "logger.h"
@@ -17,22 +18,30 @@ namespace {
 class CheckedMoveMaker {
  public:
   CheckedMoveMaker(Board* board, Side side, Move move) : board_(board) {
-    move_made_ = board->CheckedMake(side, move);
+    std::tie(move_made_, move_type_) = board->CheckedMake(side, move);
   }
 
   ~CheckedMoveMaker() {
     if (move_made_) board_->Unmake();
   }
 
-  bool MoveMade() const { return move_made_; }
+  bool move_made() const { return move_made_; }
+  MoveType move_type() const { return move_type_; }
 
  private:
   Board* const board_;
   bool move_made_;
+  MoveType move_type_;
 };
 
 struct Stats {
   int64 nodes_visited = 0;
+  int64 repetition_detected = 0;
+
+  void Print() {
+    std::cout << "# nodes: " << nodes_visited
+              << ", # repetitions: " << repetition_detected << std::endl;
+  }
 };
 
 struct DebugInfo {
@@ -103,7 +112,10 @@ SearchResult Search(Board* const board, const Side side, const int depth,
     result.score = -kMateScore;
     for (const auto move : board->GenerateMoves(side)) {
       CheckedMoveMaker move_maker(board, side, move);
-      if (!move_maker.MoveMade()) continue;
+      if (!move_maker.move_made()) continue;
+      if (move_maker.move_type() == MoveType::kRepetition) {
+        ++(stats->repetition_detected);
+      }
 
       const Score current_alpha = std::max(result.score, alpha);
 
@@ -129,6 +141,7 @@ SearchResult Search(Board* const board, const Side side, const int depth,
 }  // namespace
 
 SearchResult Search(Board* board, Side side, int depth) {
+  board->ResetRepetitionHistory();
   Stats stats;
 #ifdef NDEBUG
   constexpr DebugOptions debug = kDebugOff;
@@ -136,7 +149,10 @@ SearchResult Search(Board* board, Side side, int depth) {
   constexpr DebugOptions debug = kDebugOn;
 #endif
   SearchParams<debug> params;
-  return Search(board, side, depth, -kMateScore, kMateScore, &stats, params);
+  const auto result =
+      Search(board, side, depth, -kMateScore, kMateScore, &stats, params);
+  stats.Print();
+  return result;
 }
 
 void DebugPrintLogs() { Logger::GetInstance()->Print(); }

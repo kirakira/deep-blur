@@ -165,6 +165,13 @@ class MoveList {
   int size_ = 0;
 };
 
+enum class MoveType {
+  kRegular,
+  kRepetition,
+  kPerpetualAttacker,
+  kPerpetualAttackee
+};
+
 }  // namespace blur
 
 #endif  // BLUR_BOARD_BASE_H

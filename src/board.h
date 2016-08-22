@@ -34,11 +34,14 @@ class Board {
   //    King of side must exist.
   bool InCheck(Side side) const;
 
-  void Make(Move m);
+  MoveType Make(Move m);
   // This only accepts legal moves (no suicides). King captures are ok.
-  bool CheckedMake(Side side, Move m);
+  std::pair<bool, MoveType> CheckedMake(Side side, Move m);
   void Unmake();
   bool CheckedUnmake();
+
+  // Calculate repetition from current position.
+  void ResetRepetitionHistory();
 
   uint64 HashCode(Side side) const;
 
@@ -53,21 +56,27 @@ class Board {
 
  private:
   struct HistoryMove {
+    // Unsided hash.
+    uint64 hash_before_move;
     Move move;
     Piece capture;
   };
 
+  void MakeWithoutRepetitionDetection(Move m);
   // TODO: Cache the following?
   BitBoard AllPiecesMask() const;
   BitBoard SidePiecesMask(Side side) const;
   // Generate moves for side whose destinations are restricted to a subset of
   // positions of board specified by allowed.
   MoveList GenerateMovesWithAllowedMask(Side side, BitBoard allowed) const;
+  MoveType GetRepetitionType(int first_move_index);
+  bool IsChasing(Position pos) const;
 
   Piece board_[kNumPositions];
   // Indexed by piece.value().
   BitBoard piece_bitboards_[16];
   std::vector<HistoryMove> history_;
+  int repetition_start_ = 0;
   uint64 hash_;
   Evaluator eval_;
 };
