@@ -1,3 +1,2 @@
-*.jar
 bin/*
-xboard.*
+xboard.debug
