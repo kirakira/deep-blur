@@ -2,6 +2,7 @@
 #define BLUR_SEARCH_H
 
 #include "board.h"
+#include "transposition.h"
 
 namespace blur {
 
@@ -12,7 +13,10 @@ struct SearchResult {
   Move best_move;
 };
 
-SearchResult Search(Board* board, Side side, int depth);
+// Return value may not have a valid best_move if
+// * depth is 0, or
+// * score is -kMateScore.
+SearchResult Search(Board* board, TranspositionTable* tt, Side side, int depth);
 
 // This is no-op when macro NDEBUG is defined.
 void DebugPrintLogs();

@@ -9,8 +9,9 @@ void Logger::Print() const {
     cout << "node " << node.id << " parent " << node.parent_id << " from_move "
          << node.from_move.ToString() << " "
          << (node.side == Side::kRed ? "r" : "b") << " depth " << node.depth
-         << " alpha " << node.alpha << " beta " << node.beta << " final "
-         << node.score << " " << node.best_move.ToString() << endl;
+         << " alpha " << node.alpha << " beta " << node.beta << " final tt? "
+         << node.tt_hit << " score " << node.score << " "
+         << node.best_move.ToString() << endl;
   }
 }
 

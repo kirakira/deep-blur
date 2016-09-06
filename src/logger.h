@@ -30,6 +30,7 @@ class Logger {
     int depth;
     Score alpha;
     Score beta;
+    bool tt_hit;
     Score score;
     Move best_move;
   };
