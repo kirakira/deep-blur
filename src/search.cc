@@ -36,13 +36,15 @@ class CheckedMoveMaker {
 
 struct Stats {
   int64 nodes_visited = 0;
-  int64 repetition_detected = 0;
   int64 tt_hit = 0;
+  int64 affected_by_history = 0;
 
   void Print() {
-    std::cout << "# nodes: " << nodes_visited << " tt hit: "
+    std::cout << "# nodes: " << nodes_visited << ", tt hit: "
               << static_cast<double>(tt_hit) * 100 / nodes_visited
-              << "%, # repetitions: " << repetition_detected << std::endl;
+              << "%, affected by history: "
+              << static_cast<double>(affected_by_history) * 100 / nodes_visited
+              << "%" << std::endl;
   }
 };
 
@@ -100,8 +102,13 @@ void DebugLogCurrentNode<kDebugOn>(int64 node_id,
 }
 #endif
 
+struct InternalSearchResult {
+  SearchResult external_result;
+  bool affected_by_history = false;
+};
+
 bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
-             Score alpha, Score beta, SearchResult* result) {
+             Score alpha, Score beta, InternalSearchResult* result) {
   const uint64 hash = board->HashCode(side);
   TTEntry entry;
   if (!tt->LookUp(hash, &entry)) return false;
@@ -117,8 +124,9 @@ bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
         return false;
       }
     }
-    result->score = entry.score;
-    result->best_move = entry.best_move;
+    result->external_result.score = entry.score;
+    result->external_result.best_move = entry.best_move;
+    result->affected_by_history = false;
     return true;
   }
   return false;
@@ -141,15 +149,29 @@ void StoreTT(Board* board, TranspositionTable* tt, Side side, int depth,
   tt->Store(hash, entry);
 }
 
+Score ScoreFromRepetitionRule(MoveType type) {
+  switch (type) {
+    case MoveType::kRepetition:
+      return Score::kDrawScore;
+    case MoveType::kPerpetualAttacker:
+      return -Score::kMateScore;
+    case MoveType::kPerpetualAttackee:
+      return Score::kMateScore;
+    default:
+      CHECK(false);
+      return Score::kDrawScore;
+  }
+}
+
 // Only scores within (alpha, beta) are exact. Scores <= alpha are upper bounds;
 // scores >= beta are lower bounds.
 template <DebugOptions debug_options>
-SearchResult Search(Board* const board, TranspositionTable* tt, const Side side,
-                    const int depth, const Score alpha, const Score beta,
-                    Stats* const stats,
-                    const SearchParams<debug_options> params) {
+InternalSearchResult Search(Board* const board, TranspositionTable* tt,
+                            const Side side, const int depth, const Score alpha,
+                            const Score beta, Stats* const stats,
+                            const SearchParams<debug_options> params) {
   const int64 node_id = (stats->nodes_visited)++;
-  SearchResult result;
+  InternalSearchResult result;
 
   // Probe tt.
   bool tt_hit = false;
@@ -158,41 +180,55 @@ SearchResult Search(Board* const board, TranspositionTable* tt, const Side side,
     tt_hit = true;
   } else if (depth == 0) {
     Score score = board->Evaluation();
-    result.score = (side == Side::kRed ? score : -score);
+    result.external_result.score = (side == Side::kRed ? score : -score);
   } else {
-    result.score = -kMateScore;
+    result.external_result.score = -kMateScore;
     for (const auto move : board->GenerateMoves(side)) {
       CheckedMoveMaker move_maker(board, side, move);
       if (!move_maker.move_made()) continue;
-      if (move_maker.move_type() == MoveType::kRepetition ||
-          move_maker.move_type() == MoveType::kPerpetualAttacker ||
-          move_maker.move_type() == MoveType::kPerpetualAttackee) {
-        ++(stats->repetition_detected);
+
+      const Score current_alpha = std::max(result.external_result.score, alpha);
+
+      InternalSearchResult child_result;
+      if (move_maker.move_type() != MoveType::kRegular) {
+        child_result.external_result.score =
+            ScoreFromRepetitionRule(move_maker.move_type());
+        // We won't have a best_move in this case.
+        child_result.affected_by_history = true;
+      } else {
+        SearchParams<debug_options> child_params;
+        DebugModifyChildParams(node_id, move, &child_params);
+        child_result = Search(board, tt, OtherSide(side), depth - 1, -beta,
+                              -current_alpha, stats, child_params);
+      }
+      const Score current_score = -child_result.external_result.score;
+
+      if (current_score > result.external_result.score) {
+        result.external_result.score = current_score;
+        result.external_result.best_move = move;
+      }
+      // Set affected_by_history as long as there's one child affected by
+      // history.
+      if (child_result.affected_by_history) {
+        result.affected_by_history = true;
       }
 
-      const Score current_alpha = std::max(result.score, alpha);
-
-      SearchParams<debug_options> child_params;
-      DebugModifyChildParams(node_id, move, &child_params);
-      const auto child_result =
-          Search(board, tt, OtherSide(side), depth - 1, -beta, -current_alpha,
-                 stats, child_params);
-      const Score current_score = -child_result.score;
-
-      if (current_score > result.score) {
-        result.score = current_score;
-        result.best_move = move;
+      if (result.external_result.score >= beta) {
+        // Reset affected_by_history if a beta-cutoff happens.
+        result.affected_by_history = child_result.affected_by_history;
+        break;
       }
-
-      if (result.score >= beta) break;
     }
   }
 
+  if (result.affected_by_history) ++(stats->affected_by_history);
   // Store TT.
-  if (!tt_hit) StoreTT(board, tt, side, depth, alpha, beta, result);
+  if (!tt_hit && !result.affected_by_history) {
+    StoreTT(board, tt, side, depth, alpha, beta, result.external_result);
+  }
 
   DebugLogCurrentNode(node_id, params, side, depth, alpha, beta, tt_hit,
-                      result);
+                      result.external_result);
   return result;
 }
 
@@ -211,7 +247,7 @@ SearchResult Search(Board* board, TranspositionTable* tt, Side side,
   const auto result =
       Search(board, tt, side, depth, -kMateScore, kMateScore, &stats, params);
   stats.Print();
-  return result;
+  return result.external_result;
 }
 
 void DebugPrintLogs() { Logger::GetInstance()->Print(); }
