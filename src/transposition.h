@@ -30,7 +30,8 @@ class TranspositionTable {
   explicit TranspositionTable(int depth = 22);
 
   // hash: sided hash of the position to look-up.
-  // Returns true if the position is found.
+  // Returns true if the position is found. The returned entry could be
+  // corropted.
   bool LookUp(uint64 hash, TTEntry* entry /* out */);
   void Store(uint64 hash, TTEntry entry);
 

@@ -118,6 +118,7 @@ bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
        (entry.type == ScoreType::kLowerBound && entry.score >= beta))) {
     // Check if the move is valid.
     if (depth >= 1 && entry.score != -Score::kMateScore) {
+      if (!entry.best_move.IsValid()) return false;
       CheckedMoveMaker move_maker(board, side, entry.best_move);
       if (!move_maker.move_made() ||
           move_maker.move_type() == MoveType::kPerpetualAttacker) {

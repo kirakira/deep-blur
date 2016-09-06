@@ -47,6 +47,7 @@ class Position {
 
   // Ranges from 0 to 89 inclusive.
   constexpr int value() const { return value_; }
+  bool IsValid() const { return value_ >= 0 && value_ < kNumPositions; }
   constexpr int Row() const { return value_ / kNumColumns; }
   constexpr int Column() const { return value_ % kNumColumns; }
   constexpr bool InRedHalf() const { return value_ < (kNumPositions / 2); }
@@ -77,6 +78,7 @@ class Move {
 
   // Return value ranges in [0, 2^14).
   int value() const { return (from_.value() << 7) | (to_.value()); }
+  bool IsValid() const { return from_.IsValid() && to_.IsValid(); }
 
   Position from() const { return from_; }
   Position to() const { return to_; }
