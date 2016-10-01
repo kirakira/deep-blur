@@ -78,7 +78,9 @@ class Move {
 
   // Return value ranges in [0, 2^14).
   int value() const { return (from_.value() << 7) | (to_.value()); }
-  bool IsValid() const { return from_.IsValid() && to_.IsValid(); }
+  bool IsValid() const {
+    return from_.IsValid() && to_.IsValid() && from_ != to_;
+  }
 
   Position from() const { return from_; }
   Position to() const { return to_; }
@@ -86,6 +88,12 @@ class Move {
 
   Move(const Move&) = default;
   Move& operator=(const Move&) = default;
+
+  friend bool operator==(Move a, Move b) {
+    return a.from_ == b.from_ && a.to_ == b.to_;
+  }
+
+  friend bool operator!=(Move a, Move b) { return !(a == b); }
 
  private:
   Position from_;
@@ -155,17 +163,35 @@ class MoveList {
  public:
   template <typename... Args>
   inline void Add(Args&&... args) {
-    moves_[size_++] = Move(std::forward<Args>(args)...);
+    // Placement new saves us cost to zero memory upfront.
+    new (PointerOf(size_++)) Move(std::forward<Args>(args)...);
   }
+  ~MoveList() {
+    // We need to manually call the destructors since they are placement-newed
+    // (even though they are trivial destructors).
+    for (int i = 0; i < size_; ++i) {
+      PointerOf(i)->~Move();
+    }
+  }
+
   int size() const { return size_; }
 
-  inline Move* begin() { return &moves_[0]; }
-  inline Move* end() { return &moves_[size_]; }
-  inline const Move* begin() const { return &moves_[0]; }
-  inline const Move* end() const { return &moves_[size_]; }
+  inline Move* begin() { return PointerOf(0); }
+  inline Move* end() { return PointerOf(size_); }
+  inline const Move* begin() const { return PointerOf(0); }
+  inline const Move* end() const { return PointerOf(size_); }
 
  private:
-  Move moves_[120];
+  Move* PointerOf(int i) {
+    return reinterpret_cast<Move*>(buffer_ + i * sizeof(Move));
+  }
+  const Move* PointerOf(int i) const {
+    return reinterpret_cast<const Move*>(buffer_ + i * sizeof(Move));
+  }
+
+  static constexpr int kArraySize = 120;
+  // We use placement new to avoid the array from being zero'd.
+  char buffer_[sizeof(Move) * kArraySize];
   int size_ = 0;
 };
 

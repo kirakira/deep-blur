@@ -344,6 +344,16 @@ bool TestRepetition() {
   return true;
 }
 
+bool TestValidMove() {
+  Move move(0);
+  if (move.IsValid()) return false;
+  move = Move(91);
+  if (move.IsValid()) return false;
+  move = Move(23296);
+  if (move.IsValid()) return false;
+  return true;
+}
+
 int main() {
   bool success = true;
   success = success && TestSetBoard();
@@ -355,6 +365,7 @@ int main() {
   success = success && TestCheckedMake();
   success = success && TestCheckedUnmake();
   success = success && TestRepetition();
+  success = success && TestValidMove();
   cout << (success ? "Success." : "Failed.") << endl;
   return success ? 0 : 1;
 }

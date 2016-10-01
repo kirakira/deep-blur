@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "logger.h"
+#include "move-picker.h"
 
 using std::string;
 using std::vector;
@@ -59,7 +60,10 @@ template <DebugOptions debug_options>
 struct SearchParams;
 
 template <>
-struct SearchParams<kDebugOff> {};
+struct SearchParams<kDebugOff> {
+  TranspositionTable* tt;
+  Stats* stats;
+};
 
 #ifndef NDEBUG
 template <>
@@ -107,8 +111,11 @@ struct InternalSearchResult {
   bool affected_by_history = false;
 };
 
+// If it returns true, the move in result must be a valid move; if it returns
+// false, tt_move could be corropted or invalid.
 bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
-             Score alpha, Score beta, InternalSearchResult* result) {
+             Score alpha, Score beta, InternalSearchResult* result,
+             Move* tt_move) {
   const uint64 hash = board->HashCode(side);
   TTEntry entry;
   if (!tt->LookUp(hash, &entry)) return false;
@@ -130,6 +137,9 @@ bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
     result->affected_by_history = false;
     return true;
   }
+  // If the tt result is unusable, we populate tt_move to inspire move ordering
+  // in search.
+  *tt_move = entry.best_move;
   return false;
 }
 
@@ -167,24 +177,25 @@ Score ScoreFromRepetitionRule(MoveType type) {
 // Only scores within (alpha, beta) are exact. Scores <= alpha are upper bounds;
 // scores >= beta are lower bounds.
 template <DebugOptions debug_options>
-InternalSearchResult Search(Board* const board, TranspositionTable* tt,
-                            const Side side, const int depth, const Score alpha,
-                            const Score beta, Stats* const stats,
+InternalSearchResult Search(Board* const board, const Side side,
+                            const int depth, const Score alpha,
+                            const Score beta,
                             const SearchParams<debug_options> params) {
-  const int64 node_id = (stats->nodes_visited)++;
+  const int64 node_id = params.stats->nodes_visited++;
   InternalSearchResult result;
 
   // Probe tt.
   bool tt_hit = false;
-  if (ProbeTT(board, tt, side, depth, alpha, beta, &result)) {
-    ++(stats->tt_hit);
+  Move tt_move;
+  if (ProbeTT(board, params.tt, side, depth, alpha, beta, &result, &tt_move)) {
+    ++params.stats->tt_hit;
     tt_hit = true;
   } else if (depth == 0) {
     Score score = board->Evaluation();
     result.external_result.score = (side == Side::kRed ? score : -score);
   } else {
     result.external_result.score = -kMateScore;
-    for (const auto move : board->GenerateMoves(side)) {
+    for (const auto move : MovePicker(*board, side, tt_move)) {
       CheckedMoveMaker move_maker(board, side, move);
       if (!move_maker.move_made()) continue;
 
@@ -197,10 +208,10 @@ InternalSearchResult Search(Board* const board, TranspositionTable* tt,
         // We won't have a best_move in this case.
         child_result.affected_by_history = true;
       } else {
-        SearchParams<debug_options> child_params;
+        SearchParams<debug_options> child_params = params;
         DebugModifyChildParams(node_id, move, &child_params);
-        child_result = Search(board, tt, OtherSide(side), depth - 1, -beta,
-                              -current_alpha, stats, child_params);
+        child_result = Search(board, OtherSide(side), depth - 1, -beta,
+                              -current_alpha, child_params);
       }
       const Score current_score = -child_result.external_result.score;
 
@@ -222,10 +233,10 @@ InternalSearchResult Search(Board* const board, TranspositionTable* tt,
     }
   }
 
-  if (result.affected_by_history) ++(stats->affected_by_history);
+  if (result.affected_by_history) ++params.stats->affected_by_history;
   // Store TT.
   if (!tt_hit && !result.affected_by_history) {
-    StoreTT(board, tt, side, depth, alpha, beta, result.external_result);
+    StoreTT(board, params.tt, side, depth, alpha, beta, result.external_result);
   }
 
   DebugLogCurrentNode(node_id, params, side, depth, alpha, beta, tt_hit,
@@ -238,16 +249,18 @@ InternalSearchResult Search(Board* const board, TranspositionTable* tt,
 SearchResult Search(Board* board, TranspositionTable* tt, Side side,
                     int depth) {
   board->ResetRepetitionHistory();
-  Stats stats;
 #ifdef NDEBUG
   constexpr DebugOptions debug = kDebugOff;
 #else
   constexpr DebugOptions debug = kDebugOn;
 #endif
   SearchParams<debug> params;
+  Stats stats;
+  params.stats = &stats;
+  params.tt = tt;
   const auto result =
-      Search(board, tt, side, depth, -kMateScore, kMateScore, &stats, params);
-  stats.Print();
+      Search(board, side, depth, -kMateScore, kMateScore, params);
+  params.stats->Print();
   return result.external_result;
 }
 
