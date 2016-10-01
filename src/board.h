@@ -33,6 +33,9 @@ class Board {
   // Requires:
   //    King of side must exist.
   bool InCheck(Side side) const;
+  // Returns the piece at given position. If it's empty, returns
+  // Piece::EmptyPiece().
+  Piece PieceAt(Position pos) const;
 
   MoveType Make(Move m);
   // This only accepts legal moves (no suicides). King captures are ok.
@@ -62,6 +65,7 @@ class Board {
     Piece capture;
   };
 
+  Piece& MutablePieceAt(Position pos);
   void MakeWithoutRepetitionDetection(Move m);
   // TODO: Cache the following?
   BitBoard AllPiecesMask() const;

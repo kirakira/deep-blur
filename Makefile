@@ -8,7 +8,7 @@ else
 endif
 
 .PHONY: test
-test: $(OUT)/common_test $(OUT)/bittables_test $(OUT)/bitboard_test $(OUT)/board_test $(OUT)/genmove_test $(OUT)/transposition_test
+test: $(OUT)/common_test $(OUT)/bittables_test $(OUT)/bitboard_test $(OUT)/board_test $(OUT)/genmove_test $(OUT)/transposition_test $(OUT)/see_test
 
 $(OUT)/common.o: src/common.h src/common.cc
 	mkdir -p $(OUT)
@@ -32,14 +32,17 @@ $(OUT)/board.o: src/common.h src/eval.h src/bittables.h src/board.h src/bitboard
 $(OUT)/transposition.o: src/transposition.h src/transposition.cc src/board-base.h src/common.h
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/transposition.cc
 
-$(OUT)/move-picker.o: src/move-picker.h src/move-picker.cc src/board-base.h src/board.h src/common.h
+$(OUT)/move-picker.o: src/move-picker.h src/move-picker.cc src/board-base.h src/board.h src/common.h src/see.h
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/move-picker.cc
+
+$(OUT)/see.o: src/see.h src/see.cc src/board.h
+	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/see.cc
 
 $(OUT)/search.o: src/search.h src/search.cc src/board.h src/common.h src/eval.h src/bittables.h src/bitboard.h src/board-base.h src/board-hash.h src/logger.h src/transposition.h src/move-picker.h
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/search.cc
 
-$(OUT)/xboard: $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/search.o $(OUT)/transposition.o $(OUT)/move-picker.o src/xboard.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ src/xboard.cc $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/transposition.o $(OUT)/move-picker.o
+$(OUT)/xboard: $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/search.o $(OUT)/transposition.o $(OUT)/move-picker.o $(OUT)/see.o src/xboard.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ src/xboard.cc $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/transposition.o $(OUT)/move-picker.o $(OUT)/see.o
 
 $(OUT)/common_test: $(OUT)/common.o src/common_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o src/common_test.cc
@@ -58,6 +61,9 @@ $(OUT)/genmove_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/board-h
 
 $(OUT)/transposition_test: $(OUT)/common.o $(OUT)/board-base.o $(OUT)/transposition.o src/transposition_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o $(OUT)/board-base.o $(OUT)/transposition.o src/transposition_test.cc
+
+$(OUT)/see_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/board-base.o $(OUT)/board-hash.o $(OUT)/eval.o $(OUT)/see.o src/see_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o $(OUT)/board.o $(OUT)/board-base.o $(OUT)/board-hash.o $(OUT)/eval.o $(OUT)/see.o src/see_test.cc
 
 $(OUT)/board_benchmark: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/board-hash.o $(OUT)/board-base.o src/board_benchmark.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/eval.o $(OUT)/board-hash.o $(OUT)/common.o $(OUT)/board-base.o src/board_benchmark.cc

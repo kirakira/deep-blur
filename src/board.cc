@@ -114,7 +114,7 @@ bool Board::SetBoard(const string& fen) {
     } else {
       Position pos(row, col);
       Piece piece = char_piece_map[c];
-      board_[pos.value()] = piece;
+      MutablePieceAt(pos) = piece;
       piece_bitboards_[piece.value()] |= BitBoard::Fill(Position(row, col));
       hash_ ^= BoardHash::piece_position_hash[piece.value()][pos.value()];
 
@@ -127,6 +127,10 @@ bool Board::SetBoard(const string& fen) {
   return true;
 }
 
+Piece Board::PieceAt(Position pos) const { return board_[pos.value()]; }
+
+Piece& Board::MutablePieceAt(Position pos) { return board_[pos.value()]; }
+
 string Board::ToString() const {
   string ans;
   int gap = 0;
@@ -138,9 +142,9 @@ string Board::ToString() const {
   };
   for (int i = kNumRows - 1; i >= 0; --i) {
     for (int j = 0; j < kNumColumns; ++j) {
-      if (board_[Position(i, j).value()] != Piece::EmptyPiece()) {
+      if (PieceAt(Position(i, j)) != Piece::EmptyPiece()) {
         append_gap();
-        ans += board_[Position(i, j).value()].ToLetter();
+        ans += PieceAt(Position(i, j)).ToLetter();
       } else {
         ++gap;
       }
@@ -156,10 +160,10 @@ void Board::DebugPrint() const {
   for (int i = kNumRows - 1; i >= 0; --i) {
     cout << i << "  ";
     for (int j = 0; j < kNumColumns; ++j) {
-      if (board_[Position(i, j).value()] == Piece::EmptyPiece()) {
+      if (PieceAt(Position(i, j)) == Piece::EmptyPiece()) {
         cout << ".";
       } else {
-        cout << board_[Position(i, j).value()].ToLetter();
+        cout << PieceAt(Position(i, j)).ToLetter();
       }
       cout << " ";
     }
@@ -331,9 +335,8 @@ MoveList Board::GenerateCaptures(Side side) const {
 }
 
 std::pair<bool, Position> Board::IsAttacked(Position pos) const {
-  DCHECK(board_[pos.value()] != Piece::EmptyPiece());
-  const Side my_side = board_[pos.value()].side(),
-             other_side = OtherSide(my_side);
+  DCHECK(PieceAt(pos) != Piece::EmptyPiece());
+  const Side my_side = PieceAt(pos).side(), other_side = OtherSide(my_side);
 
   const BitBoard all_pieces = AllPiecesMask();
   const bool in_local_half =
@@ -388,7 +391,7 @@ std::pair<bool, Position> Board::IsAttacked(Position pos) const {
         piece_bitboards_[Piece(other_side, PieceType::kKing).value()]);
   }
   // Case 2: special king-to-king move.
-  if (in_local_half && board_[pos.value()].type() == PieceType::kKing) {
+  if (in_local_half && PieceAt(pos).type() == PieceType::kKing) {
     RETURN_IF_NONEMPTY(KingSlidingDestinations(
         all_pieces,
         piece_bitboards_[Piece(other_side, PieceType::kKing).value()], pos));
@@ -398,8 +401,7 @@ std::pair<bool, Position> Board::IsAttacked(Position pos) const {
 }
 
 void Board::MakeWithoutRepetitionDetection(Move move) {
-  const Piece from_piece = board_[move.from().value()],
-              to_piece = board_[move.to().value()];
+  const Piece from_piece = PieceAt(move.from()), to_piece = PieceAt(move.to());
   DCHECK(from_piece != Piece::EmptyPiece());
   DCHECK(move.from() != move.to());
   // 1. Update irreversible_moves_.
@@ -414,8 +416,8 @@ void Board::MakeWithoutRepetitionDetection(Move move) {
     piece_bitboards_[to_piece.value()] &= ~BitBoard::Fill(move.to());
   }
   // 4. Update board_.
-  board_[move.to().value()] = board_[move.from().value()];
-  board_[move.from().value()] = Piece::EmptyPiece();
+  MutablePieceAt(move.to()) = PieceAt(move.from());
+  MutablePieceAt(move.from()) = Piece::EmptyPiece();
   // 5. Update hash_.
   hash_ ^=
       BoardHash::piece_position_hash[from_piece.value()][move.from().value()];
@@ -464,7 +466,7 @@ BitBoard Board::ControlledPositions(Side side) const {
 }
 
 bool Board::IsChasing(Position pos) const {
-  const Piece source_piece = board_[pos.value()];
+  const Piece source_piece = PieceAt(pos);
   const Side my_side = source_piece.side(), other_side = OtherSide(my_side);
   const BitBoard all_pieces = AllPiecesMask();
   if (source_piece.type() == PieceType::kCannon) {
@@ -499,8 +501,7 @@ bool Board::IsChasing(Position pos) const {
                                    ~ControlledPositions(other_side))) {
       return true;
     }
-  }
-  else if (source_piece.type() == PieceType::kRook) {
+  } else if (source_piece.type() == PieceType::kRook) {
     // Rook to chase an unprotected cannon or horse.
     const auto attacked_positions = RookDestinations(all_pieces, pos);
     BitBoard target_pieces =
@@ -522,13 +523,13 @@ MoveType Board::GetRepetitionType(int first_move_index) {
   unwinded_moves.reserve(
       std::max(0, static_cast<int>(history_.size()) - first_move_index));
 
-  const Side last_move_side = board_[history_.back().move.to().value()].side();
+  const Side last_move_side = PieceAt(history_.back().move.to()).side();
   Side last_side = OtherSide(last_move_side);
   bool perpetual_check[2] = {true, true}, perpetual_attack[2] = {true, true};
   bool early_break = false;
   while (static_cast<int>(history_.size()) > first_move_index) {
     const Move current_move = history_.back().move;
-    const Side move_side = board_[current_move.to().value()].side();
+    const Side move_side = PieceAt(current_move.to()).side();
     // If one side has made two moves in a row, abort.
     if (move_side == last_side) {
       early_break = true;
@@ -584,15 +585,14 @@ void Board::Unmake() {
   DCHECK(!history_.empty());
   const auto history_move = history_.back();
   const auto move = history_move.move;
-  const auto from_piece = board_[move.to().value()],
-             to_piece = history_move.capture;
+  const auto from_piece = PieceAt(move.to()), to_piece = history_move.capture;
   // 1. Update board evaluation.
   eval_.OnUnmake(move, from_piece, to_piece);
   // 2. Restore hash_.
   hash_ = history_move.hash_before_move;
   // 3. Restore board_.
-  board_[move.from().value()] = from_piece;
-  board_[move.to().value()] = to_piece;
+  MutablePieceAt(move.from()) = from_piece;
+  MutablePieceAt(move.to()) = to_piece;
   // 4. Restore bitboards.
   if (to_piece != Piece::EmptyPiece()) {
     piece_bitboards_[to_piece.value()] |= BitBoard::Fill(move.to());
@@ -618,7 +618,7 @@ void Board::ResetRepetitionHistory() {
 
 std::pair<bool, MoveType> Board::CheckedMake(Side side, Move move) {
   const auto from = move.from(), to = move.to();
-  const Piece from_piece = board_[from.value()];
+  const Piece from_piece = PieceAt(from);
   if (from_piece == Piece::EmptyPiece() || from_piece.side() != side) {
     return std::make_pair(false, MoveType::kRegular);
   }

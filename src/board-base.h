@@ -205,8 +205,8 @@ enum class MoveType {
 enum Score : int {
   kDrawScore = 0,
   kPawnScore = 100,
-  kAssistantScore = 200,
-  kElephantScore = 200,
+  kAssistantScore = 150,
+  kElephantScore = 150,
   kHorseScore = 400,
   kCannonScore = 400,
   kRookScore = 900,
