@@ -39,6 +39,14 @@ struct Stats {
   int64 nodes_visited = 0;
   int64 tt_hit = 0;
   int64 affected_by_history = 0;
+  static constexpr int kBestMoveRankSize = 10;
+  int64 best_move_index[kBestMoveRankSize] = {0};
+  int64 best_move_total = 0;
+
+  void IncrementBestMoveRank(int rank) {
+    ++best_move_total;
+    if (rank < kBestMoveRankSize) ++best_move_index[rank];
+  }
 
   void Print() {
     std::cout << "# nodes: " << nodes_visited << ", tt hit: "
@@ -46,6 +54,13 @@ struct Stats {
               << "%, affected by history: "
               << static_cast<double>(affected_by_history) * 100 / nodes_visited
               << "%" << std::endl;
+    std::cout << "best move ranks: ";
+    for (int i = 0; i < kBestMoveRankSize; ++i) {
+      std::cout << static_cast<double>(best_move_index[i]) * 100 /
+                       best_move_total
+                << "% ";
+    }
+    std::cout << std::endl;
   }
 };
 
@@ -187,6 +202,7 @@ InternalSearchResult Search(Board* const board, const Side side,
   // Probe tt.
   bool tt_hit = false;
   Move tt_move;
+  int best_move_index = -1;
   if (ProbeTT(board, params.tt, side, depth, alpha, beta, &result, &tt_move)) {
     ++params.stats->tt_hit;
     tt_hit = true;
@@ -195,9 +211,12 @@ InternalSearchResult Search(Board* const board, const Side side,
     result.external_result.score = (side == Side::kRed ? score : -score);
   } else {
     result.external_result.score = -kMateScore;
+    int num_moves_tried = 0;
     for (const auto move : MovePicker(*board, side, tt_move)) {
       CheckedMoveMaker move_maker(board, side, move);
       if (!move_maker.move_made()) continue;
+
+      ++num_moves_tried;
 
       const Score current_alpha = std::max(result.external_result.score, alpha);
 
@@ -218,6 +237,7 @@ InternalSearchResult Search(Board* const board, const Side side,
       if (current_score > result.external_result.score) {
         result.external_result.score = current_score;
         result.external_result.best_move = move;
+        best_move_index = num_moves_tried - 1;
       }
       // Set affected_by_history as long as there's one child affected by
       // history.
@@ -233,6 +253,8 @@ InternalSearchResult Search(Board* const board, const Side side,
     }
   }
 
+  if (best_move_index != -1)
+    params.stats->IncrementBestMoveRank(best_move_index);
   if (result.affected_by_history) ++params.stats->affected_by_history;
   // Store TT.
   if (!tt_hit && !result.affected_by_history) {

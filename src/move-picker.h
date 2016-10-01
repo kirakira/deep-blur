@@ -23,6 +23,7 @@ class MovePicker {
 
     enum class Stage {
       kTTMove,
+      kCaptures,
       kRegularMoves,
       kDone,
     };
@@ -34,7 +35,8 @@ class MovePicker {
 
     const MovePicker* picker_ = nullptr;
     Stage stage_ = Stage::kTTMove;
-    MoveList moves_;
+    MoveList captures_;
+    MoveList regular_moves_;
     const Move* current_move_ = nullptr;
   };
 

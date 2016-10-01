@@ -1,5 +1,5 @@
-#include "common.h"
 #include "move-picker.h"
+#include "common.h"
 
 namespace blur {
 
@@ -15,20 +15,49 @@ void MovePicker::Iterator::SkipInvalidMoves() {
   switch (stage_) {
     case Stage::kTTMove:
       if (picker_->tt_move_.IsValid()) break;
+      stage_ = Stage::kCaptures;
+    // Fall-through intended.
+
+    case Stage::kCaptures:
+      if (!current_move_) {
+        captures_ = picker_->board_.GenerateCaptures(picker_->side_);
+        current_move_ = captures_.begin();
+      }
+      // Skip tt move.
+      while (current_move_ != captures_.end() &&
+             *current_move_ == picker_->tt_move_) {
+        ++current_move_;
+      }
+      if (current_move_ != captures_.end()) break;
       stage_ = Stage::kRegularMoves;
+      current_move_ = nullptr;
     // Fall-through intended.
 
     case Stage::kRegularMoves:
       if (!current_move_) {
-        moves_ = picker_->board_.GenerateMoves(picker_->side_);
-        current_move_ = moves_.begin();
+        regular_moves_ = picker_->board_.GenerateMoves(picker_->side_);
+        current_move_ = regular_moves_.begin();
       }
-      // Skip tt move.
-      while (current_move_ != moves_.end() &&
-             *current_move_ == picker_->tt_move_) {
-        ++current_move_;
+      // Skip tt move and captures.
+      while (current_move_ != regular_moves_.end()) {
+        bool skip_current_move = false;
+        if (*current_move_ == picker_->tt_move_) {
+          skip_current_move = true;
+        } else {
+          for (Move capture : captures_) {
+            if (capture == *current_move_) {
+              skip_current_move = true;
+              break;
+            }
+          }
+        }
+        if (skip_current_move) {
+          ++current_move_;
+        } else {
+          break;
+        }
       }
-      if (current_move_ != moves_.end()) break;
+      if (current_move_ != regular_moves_.end()) break;
       stage_ = Stage::kDone;
     // Fall-through intended.
 
@@ -43,6 +72,7 @@ Move MovePicker::Iterator::operator*() const {
     case Stage::kTTMove:
       return picker_->tt_move_;
 
+    case Stage::kCaptures:
     case Stage::kRegularMoves:
       return *current_move_;
 
@@ -57,6 +87,7 @@ MovePicker::Iterator& MovePicker::Iterator::operator++() {
       stage_ = Stage::kRegularMoves;
       break;
 
+    case Stage::kCaptures:
     case Stage::kRegularMoves:
       ++current_move_;
       break;
