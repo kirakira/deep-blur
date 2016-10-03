@@ -60,13 +60,13 @@ class MovePicker {
   };
 
   // tt_move can be invalid or corropted.
-  MovePicker(const Board& board, Side side, Move tt_move, int depth,
-             KillerStats* killer_stats)
+  MovePicker(const Board& board, Side side, Move tt_move, Move killer1,
+             Move killer2)
       : board_(board),
         side_(side),
         tt_move_(tt_move),
-        depth_(depth),
-        killer_stats_(killer_stats) {}
+        killer1_(killer1),
+        killer2_(killer2) {}
 
   Iterator begin();
   Iterator end();
@@ -75,8 +75,7 @@ class MovePicker {
   const Board& board_;
   const Side side_;
   const Move tt_move_;
-  const int depth_;
-  KillerStats* const killer_stats_;
+  const Move killer1_, killer2_;
 };
 
 }  // namespace blur

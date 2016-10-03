@@ -66,8 +66,8 @@ void MovePicker::Iterator::PrepareMovesForCurrentStage() {
 
     case Stage::kKillers: {
       moves_buffer_.Clear();
-      moves_buffer_.Add(picker_->killer_stats_->GetKiller1(picker_->depth_));
-      moves_buffer_.Add(picker_->killer_stats_->GetKiller2(picker_->depth_));
+      moves_buffer_.Add(picker_->killer1_);
+      moves_buffer_.Add(picker_->killer2_);
       break;
     }
 

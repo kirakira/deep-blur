@@ -215,8 +215,9 @@ InternalSearchResult Search(Board* const board, const Side side,
   } else {
     result.external_result.score = -kMateScore;
     int num_moves_tried = 0;
-    for (const auto move :
-         MovePicker(*board, side, tt_move, depth, params.killer_stats)) {
+    for (const auto move : MovePicker(*board, side, tt_move,
+                                      params.killer_stats->GetKiller1(depth),
+                                      params.killer_stats->GetKiller2(depth))) {
       CheckedMoveMaker move_maker(board, side, move);
       if (!move_maker.move_made()) continue;
 
