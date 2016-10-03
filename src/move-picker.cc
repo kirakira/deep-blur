@@ -4,9 +4,7 @@
 namespace blur {
 
 void KillerStats::RecordBetaCut(int depth, Move move) {
-  if (!killers_[depth][0].IsValid()) {
-    killers_[depth][0] = move;
-  } else if (killers_[depth][0] != move) {
+  if (killers_[depth][0] != move) {
     killers_[depth][1] = killers_[depth][0];
     killers_[depth][0] = move;
   }
