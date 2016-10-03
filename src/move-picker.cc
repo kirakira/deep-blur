@@ -84,7 +84,7 @@ Move MovePicker::Iterator::operator*() const {
 MovePicker::Iterator& MovePicker::Iterator::operator++() {
   switch (stage_) {
     case Stage::kTTMove:
-      stage_ = Stage::kRegularMoves;
+      stage_ = Stage::kCaptures;
       break;
 
     case Stage::kCaptures:
