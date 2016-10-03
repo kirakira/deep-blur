@@ -7,14 +7,18 @@ namespace blur {
 
 class KillerStats {
  public:
-  void RecordBetaCut(int depth, Move move);
-  Move GetKiller1(int depth) const;
-  Move GetKiller2(int depth) const;
+  inline void RecordBetaCut(int depth, Move move) {
+    if (killers_[depth][0] != move) {
+      killers_[depth][1] = killers_[depth][0];
+      killers_[depth][0] = move;
+    }
+  }
+  inline Move GetKiller1(int depth) const { return killers_[depth][0]; }
+  inline Move GetKiller2(int depth) const { return killers_[depth][1]; }
 
  private:
   Move killers_[kMaxDepth][2];
 };
-
 
 class MovePicker {
  public:

@@ -3,17 +3,6 @@
 
 namespace blur {
 
-void KillerStats::RecordBetaCut(int depth, Move move) {
-  if (killers_[depth][0] != move) {
-    killers_[depth][1] = killers_[depth][0];
-    killers_[depth][0] = move;
-  }
-}
-
-Move KillerStats::GetKiller1(int depth) const { return killers_[depth][0]; }
-
-Move KillerStats::GetKiller2(int depth) const { return killers_[depth][1]; }
-
 MovePicker::Iterator::Iterator(const MovePicker& picker)
     : Iterator(picker, Stage::kTTMove) {}
 
