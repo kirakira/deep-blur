@@ -1,6 +1,7 @@
 #ifndef BLUR_BOARD_BASE_H
 #define BLUR_BOARD_BASE_H
 
+#include <cstring>
 #include <string>
 
 namespace blur {
@@ -31,7 +32,7 @@ const int kNumColumns = 9;
 // Value semantics.
 class Position {
  public:
-  // Construct an uninitialized Position.
+  // Initialize to position "a0".
   Position() : Position(0) {}
   constexpr Position(int row, int col) : Position(row * kNumColumns + col) {}
   // For example, "a0" -> 0; "d8" -> 75.
@@ -69,7 +70,7 @@ class Position {
 // Value semantics.
 class Move {
  public:
-  // An unintialized move.
+  // Initialize to an invalid move.
   Move() = default;
   Move(Position from, Position to) : from_(from), to_(to) {}
   explicit Move(const std::string& str);
@@ -128,18 +129,14 @@ class Piece {
   // call side() or type() on it.
   constexpr static Piece EmptyPiece() { return Piece(0); }
 
-  constexpr Side side() const {
-    return static_cast<Side>(value_ >> 3);
-  }
+  constexpr Side side() const { return static_cast<Side>(value_ >> 3); }
 
   constexpr PieceType type() const {
     return static_cast<PieceType>(value_ & 7);
   }
 
   // value ranges in [0, 16).
-  constexpr int value() const {
-    return value_;
-  }
+  constexpr int value() const { return value_; }
 
   // Convert the piece to its single-letter representation.
   char ToLetter() const {
@@ -166,15 +163,17 @@ class MoveList {
     // Placement new saves us cost to zero memory upfront.
     new (PointerOf(size_++)) Move(std::forward<Args>(args)...);
   }
-  ~MoveList() {
-    // We need to manually call the destructors since they are placement-newed
-    // (even though they are trivial destructors).
-    for (int i = 0; i < size_; ++i) {
-      PointerOf(i)->~Move();
-    }
+  MoveList() {}
+  MoveList(const MoveList& other) { CopyFrom(other); }
+
+  inline MoveList& operator=(const MoveList& other) {
+    CopyFrom(other);
+    return *this;
   }
 
-  int size() const { return size_; }
+  inline int size() const { return size_; }
+
+  inline void Clear() { size_ = 0; }
 
   inline Move* begin() { return PointerOf(0); }
   inline Move* end() { return PointerOf(size_); }
@@ -187,6 +186,10 @@ class MoveList {
   }
   const Move* PointerOf(int i) const {
     return reinterpret_cast<const Move*>(buffer_ + i * sizeof(Move));
+  }
+  inline void CopyFrom(const MoveList& other) {
+    size_ = other.size_;
+    std::memcpy(buffer_, other.buffer_, sizeof(Move) * size_);
   }
 
   static constexpr int kArraySize = 120;
@@ -212,6 +215,8 @@ enum Score : int {
   kRookScore = 900,
   kMateScore = 10000
 };
+
+static constexpr int kMaxDepth = 1024;
 
 inline Score& operator+=(Score& x, Score y) {
   return x = static_cast<Score>(x + y);

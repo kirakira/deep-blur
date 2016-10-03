@@ -50,14 +50,16 @@ struct Stats {
 
   void Print() {
     std::cout << "# nodes: " << nodes_visited << ", tt hit: "
-              << static_cast<double>(tt_hit) * 100 / nodes_visited
+              << static_cast<double>(tt_hit) * 100 /
+                     static_cast<double>(nodes_visited)
               << "%, affected by history: "
-              << static_cast<double>(affected_by_history) * 100 / nodes_visited
+              << static_cast<double>(affected_by_history) * 100 /
+                     static_cast<double>(nodes_visited)
               << "%" << std::endl;
     std::cout << "best move ranks: ";
     for (int i = 0; i < kBestMoveRankSize; ++i) {
       std::cout << static_cast<double>(best_move_index[i]) * 100 /
-                       best_move_total
+                       static_cast<double>(best_move_total)
                 << "% ";
     }
     std::cout << std::endl;
@@ -77,6 +79,7 @@ struct SearchParams;
 template <>
 struct SearchParams<kDebugOff> {
   TranspositionTable* tt;
+  KillerStats* killer_stats;
   Stats* stats;
 };
 
@@ -212,7 +215,8 @@ InternalSearchResult Search(Board* const board, const Side side,
   } else {
     result.external_result.score = -kMateScore;
     int num_moves_tried = 0;
-    for (const auto move : MovePicker(*board, side, tt_move)) {
+    for (const auto move :
+         MovePicker(*board, side, tt_move, depth, params.killer_stats)) {
       CheckedMoveMaker move_maker(board, side, move);
       if (!move_maker.move_made()) continue;
 
@@ -246,6 +250,7 @@ InternalSearchResult Search(Board* const board, const Side side,
       }
 
       if (result.external_result.score >= beta) {
+        params.killer_stats->RecordBetaCut(depth, move);
         // Reset affected_by_history if a beta-cutoff happens.
         result.affected_by_history = child_result.affected_by_history;
         break;
@@ -279,6 +284,8 @@ SearchResult Search(Board* board, TranspositionTable* tt, Side side,
   SearchParams<debug> params;
   Stats stats;
   params.stats = &stats;
+  KillerStats killer_stats;
+  params.killer_stats = &killer_stats;
   params.tt = tt;
   const auto result =
       Search(board, side, depth, -kMateScore, kMateScore, params);

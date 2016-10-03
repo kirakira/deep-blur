@@ -3,100 +3,95 @@
 
 namespace blur {
 
+void KillerStats::RecordBetaCut(int depth, Move move) {
+  if (!killers_[depth][0].IsValid()) {
+    killers_[depth][0] = move;
+  } else if (killers_[depth][0] != move) {
+    killers_[depth][1] = killers_[depth][0];
+    killers_[depth][0] = move;
+  }
+}
+
+Move KillerStats::GetKiller1(int depth) const { return killers_[depth][0]; }
+
+Move KillerStats::GetKiller2(int depth) const { return killers_[depth][1]; }
+
 MovePicker::Iterator::Iterator(const MovePicker& picker)
     : Iterator(picker, Stage::kTTMove) {}
 
 MovePicker::Iterator::Iterator(const MovePicker& picker, Stage begin_stage)
     : picker_(&picker), stage_(begin_stage) {
-  SkipInvalidMoves();
+  PrepareMovesForCurrentStage();
+  SkipOldMoves();
 }
 
-void MovePicker::Iterator::SkipInvalidMoves() {
-  switch (stage_) {
-    case Stage::kTTMove:
-      if (picker_->tt_move_.IsValid()) break;
-      stage_ = Stage::kCaptures;
-    // Fall-through intended.
+/* static */
+MovePicker::Iterator::Stage MovePicker::Iterator::NextStage(Stage stage) {
+  return static_cast<Stage>(static_cast<int>(stage) + 1);
+}
 
-    case Stage::kCaptures:
-      if (!current_move_) {
-        captures_ = picker_->board_.GenerateCaptures(picker_->side_);
-        current_move_ = captures_.begin();
-      }
-      // Skip tt move.
-      while (current_move_ != captures_.end() &&
-             *current_move_ == picker_->tt_move_) {
-        ++current_move_;
-      }
-      if (current_move_ != captures_.end()) break;
-      stage_ = Stage::kRegularMoves;
-      current_move_ = nullptr;
-    // Fall-through intended.
-
-    case Stage::kRegularMoves:
-      if (!current_move_) {
-        regular_moves_ = picker_->board_.GenerateMoves(picker_->side_);
-        current_move_ = regular_moves_.begin();
-      }
-      // Skip tt move and captures.
-      while (current_move_ != regular_moves_.end()) {
-        bool skip_current_move = false;
-        if (*current_move_ == picker_->tt_move_) {
-          skip_current_move = true;
-        } else {
-          for (Move capture : captures_) {
-            if (capture == *current_move_) {
-              skip_current_move = true;
-              break;
-            }
-          }
-        }
-        if (skip_current_move) {
-          ++current_move_;
-        } else {
+void MovePicker::Iterator::SkipOldMoves() {
+  while (stage_ != Stage::kDone) {
+    for (; current_move_ != moves_buffer_.end(); ++current_move_) {
+      bool old_move = false;
+      for (const auto move : moves_returned_) {
+        if (*current_move_ == move) {
+          old_move = true;
           break;
         }
       }
-      if (current_move_ != regular_moves_.end()) break;
-      stage_ = Stage::kDone;
-    // Fall-through intended.
-
-    case Stage::kDone:
-      // No-op.
+      if (!old_move) break;
+    }
+    if (current_move_ == moves_buffer_.end()) {
+      stage_ = NextStage(stage_);
+      PrepareMovesForCurrentStage();
+    } else {
       break;
+    }
   }
 }
 
-Move MovePicker::Iterator::operator*() const {
+void MovePicker::Iterator::PrepareMovesForCurrentStage() {
   switch (stage_) {
-    case Stage::kTTMove:
-      return picker_->tt_move_;
+    case Stage::kTTMove: {
+      moves_buffer_.Clear();
+      if (picker_->tt_move_.IsValid()) {
+        moves_buffer_.Add(picker_->tt_move_);
+      }
+      break;
+    }
 
-    case Stage::kCaptures:
-    case Stage::kRegularMoves:
-      return *current_move_;
+    case Stage::kCaptures: {
+      moves_buffer_ = picker_->board_.GenerateCaptures(picker_->side_);
+      break;
+    }
 
-    case Stage::kDone:
-      Die("No more moves to pick.");
+    case Stage::kKillers: {
+      moves_buffer_.Clear();
+      moves_buffer_.Add(picker_->killer_stats_->GetKiller1(picker_->depth_));
+      moves_buffer_.Add(picker_->killer_stats_->GetKiller2(picker_->depth_));
+      break;
+    }
+
+    case Stage::kRegularMoves: {
+      moves_buffer_ = picker_->board_.GenerateMoves(picker_->side_);
+      break;
+    }
+
+    case Stage::kDone: {
+      moves_buffer_.Clear();
+      break;
+    }
   }
+  current_move_ = moves_buffer_.begin();
 }
+
+Move MovePicker::Iterator::operator*() const { return *current_move_; }
 
 MovePicker::Iterator& MovePicker::Iterator::operator++() {
-  switch (stage_) {
-    case Stage::kTTMove:
-      stage_ = Stage::kCaptures;
-      break;
-
-    case Stage::kCaptures:
-    case Stage::kRegularMoves:
-      ++current_move_;
-      break;
-
-    case Stage::kDone:
-      Die("Cannot advance a picker already done.");
-  }
-
-  SkipInvalidMoves();
+  if (stage_ != Stage::kRegularMoves) moves_returned_.Add(*current_move_);
+  ++current_move_;
+  SkipOldMoves();
   return *this;
 }
 
