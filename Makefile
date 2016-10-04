@@ -4,7 +4,7 @@ OUT=bin
 ifeq ($(build),dbg)
 	COMPILER_FLAGS+=-g
 else
-	COMPILER_FLAGS+=-O3 -march=native -DNDEBUG
+	COMPILER_FLAGS+=-O3 -march=native -flto -DNDEBUG
 endif
 
 .PHONY: test
