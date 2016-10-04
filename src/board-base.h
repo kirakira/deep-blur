@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <string>
+#include <type_traits>
 
 namespace blur {
 
@@ -181,20 +182,21 @@ class MoveList {
   inline const Move* end() const { return PointerOf(size_); }
 
  private:
-  Move* PointerOf(int i) {
-    return reinterpret_cast<Move*>(buffer_ + i * sizeof(Move));
-  }
+  Move* PointerOf(int i) { return reinterpret_cast<Move*>(moves_ + i); }
+
   const Move* PointerOf(int i) const {
-    return reinterpret_cast<const Move*>(buffer_ + i * sizeof(Move));
+    return reinterpret_cast<const Move*>(moves_ + i);
   }
+
   inline void CopyFrom(const MoveList& other) {
     size_ = other.size_;
-    std::memcpy(buffer_, other.buffer_, sizeof(Move) * size_);
+    std::memcpy(moves_, other.moves_, sizeof(Move) * size_);
   }
 
   static constexpr int kArraySize = 120;
-  // We use placement new to avoid the array from being zero'd.
-  char buffer_[sizeof(Move) * kArraySize];
+  // We use placement new on an pre-allocated storage to prevent the array from
+  // being zero'd.
+  std::aligned_storage<sizeof(Move), alignof(Move)>::type moves_[kArraySize];
   int size_ = 0;
 };
 
