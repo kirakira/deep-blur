@@ -38,6 +38,26 @@ void MovePicker::Iterator::SkipOldMoves() {
   }
 }
 
+namespace {
+
+void InsertionSort(Move* begin, Move* end, const HistoryMoveStats* stats,
+                   Side side) {
+  if (begin == end) return;
+  for (Move* i = begin + 1; i != end; ++i) {
+    const Move curr = *i;
+    Move* j;
+    for (j = i;
+         j != begin &&
+         stats->GetMoveScore(side, *(j - 1)) < stats->GetMoveScore(side, *j);
+         --j) {
+      *j = *(j - 1);
+    }
+    *j = curr;
+  }
+}
+
+}  // namespace
+
 void MovePicker::Iterator::PrepareMovesForCurrentStage() {
   switch (stage_) {
     case Stage::kTTMove: {
@@ -62,6 +82,8 @@ void MovePicker::Iterator::PrepareMovesForCurrentStage() {
 
     case Stage::kRegularMoves: {
       moves_buffer_ = picker_->board_.GenerateMoves(picker_->side_);
+      InsertionSort(moves_buffer_.begin(), moves_buffer_.end(),
+                    &picker_->history_stats_, picker_->side_);
       break;
     }
 

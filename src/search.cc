@@ -81,6 +81,7 @@ struct SearchParams<kDebugOff> {
   TranspositionTable* tt;
   KillerStats* killer_stats;
   Stats* stats;
+  HistoryMoveStats* history_move_stats;
 };
 
 #ifndef NDEBUG
@@ -217,7 +218,8 @@ InternalSearchResult Search(Board* const board, const Side side,
     int num_moves_tried = 0;
     for (const auto move : MovePicker(*board, side, tt_move,
                                       params.killer_stats->GetKiller1(depth),
-                                      params.killer_stats->GetKiller2(depth))) {
+                                      params.killer_stats->GetKiller2(depth),
+                                      params.history_move_stats)) {
       CheckedMoveMaker move_maker(board, side, move);
       if (!move_maker.move_made()) continue;
 
@@ -259,8 +261,15 @@ InternalSearchResult Search(Board* const board, const Side side,
     }
   }
 
-  if (best_move_index != -1)
+  // Update history move table.
+  if (result.external_result.best_move.IsValid()) {
+    params.history_move_stats->RecordBestMove(
+        side, result.external_result.best_move, depth);
+  }
+  // Update stats.
+  if (best_move_index != -1) {
     params.stats->IncrementBestMoveRank(best_move_index);
+  }
   if (result.affected_by_history) ++params.stats->affected_by_history;
   // Store TT.
   if (!tt_hit && !result.affected_by_history) {
@@ -284,10 +293,12 @@ SearchResult Search(Board* board, TranspositionTable* tt, Side side,
 #endif
   SearchParams<debug> params;
   Stats stats;
+  HistoryMoveStats history_move_stats;
   params.stats = &stats;
   KillerStats killer_stats;
   params.killer_stats = &killer_stats;
   params.tt = tt;
+  params.history_move_stats = &history_move_stats;
   const auto result =
       Search(board, side, depth, -kMateScore, kMateScore, params);
   params.stats->Print();

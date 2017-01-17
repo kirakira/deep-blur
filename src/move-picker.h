@@ -1,6 +1,8 @@
 #ifndef BLUR_MOVE_PICKER_H
 #define BLUR_MOVE_PICKER_H
 
+#include <limits>
+
 #include "board.h"
 
 namespace blur {
@@ -18,6 +20,28 @@ class KillerStats {
 
  private:
   Move killers_[kMaxDepth][2];
+};
+
+struct HistoryMoveStats {
+ public:
+  HistoryMoveStats() : scores_() {}
+
+  inline void RecordBestMove(Side side, Move move, int depth) {
+    int& value =
+        scores_[static_cast<int>(side)][move.from().value()][move.to().value()];
+    value += depth * depth + 2 * depth - 2;
+    if (value > kMaxMoveScore) value = kMaxMoveScore;
+  }
+
+  inline int GetMoveScore(Side side, Move move) const {
+    return scores_[static_cast<int>(side)][move.from().value()]
+                  [move.to().value()];
+  }
+
+ private:
+  // Scores indexed by [side][source][dest].
+  int scores_[2][kNumPositions][kNumPositions];
+  static constexpr int kMaxMoveScore = std::numeric_limits<int>::max() / 2;
 };
 
 class MovePicker {
@@ -65,12 +89,13 @@ class MovePicker {
 
   // tt_move can be invalid or corropted.
   MovePicker(const Board& board, Side side, Move tt_move, Move killer1,
-             Move killer2)
+             Move killer2, const HistoryMoveStats* history_stats)
       : board_(board),
         side_(side),
         tt_move_(tt_move),
         killer1_(killer1),
-        killer2_(killer2) {}
+        killer2_(killer2),
+        history_stats_(*history_stats) {}
 
   Iterator begin();
   Iterator end();
@@ -80,6 +105,7 @@ class MovePicker {
   const Side side_;
   const Move tt_move_;
   const Move killer1_, killer2_;
+  const HistoryMoveStats& history_stats_;
 };
 
 }  // namespace blur
