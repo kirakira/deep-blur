@@ -77,12 +77,7 @@ template <DebugOptions debug_options>
 struct SearchParams;
 
 template <>
-struct SearchParams<kDebugOff> {
-  TranspositionTable* tt;
-  KillerStats* killer_stats;
-  Stats* stats;
-  HistoryMoveStats* history_move_stats;
-};
+struct SearchParams<kDebugOff> {};
 
 #ifndef NDEBUG
 template <>
@@ -102,6 +97,13 @@ void DebugModifyChildParams<kDebugOn>(int64 node_id, Move move,
   params->debug_info.from_move = move;
 }
 #endif
+
+struct SearchSharedObjects {
+  TranspositionTable* tt;
+  KillerStats killer_stats;
+  Stats stats;
+  HistoryMoveStats history_move_stats;
+};
 
 template <DebugOptions debug_options>
 void DebugLogCurrentNode(int64, const SearchParams<debug_options>, Side,
@@ -199,16 +201,18 @@ template <DebugOptions debug_options>
 InternalSearchResult Search(Board* const board, const Side side,
                             const int depth, const Score alpha,
                             const Score beta,
-                            const SearchParams<debug_options> params) {
-  const int64 node_id = params.stats->nodes_visited++;
+                            const SearchParams<debug_options> params,
+                            SearchSharedObjects* shared_objects) {
+  const int64 node_id = shared_objects->stats.nodes_visited++;
   InternalSearchResult result;
 
   // Probe tt.
   bool tt_hit = false;
   Move tt_move;
   int best_move_index = -1;
-  if (ProbeTT(board, params.tt, side, depth, alpha, beta, &result, &tt_move)) {
-    ++params.stats->tt_hit;
+  if (ProbeTT(board, shared_objects->tt, side, depth, alpha, beta, &result,
+              &tt_move)) {
+    ++shared_objects->stats.tt_hit;
     tt_hit = true;
   } else if (depth == 0) {
     Score score = board->Evaluation();
@@ -216,10 +220,11 @@ InternalSearchResult Search(Board* const board, const Side side,
   } else {
     result.external_result.score = -kMateScore;
     int num_moves_tried = 0;
-    for (const auto move : MovePicker(*board, side, tt_move,
-                                      params.killer_stats->GetKiller1(depth),
-                                      params.killer_stats->GetKiller2(depth),
-                                      params.history_move_stats)) {
+    for (const auto move :
+         MovePicker(*board, side, tt_move,
+                    shared_objects->killer_stats.GetKiller1(depth),
+                    shared_objects->killer_stats.GetKiller2(depth),
+                    &shared_objects->history_move_stats)) {
       CheckedMoveMaker move_maker(board, side, move);
       if (!move_maker.move_made()) continue;
 
@@ -237,7 +242,7 @@ InternalSearchResult Search(Board* const board, const Side side,
         SearchParams<debug_options> child_params = params;
         DebugModifyChildParams(node_id, move, &child_params);
         child_result = Search(board, OtherSide(side), depth - 1, -beta,
-                              -current_alpha, child_params);
+                              -current_alpha, child_params, shared_objects);
       }
       const Score current_score = -child_result.external_result.score;
 
@@ -253,7 +258,7 @@ InternalSearchResult Search(Board* const board, const Side side,
       }
 
       if (result.external_result.score >= beta) {
-        params.killer_stats->RecordBetaCut(depth, move);
+        shared_objects->killer_stats.RecordBetaCut(depth, move);
         // Reset affected_by_history if a beta-cutoff happens.
         result.affected_by_history = child_result.affected_by_history;
         break;
@@ -263,17 +268,18 @@ InternalSearchResult Search(Board* const board, const Side side,
 
   // Update history move table.
   if (result.external_result.best_move.IsValid()) {
-    params.history_move_stats->RecordBestMove(
+    shared_objects->history_move_stats.RecordBestMove(
         side, result.external_result.best_move, depth);
   }
   // Update stats.
   if (best_move_index != -1) {
-    params.stats->IncrementBestMoveRank(best_move_index);
+    shared_objects->stats.IncrementBestMoveRank(best_move_index);
   }
-  if (result.affected_by_history) ++params.stats->affected_by_history;
+  if (result.affected_by_history) ++shared_objects->stats.affected_by_history;
   // Store TT.
   if (!tt_hit && !result.affected_by_history) {
-    StoreTT(board, params.tt, side, depth, alpha, beta, result.external_result);
+    StoreTT(board, shared_objects->tt, side, depth, alpha, beta,
+            result.external_result);
   }
 
   DebugLogCurrentNode(node_id, params, side, depth, alpha, beta, tt_hit,
@@ -292,16 +298,11 @@ SearchResult Search(Board* board, TranspositionTable* tt, Side side,
   constexpr DebugOptions debug = kDebugOn;
 #endif
   SearchParams<debug> params;
-  Stats stats;
-  HistoryMoveStats history_move_stats;
-  params.stats = &stats;
-  KillerStats killer_stats;
-  params.killer_stats = &killer_stats;
-  params.tt = tt;
-  params.history_move_stats = &history_move_stats;
-  const auto result =
-      Search(board, side, depth, -kMateScore, kMateScore, params);
-  params.stats->Print();
+  SearchSharedObjects shared_objects;
+  shared_objects.tt = tt;
+  const auto result = Search(board, side, depth, -kMateScore, kMateScore,
+                             params, &shared_objects);
+  shared_objects.stats.Print();
   return result.external_result;
 }
 
