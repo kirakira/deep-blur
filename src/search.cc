@@ -1,6 +1,8 @@
 #include "search.h"
 
+#include <algorithm>
 #include <iostream>
+#include <iterator>
 #include <string>
 #include <tuple>
 #include <vector>
@@ -105,6 +107,16 @@ struct SearchSharedObjects {
   HistoryMoveStats history_move_stats;
 };
 
+enum class PVType : int {
+  kPV,
+  kNonPV,
+};
+
+enum class RootType: int {
+  kRoot,
+  kNonRoot,
+};
+
 template <DebugOptions debug_options>
 void DebugLogCurrentNode(int64, const SearchParams<debug_options>, Side,
                          const int, const Score, const Score, bool,
@@ -130,6 +142,8 @@ void DebugLogCurrentNode<kDebugOn>(int64 node_id,
 struct InternalSearchResult {
   SearchResult external_result;
   bool affected_by_history = false;
+  // Only populated in PV nodes. Stored in reverse order.
+  std::vector<Move> pv;
 };
 
 // If it returns true, the move in result must be a valid move; if it returns
@@ -195,9 +209,17 @@ Score ScoreFromRepetitionRule(MoveType type) {
   }
 }
 
+void PrintNewPV(Score score, const std::vector<Move>& pv) {
+  std::cout << score << "\t";
+  for (auto i = pv.rbegin(); i != pv.rend(); ++i) {
+    std::cout << i->ToString() << " ";
+  }
+  std::cout << std::endl;
+}
+
 // Only scores within (alpha, beta) are exact. Scores <= alpha are upper bounds;
 // scores >= beta are lower bounds.
-template <DebugOptions debug_options>
+template <PVType node_type, RootType root_type, DebugOptions debug_options>
 InternalSearchResult Search(Board* const board, const Side side,
                             const int depth, const Score alpha,
                             const Score beta,
@@ -211,7 +233,8 @@ InternalSearchResult Search(Board* const board, const Side side,
   Move tt_move;
   int best_move_index = -1;
   if (ProbeTT(board, shared_objects->tt, side, depth, alpha, beta, &result,
-              &tt_move)) {
+              &tt_move) &&
+      node_type != PVType::kPV) {
     ++shared_objects->stats.tt_hit;
     tt_hit = true;
   } else if (depth == 0) {
@@ -241,8 +264,27 @@ InternalSearchResult Search(Board* const board, const Side side,
       } else {
         SearchParams<debug_options> child_params = params;
         DebugModifyChildParams(node_id, move, &child_params);
-        child_result = Search(board, OtherSide(side), depth - 1, -beta,
-                              -current_alpha, child_params, shared_objects);
+
+        bool do_full_window_search = false;
+        if (node_type == PVType::kNonPV || num_moves_tried > 1) {
+          // Use a null-window at non-pv nodes and expected cut moves at pv
+          // nodes.
+          child_result = Search<PVType::kNonPV, RootType::kNonRoot>(
+              board, OtherSide(side), depth - 1, -(current_alpha + 1),
+              -current_alpha, child_params, shared_objects);
+          // Do a re-search with full window if the score fails high at pv node.
+          do_full_window_search = node_type == PVType::kPV &&
+                                  -child_result.external_result.score >
+                                      result.external_result.score;
+        } else {
+          do_full_window_search = true;
+        }
+
+        if (do_full_window_search) {
+          child_result = Search<PVType::kPV, RootType::kNonRoot>(
+              board, OtherSide(side), depth - 1, -beta, -current_alpha,
+              child_params, shared_objects);
+        }
       }
       const Score current_score = -child_result.external_result.score;
 
@@ -250,6 +292,15 @@ InternalSearchResult Search(Board* const board, const Side side,
         result.external_result.score = current_score;
         result.external_result.best_move = move;
         best_move_index = num_moves_tried - 1;
+        if (node_type == PVType::kPV) {
+          child_result.pv.reserve(120);
+          child_result.pv.push_back(move);
+          result.pv = std::move(child_result.pv);
+
+          if (root_type == RootType::kRoot) {
+            PrintNewPV(current_score, result.pv);
+          }
+        }
       }
       // Set affected_by_history as long as there's one child affected by
       // history.
@@ -300,8 +351,9 @@ SearchResult Search(Board* board, TranspositionTable* tt, Side side,
   SearchParams<debug> params;
   SearchSharedObjects shared_objects;
   shared_objects.tt = tt;
-  const auto result = Search(board, side, depth, -kMateScore, kMateScore,
-                             params, &shared_objects);
+
+  const auto result = Search<PVType::kPV, RootType::kRoot>(
+      board, side, depth, -kMateScore, kMateScore, params, &shared_objects);
   shared_objects.stats.Print();
   return result.external_result;
 }

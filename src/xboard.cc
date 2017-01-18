@@ -12,8 +12,7 @@ using blur::TranspositionTable;
 int main() {
   Board board;
   TranspositionTable tt;
-  const auto result = blur::Search(&board, &tt, Side::kRed, 9);
-  cout << result.score << " " << result.best_move.ToString() << endl;
+  blur::Search(&board, &tt, Side::kRed, 9);
   blur::DebugPrintLogs();
   return 0;
 }
