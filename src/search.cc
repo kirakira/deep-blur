@@ -79,7 +79,10 @@ template <DebugOptions debug_options>
 struct SearchParams;
 
 template <>
-struct SearchParams<kDebugOff> {};
+struct SearchParams<kDebugOff> {
+  // Number of moves made since root position.
+  int ply = 0;
+};
 
 #ifndef NDEBUG
 template <>
@@ -245,8 +248,8 @@ InternalSearchResult Search(Board* const board, const Side side,
     int num_moves_tried = 0;
     for (const auto move :
          MovePicker(*board, side, tt_move,
-                    shared_objects->killer_stats.GetKiller1(depth),
-                    shared_objects->killer_stats.GetKiller2(depth),
+                    shared_objects->killer_stats.GetKiller1(params.ply),
+                    shared_objects->killer_stats.GetKiller2(params.ply),
                     &shared_objects->history_move_stats)) {
       CheckedMoveMaker move_maker(board, side, move);
       if (!move_maker.move_made()) continue;
@@ -263,6 +266,7 @@ InternalSearchResult Search(Board* const board, const Side side,
         child_result.affected_by_history = true;
       } else {
         SearchParams<debug_options> child_params = params;
+        ++child_params.ply;
         DebugModifyChildParams(node_id, move, &child_params);
 
         bool do_full_window_search = false;
@@ -309,7 +313,7 @@ InternalSearchResult Search(Board* const board, const Side side,
       }
 
       if (result.external_result.score >= beta) {
-        shared_objects->killer_stats.RecordBetaCut(depth, move);
+        shared_objects->killer_stats.RecordBetaCut(params.ply, move);
         // Reset affected_by_history if a beta-cutoff happens.
         result.affected_by_history = child_result.affected_by_history;
         break;
