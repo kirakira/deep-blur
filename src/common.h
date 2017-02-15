@@ -2,7 +2,9 @@
 #define BLUR_COMMON_H
 
 #include <array>
+#include <chrono>
 #include <cstdint>
+#include <ratio>
 #include <string>
 #include <tuple>
 
@@ -139,6 +141,20 @@ constexpr uint64 FillBits(Ints... pos) {
 inline int lsb(uint64 x) { return __builtin_ctzll(x); }
 
 [[noreturn]] void Die(const std::string& message);
+
+class Timer {
+ public:
+  // Constructor will start the timer.
+  Timer() = default;
+  // Get the current reading of the timer.
+  auto GetReading() const {
+    return std::chrono::system_clock::now() - start_time_;
+  }
+
+ private:
+  std::chrono::system_clock::time_point start_time_ =
+      std::chrono::system_clock::now();
+};
 
 }  // namespace blur
 

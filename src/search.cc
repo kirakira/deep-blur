@@ -50,8 +50,10 @@ struct Stats {
     if (rank < kBestMoveRankSize) ++best_move_index[rank];
   }
 
-  void Print() {
-    std::cout << "# nodes: " << nodes_visited << ", tt hit: "
+  void Print(const Timer& timer) {
+    std::cout << nodes_visited << " nodes in "
+              << std::chrono::duration<double>(timer.GetReading()).count()
+              << "s, tt hit: "
               << static_cast<double>(tt_hit) * 100 /
                      static_cast<double>(nodes_visited)
               << "%, affected by history: "
@@ -103,8 +105,10 @@ void DebugModifyChildParams<kDebugOn>(int64 node_id, Move move,
 }
 #endif
 
+// TODO: rename this to PerThreadSearchHelpers.
 struct SearchSharedObjects {
   TranspositionTable* tt;
+  Timer* timer;
   KillerStats killer_stats;
   Stats stats;
   HistoryMoveStats history_move_stats;
@@ -115,7 +119,7 @@ enum class PVType : int {
   kNonPV,
 };
 
-enum class RootType: int {
+enum class RootType : int {
   kRoot,
   kNonRoot,
 };
@@ -212,8 +216,13 @@ Score ScoreFromRepetitionRule(MoveType type) {
   }
 }
 
-void PrintNewPV(Score score, const std::vector<Move>& pv) {
-  std::cout << score << "\t";
+void OutputThinking(int depth, Score score, const Timer& timer, int64 num_nodes,
+                    const std::vector<Move>& pv) {
+  using CentiSeconds = std::chrono::duration<int64, std::centi>;
+  std::cout
+      << depth << "\t" << score << "\t"
+      << std::chrono::duration_cast<CentiSeconds>(timer.GetReading()).count()
+      << "\t" << num_nodes << "\t";
   for (auto i = pv.rbegin(); i != pv.rend(); ++i) {
     std::cout << i->ToString() << " ";
   }
@@ -302,7 +311,8 @@ InternalSearchResult Search(Board* const board, const Side side,
           result.pv = std::move(child_result.pv);
 
           if (root_type == RootType::kRoot) {
-            PrintNewPV(current_score, result.pv);
+            OutputThinking(depth, current_score, *shared_objects->timer,
+                           shared_objects->stats.nodes_visited, result.pv);
           }
         }
       }
@@ -353,12 +363,14 @@ SearchResult Search(Board* board, TranspositionTable* tt, Side side,
   constexpr DebugOptions debug = kDebugOn;
 #endif
   SearchParams<debug> params;
+  Timer timer;
   SearchSharedObjects shared_objects;
   shared_objects.tt = tt;
+  shared_objects.timer = &timer;
 
   const auto result = Search<PVType::kPV, RootType::kRoot>(
       board, side, depth, -kMateScore, kMateScore, params, &shared_objects);
-  shared_objects.stats.Print();
+  shared_objects.stats.Print(timer);
   return result.external_result;
 }
 
