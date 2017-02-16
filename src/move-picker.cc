@@ -48,7 +48,7 @@ void InsertionSort(Move* begin, Move* end, const HistoryMoveStats* stats,
     Move* j;
     for (j = i;
          j != begin &&
-         stats->GetMoveScore(side, *(j - 1)) < stats->GetMoveScore(side, *j);
+         stats->GetMoveScore(side, *(j - 1)) < stats->GetMoveScore(side, curr);
          --j) {
       *j = *(j - 1);
     }

@@ -12,7 +12,7 @@ using blur::TranspositionTable;
 int main() {
   Board board;
   TranspositionTable tt;
-  blur::Search(&board, &tt, Side::kRed, 9);
+  blur::Search(&board, &tt, Side::kRed, 10);
   blur::DebugPrintLogs();
   return 0;
 }
