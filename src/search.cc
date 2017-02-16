@@ -329,22 +329,23 @@ InternalSearchResult Search(Board* const board, const Side side,
         break;
       }
     }
+
+    // Update history move table and stats.
+    if (result.external_result.best_move.IsValid()) {
+      shared_objects->history_move_stats.RecordBestMove(
+          side, result.external_result.best_move, depth);
+      shared_objects->stats.IncrementBestMoveRank(best_move_index);
+    }
   }
 
-  // Update history move table.
-  if (result.external_result.best_move.IsValid()) {
-    shared_objects->history_move_stats.RecordBestMove(
-        side, result.external_result.best_move, depth);
-  }
-  // Update stats.
-  if (best_move_index != -1) {
-    shared_objects->stats.IncrementBestMoveRank(best_move_index);
-  }
-  if (result.affected_by_history) ++shared_objects->stats.affected_by_history;
   // Store TT.
-  if (!tt_hit && !result.affected_by_history) {
-    StoreTT(board, shared_objects->tt, side, depth, alpha, beta,
-            result.external_result);
+  if (!tt_hit) {
+    if (result.affected_by_history) {
+      ++shared_objects->stats.affected_by_history;
+    } else {
+      StoreTT(board, shared_objects->tt, side, depth, alpha, beta,
+              result.external_result);
+    }
   }
 
   DebugLogCurrentNode(node_id, params, side, depth, alpha, beta, tt_hit,
