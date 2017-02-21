@@ -1,25 +1,42 @@
 #include "transposition.h"
 
+#include <cstring>
+
 namespace blur {
 
 // score: 16 bits signed   [48-63]
 // type: 2 bits            [46-47]
 // best_move: 14 bits      [32-45]
 // depth: 10 bits unsigned [22-31]
+struct SerializedTTEntry {
+  int score : 16;
+  unsigned int type: 2;
+  unsigned int best_move : 14;
+  unsigned int depth: 10;
+};
+
+static_assert(sizeof(SerializedTTEntry) == 8,
+              "Size of serialized TTEntry is not 8 bytes.");
+
 uint64 TTEntry::Serialize(TTEntry entry) {
-  return static_cast<uint64>(static_cast<std::int64_t>(entry.score) << 48) |
-         (static_cast<uint64>(entry.type) << 46) |
-         (static_cast<uint64>(entry.best_move.value()) << 32) |
-         (static_cast<uint64>(entry.depth) << 22);
+  SerializedTTEntry serialized;
+  serialized.score = entry.score;
+  serialized.type = static_cast<unsigned int>(entry.type);
+  serialized.best_move = entry.best_move.value();
+  serialized.depth = entry.depth;
+  uint64 result;
+  std::memcpy(&result, &serialized, sizeof(serialized));
+  return result;
 }
 
 TTEntry TTEntry::Deserialize(uint64 value) {
+  SerializedTTEntry serialized;
+  std::memcpy(&serialized, &value, sizeof(value));
   TTEntry entry;
-  entry.score = static_cast<Score>(static_cast<std::int64_t>(value) >> 48);
-  entry.type = static_cast<ScoreType>((value >> 46) & 3);
-  entry.best_move = Move((value >> 32) & ((static_cast<uint64>(1) << 14) - 1));
-  entry.depth =
-      static_cast<int>((value >> 22) & ((static_cast<uint64>(1) << 10) - 1));
+  entry.score = static_cast<Score>(serialized.score);
+  entry.type = static_cast<ScoreType>(serialized.type);
+  entry.best_move = Move(serialized.best_move);
+  entry.depth = serialized.depth;
   return entry;
 }
 
