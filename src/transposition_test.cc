@@ -92,6 +92,7 @@ bool ReplacementTest() {
   // entry5 should be discarded because it has an inexact score.
   TTEntry entry5 = entry3;
   entry5.type = ScoreType::kLowerBound;
+  tt.Store(456, entry5);
   if (!tt.LookUp(456, &stored_entry)) return false;
   if (!Equal(entry3, stored_entry)) return false;
   return true;

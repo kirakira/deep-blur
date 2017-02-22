@@ -20,10 +20,15 @@ static_assert(sizeof(SerializedTTEntry) == 8,
 
 uint64 TTEntry::Serialize(TTEntry entry) {
   SerializedTTEntry serialized;
+// GCC is being pedantic here - there's no way to 'properly' convert int to
+// signed bit fields.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
   serialized.score = entry.score;
   serialized.type = static_cast<unsigned int>(entry.type);
   serialized.best_move = entry.best_move.value();
   serialized.depth = entry.depth;
+#pragma GCC diagnostic pop
   uint64 result;
   std::memcpy(&result, &serialized, sizeof(serialized));
   return result;
