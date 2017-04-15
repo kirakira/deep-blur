@@ -169,9 +169,9 @@ void Board::DebugPrint() const {
     }
     cout << " " << i << endl;
   }
-  cout << endl << "   a b c d e f g h i" << endl;
-  cout << "hash: " << hash_ << endl;
-  cout << "eval: " << eval_.CurrentScore() << endl;
+  cout << endl << "   a b c d e f g h i" << endl << endl;
+  cout << "hash: " << hash_ << ", "
+       << "eval: " << eval_.CurrentScore() << endl;
 }
 
 namespace {

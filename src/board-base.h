@@ -74,6 +74,7 @@ class Move {
   // Initialize to an invalid move.
   Move() = default;
   Move(Position from, Position to) : from_(from), to_(to) {}
+  // Requires: str be a valid move string.
   explicit Move(const std::string& str);
   // value must be the return value of value().
   explicit Move(int value) : from_(value >> 7), to_(value & ((1 << 7) - 1)) {}

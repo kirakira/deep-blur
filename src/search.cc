@@ -51,7 +51,7 @@ struct Stats {
   }
 
   void Print(const Timer& timer) {
-    std::cout << nodes_visited << " nodes in "
+    std::cout << "# " << nodes_visited << " nodes in "
               << std::chrono::duration<double>(timer.GetReading()).count()
               << "s, tt hit: "
               << static_cast<double>(tt_hit) * 100 /
@@ -60,7 +60,7 @@ struct Stats {
               << static_cast<double>(affected_by_history) * 100 /
                      static_cast<double>(nodes_visited)
               << "%" << std::endl;
-    std::cout << "best move ranks: ";
+    std::cout << "# best move ranks: ";
     for (int i = 0; i < kBestMoveRankSize; ++i) {
       std::cout << static_cast<double>(best_move_index[i]) * 100 /
                        static_cast<double>(best_move_total)

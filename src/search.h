@@ -9,7 +9,7 @@ namespace blur {
 struct SearchResult {
   // Score is relative to side.
   Score score;
-  // Will not be populated if score == -Evaluation::kMateSocre.
+  // Will not be populated if score == -kMateSocre.
   Move best_move;
 };
 
