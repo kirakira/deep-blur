@@ -91,7 +91,7 @@ int main() {
       string fen, turn;
       iss >> fen >> turn;
       if (board.SetBoard(fen)) {
-      side = turn == "b" ? Side::kBlack : Side::kRed;
+        side = turn == "b" ? Side::kBlack : Side::kRed;
       } else {
         cout << "Error (invalid position): setboard" << endl;
       }

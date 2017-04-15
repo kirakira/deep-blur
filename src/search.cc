@@ -24,9 +24,7 @@ class ScopedMoveMaker {
     move_type_ = board->Make(move);
   }
 
-  ~ScopedMoveMaker() {
-    board_->Unmake();
-  }
+  ~ScopedMoveMaker() { board_->Unmake(); }
 
   MoveType move_type() const { return move_type_; }
 
@@ -228,11 +226,19 @@ Score ScoreFromRepetitionRule(MoveType type) {
   }
 }
 
-void OutputThinking(int depth, Score score, const Timer& timer, int64 num_nodes,
+enum class ThinkingType {
+  kNewPV,
+  kEndOfIteration,
+};
+
+void OutputThinking(int depth, ThinkingType thinking_type, Score score,
+                    const Timer& timer, int64 num_nodes,
                     const std::vector<Move>& pv) {
   using CentiSeconds = std::chrono::duration<int64, std::centi>;
+  string type_string;
+  if (thinking_type == ThinkingType::kEndOfIteration) type_string = ".";
   std::cout
-      << depth << "\t" << score << "\t"
+      << depth << type_string << "\t" << score << "\t"
       << std::chrono::duration_cast<CentiSeconds>(timer.GetReading()).count()
       << "\t" << num_nodes << "\t";
   for (auto i = pv.rbegin(); i != pv.rend(); ++i) {
@@ -247,9 +253,9 @@ struct QuiescenceResult {
 };
 
 QuiescenceResult QuiescenceInternal(Board* board, TranspositionTable* tt,
-                                        Side side, const Score alpha,
-                                        const Score beta, bool in_check,
-                                        SearchSharedObjects* shared_objects) {
+                                    Side side, const Score alpha,
+                                    const Score beta, bool in_check,
+                                    SearchSharedObjects* shared_objects) {
   QuiescenceResult result;
 
   Move tt_move;
@@ -415,7 +421,8 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
           result.pv = std::move(child_result.pv);
 
           if (root_type == RootType::kRoot) {
-            OutputThinking(depth, current_score, *shared_objects->timer,
+            OutputThinking(depth, ThinkingType::kNewPV, current_score,
+                           *shared_objects->timer,
                            shared_objects->stats.nodes_visited, result.pv);
           }
         }
@@ -444,6 +451,9 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
 
   // Store TT.
   if (!tt_hit) {
+    // If there are no more than 4 moves made, the result cannot be affected by
+    // history.
+    if (params.ply < 4) result.affected_by_history = false;
     if (result.affected_by_history) {
       ++shared_objects->stats.affected_by_history;
     } else if (depth > 0) {
@@ -457,6 +467,34 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
   return result;
 }
 
+SearchResult IterativeDeepening(Board* board, TranspositionTable* tt, Side side,
+                                int depth, const SearchOptions& options) {
+  CHECK(depth >= 1);
+#ifdef NDEBUG
+  constexpr DebugOptions debug = kDebugOff;
+#else
+  constexpr DebugOptions debug = kDebugOn;
+#endif
+  SearchSharedObjects shared_objects;
+  shared_objects.tt = tt;
+  Timer timer;
+  shared_objects.timer = &timer;
+
+  InternalSearchResult result;
+  for (int d = 1; d <= depth; ++d) {
+    SearchParams<debug> params;
+    result = Search<PVType::kPV, RootType::kRoot>(options, board, side, d,
+                                                  -kMateScore, kMateScore,
+                                                  params, &shared_objects);
+    OutputThinking(d, ThinkingType::kEndOfIteration,
+                   result.external_result.score, timer,
+                   shared_objects.stats.nodes_visited, result.pv);
+  }
+  shared_objects.stats.Print(timer);
+
+  return result.external_result;
+}
+
 }  // namespace
 
 const SearchOptions& SearchOptions::Defaults() {
@@ -468,22 +506,7 @@ SearchResult Search(Board* board, TranspositionTable* tt, Side side, int depth,
                     const SearchOptions& options) {
   // We assume the other side can do perpetual attacks in the search.
   board->ResetRepetitionHistory(OtherSide(side));
-#ifdef NDEBUG
-  constexpr DebugOptions debug = kDebugOff;
-#else
-  constexpr DebugOptions debug = kDebugOn;
-#endif
-  SearchParams<debug> params;
-  Timer timer;
-  SearchSharedObjects shared_objects;
-  shared_objects.tt = tt;
-  shared_objects.timer = &timer;
-
-  const auto result = Search<PVType::kPV, RootType::kRoot>(
-      options, board, side, depth, -kMateScore, kMateScore, params,
-      &shared_objects);
-  shared_objects.stats.Print(timer);
-  return result.external_result;
+  return IterativeDeepening(board, tt, side, depth, options);
 }
 
 void DebugPrintLogs() { Logger::GetInstance()->Print(); }
