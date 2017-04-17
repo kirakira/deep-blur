@@ -102,7 +102,7 @@ bool Board::SetBoard(const string& fen) {
   history_.reserve(50);
   irreversible_moves_.push_back(-1);
   hash_ = 0;
-  repetition_start_ = 0;
+  repetition_start_[0] = repetition_start_[1] = 0;
 
   row = 9, col = 0;
   for (char c : fen) {
@@ -434,9 +434,12 @@ void Board::MakeWithoutRepetitionDetection(Move move) {
 MoveType Board::Make(Move move) {
   MakeWithoutRepetitionDetection(move);
   // Determine move type.
+  const Side moving_side = PieceAt(move.from()).side();
   MoveType move_type = MoveType::kRegular;
   for (int i = static_cast<int>(history_.size()) - 1;
-       i >= std::max(repetition_start_, irreversible_moves_.back() + 1); --i) {
+       i >= std::max(repetition_start_[static_cast<int>(moving_side)],
+                     irreversible_moves_.back() + 1);
+       --i) {
     if (history_[i].hash_before_move == hash_) {
       move_type = GetRepetitionType(i);
 #ifndef NDEBUG
@@ -612,8 +615,8 @@ bool Board::InCheck(Side side) const {
       .first;
 }
 
-void Board::ResetRepetitionHistory() {
-  repetition_start_ = static_cast<int>(history_.size());
+void Board::ResetRepetitionHistory(Side side) {
+  repetition_start_[static_cast<int>(side)] = static_cast<int>(history_.size());
 }
 
 std::pair<bool, MoveType> Board::CheckedMake(Side side, Move move) {

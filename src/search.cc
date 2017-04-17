@@ -149,12 +149,14 @@ void DebugLogCurrentNode<kDebugOn>(int64 node_id,
 struct InternalSearchResult {
   SearchResult external_result;
   bool affected_by_history = false;
-  // Only populated in PV nodes. Stored in reverse order.
+  // Only populated in PV nodes. Stored in reverse order. May be incomplete if
+  // the result was a consequence of a repetition.
   std::vector<Move> pv;
 };
 
-// If it returns true, the move in result must be a valid move; if it returns
-// false, tt_move could be corropted or invalid.
+// If it returns true, the move in result must be a valid move not causing
+// repetition or perpetual attacks; if it returns false, tt_move could be
+// corropted or invalid.
 bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
              Score alpha, Score beta, InternalSearchResult* result,
              Move* tt_move) {
@@ -169,8 +171,10 @@ bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
     if (depth >= 1 && entry.score != -Score::kMateScore) {
       if (!entry.best_move.IsValid()) return false;
       CheckedMoveMaker move_maker(board, side, entry.best_move);
-      if (!move_maker.move_made() ||
-          move_maker.move_type() == MoveType::kPerpetualAttacker) {
+      if (!move_maker.move_made()) return false;
+      if (move_maker.move_type() == MoveType::kPerpetualAttacker ||
+          move_maker.move_type() == MoveType::kRepetition) {
+        *tt_move = entry.best_move;
         return false;
       }
     }
@@ -357,7 +361,8 @@ InternalSearchResult Search(Board* const board, const Side side,
 
 SearchResult Search(Board* board, TranspositionTable* tt, Side side,
                     int depth) {
-  board->ResetRepetitionHistory();
+  // We assume the other side can do perpetual attacks in the search.
+  board->ResetRepetitionHistory(OtherSide(side));
 #ifdef NDEBUG
   constexpr DebugOptions debug = kDebugOff;
 #else

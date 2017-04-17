@@ -220,8 +220,10 @@ bool VerifyRepetitionSequence(const string& board_string,
   Board board;
   if (!board.SetBoard(board_string)) return false;
   for (size_t i = 0; i < moves.size(); ++i) {
-    if (moves[i] == "x") {
-      board.ResetRepetitionHistory();
+    if (moves[i] == "xr") {
+      board.ResetRepetitionHistory(Side::kRed);
+    } else if (moves[i] == "xb") {
+      board.ResetRepetitionHistory(Side::kBlack);
     } else if (moves[i] == "u") {
       board.Unmake();
     } else {
@@ -263,8 +265,13 @@ bool TestRepetition() {
     return false;
   }
   if (!VerifyRepetitionSequence("C1ck5/1R7/9/9/9/9/9/9/9/5K3",
-                                {"c9c8", "x", "b8b9", "c8c9", "b9b8", "c9c8"},
+                                {"c9c8", "xr", "b8b9", "c8c9", "b9b8", "c9c8"},
                                 MoveType::kPerpetualAttackee)) {
+    return false;
+  }
+  if (!VerifyRepetitionSequence("C1ck5/1R7/9/9/9/9/9/9/9/5K3",
+                                {"c9c8", "xb", "b8b9", "c8c9", "b9b8"},
+                                MoveType::kPerpetualAttacker)) {
     return false;
   }
   if (!VerifyRepetitionSequence("2Rk5/9/9/9/9/9/9/9/9/5K3", {"d9d8", "d8d9"},

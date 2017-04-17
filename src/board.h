@@ -43,8 +43,8 @@ class Board {
   void Unmake();
   bool CheckedUnmake();
 
-  // Calculate repetition from current position.
-  void ResetRepetitionHistory();
+  // For the specified side, calculate its repetition from current position.
+  void ResetRepetitionHistory(Side side);
 
   uint64 HashCode(Side side) const;
 
@@ -88,7 +88,8 @@ class Board {
   BitBoard piece_bitboards_[16];
   std::vector<HistoryMove> history_;
   std::vector<int> irreversible_moves_;
-  int repetition_start_ = 0;
+  // Indexed by side.
+  int repetition_start_[2] = {0};
   uint64 hash_;
   Evaluator eval_;
 };
