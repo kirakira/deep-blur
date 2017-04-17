@@ -35,7 +35,7 @@ $(OUT)/transposition.o: src/transposition.h src/transposition.cc src/board-base.
 $(OUT)/move-picker.o: src/move-picker.h src/move-picker.cc src/board-base.h src/board.h src/common.h src/see.h
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/move-picker.cc
 
-$(OUT)/see.o: src/see.h src/see.cc src/board.h
+$(OUT)/see.o: src/see.h src/see.cc src/board.h src/board-base.h
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/see.cc
 
 $(OUT)/search.o: src/search.h src/search.cc src/board.h src/common.h src/eval.h src/bittables.h src/bitboard.h src/board-base.h src/board-hash.h src/logger.h src/transposition.h src/move-picker.h

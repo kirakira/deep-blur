@@ -78,7 +78,7 @@ class MovePicker {
     // if needed.
     // Post condition: current_move_ points to a new move, or stage_ is kDone.
     void SkipOldOrEmptyMoves();
-    static Stage NextStage(Stage stage);
+    Stage NextStage(Stage stage) const;
 
     const MovePicker* picker_ = nullptr;
     Stage stage_ = Stage::kTTMove;
@@ -89,13 +89,15 @@ class MovePicker {
 
   // tt_move can be invalid or corropted.
   MovePicker(const Board& board, Side side, Move tt_move, Move killer1,
-             Move killer2, const HistoryMoveStats* history_stats)
+             Move killer2, const HistoryMoveStats* history_stats,
+             bool captures_only)
       : board_(board),
         side_(side),
         tt_move_(tt_move),
         killer1_(killer1),
         killer2_(killer2),
-        history_stats_(*history_stats) {}
+        history_stats_(*history_stats),
+        captures_only_(captures_only) {}
 
   Iterator begin();
   Iterator end();
@@ -106,6 +108,7 @@ class MovePicker {
   const Move tt_move_;
   const Move killer1_, killer2_;
   const HistoryMoveStats& history_stats_;
+  const bool captures_only_;
 };
 
 }  // namespace blur

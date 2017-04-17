@@ -1,3 +1,3 @@
 #!/bin/bash
 
-xboard -fcp bin/xboard_id -scp bin/xboard -variant xiangqi -debug
+xboard -fcp bin/xboard -scp bin/xboard_id -variant xiangqi -debug

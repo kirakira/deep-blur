@@ -4,7 +4,8 @@
 namespace blur {
 
 MovePicker::Iterator::Iterator(const MovePicker& picker)
-    : Iterator(picker, Stage::kTTMove) {}
+    : Iterator(picker,
+               picker.captures_only_ ? Stage::kCaptures : Stage::kTTMove) {}
 
 MovePicker::Iterator::Iterator(const MovePicker& picker, Stage begin_stage)
     : picker_(&picker), stage_(begin_stage) {
@@ -12,9 +13,12 @@ MovePicker::Iterator::Iterator(const MovePicker& picker, Stage begin_stage)
   SkipOldOrEmptyMoves();
 }
 
-/* static */
-MovePicker::Iterator::Stage MovePicker::Iterator::NextStage(Stage stage) {
-  return static_cast<Stage>(static_cast<int>(stage) + 1);
+MovePicker::Iterator::Stage MovePicker::Iterator::NextStage(Stage stage) const {
+  if (picker_->captures_only_ && stage == Stage::kCaptures) {
+    return Stage::kDone;
+  } else {
+    return static_cast<Stage>(static_cast<int>(stage) + 1);
+  }
 }
 
 void MovePicker::Iterator::SkipOldOrEmptyMoves() {

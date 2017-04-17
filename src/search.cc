@@ -241,6 +241,84 @@ void OutputThinking(int depth, Score score, const Timer& timer, int64 num_nodes,
   std::cout << std::endl;
 }
 
+struct QuiescenceResult {
+  Score score = -kMateScore;
+  bool affected_by_history = false;
+};
+
+QuiescenceResult QuiescenceInternal(Board* board, TranspositionTable* tt,
+                                        Side side, const Score alpha,
+                                        const Score beta, bool in_check,
+                                        SearchSharedObjects* shared_objects) {
+  QuiescenceResult result;
+
+  Move tt_move;
+  InternalSearchResult search_result;
+  if (ProbeTT(board, tt, side, 0 /* depth */, alpha, beta, &search_result,
+              &tt_move)) {
+    result.score = search_result.external_result.score;
+    return result;
+  }
+
+  if (in_check) {
+    result.score = -kMateScore;
+  } else {
+    const Score eval = board->Evaluation();
+    result.score = side == Side::kRed ? eval : -eval;
+  }
+
+  if (result.score < beta) {
+    for (const auto move :
+         MovePicker(*board, side, tt_move, Move() /* killer1 */,
+                    Move() /* killer2 */, &shared_objects->history_move_stats,
+                    !in_check /* captures_only */)) {
+      ScopedMoveMaker move_maker(board, move);
+      if (board->InCheck(side)) continue;
+
+      QuiescenceResult child_result;
+      if (move_maker.move_type() == MoveType::kKingCapture) {
+        child_result.score = -kMateScore;
+      } else if (move_maker.move_type() != MoveType::kRegular &&
+                 move_maker.move_type() != MoveType::kCapture) {
+        child_result.score = -ScoreFromRepetitionRule(move_maker.move_type());
+        child_result.affected_by_history = true;
+      } else {
+        const bool next_in_check = board->InCheck(OtherSide(side));
+        if (in_check || next_in_check ||
+            move_maker.move_type() == MoveType::kCapture) {
+          child_result = QuiescenceInternal(board, tt, OtherSide(side), -beta,
+                                            -std::max(alpha, result.score),
+                                            next_in_check, shared_objects);
+        }
+      }
+
+      result.score = std::max(result.score, -child_result.score);
+
+      if (child_result.affected_by_history) result.affected_by_history = true;
+
+      if (result.score >= beta) {
+        result.affected_by_history = child_result.affected_by_history;
+        break;
+      }
+    }
+  }
+
+  if (!result.affected_by_history) {
+    SearchResult result_for_tt;
+    result_for_tt.score = result.score;
+    StoreTT(board, tt, side, 0 /* depth */, alpha, beta, result_for_tt);
+  }
+
+  return result;
+}
+
+QuiescenceResult Quiescence(Board* board, TranspositionTable* tt, Side side,
+                            const Score alpha, const Score beta,
+                            SearchSharedObjects* shared_objects) {
+  return QuiescenceInternal(board, tt, side, alpha, beta, board->InCheck(side),
+                            shared_objects);
+}
+
 // Only scores within (alpha, beta) are exact. Scores <= alpha are upper bounds;
 // scores >= beta are lower bounds.
 template <PVType node_type, RootType root_type, DebugOptions debug_options>
@@ -256,26 +334,28 @@ InternalSearchResult Search(Board* const board, const Side side,
   bool tt_hit = false;
   Move tt_move;
   int best_move_index = -1;
-  if (ProbeTT(board, shared_objects->tt, side, depth, alpha, beta, &result,
-              &tt_move) &&
-      node_type != PVType::kPV) {
+  if (node_type != PVType::kPV &&
+      ProbeTT(board, shared_objects->tt, side, depth, alpha, beta, &result,
+              &tt_move)) {
     ++shared_objects->stats.tt_hit;
     tt_hit = true;
   } else if (depth == 0) {
-    Score score = board->Evaluation();
-    result.external_result.score = (side == Side::kRed ? score : -score);
+    const QuiescenceResult quiescence_result = Quiescence(
+        board, shared_objects->tt, side, alpha, beta, shared_objects);
+    result.external_result.score = quiescence_result.score;
+    result.affected_by_history = quiescence_result.affected_by_history;
   } else {
     result.external_result.score = -kMateScore;
     int num_moves_tried = 0;
-    for (const auto move :
-         MovePicker(*board, side, tt_move,
-                    CheckMoveOrEmpty(
-                        board, side,
-                        shared_objects->killer_stats.GetKiller1(params.ply)),
-                    CheckMoveOrEmpty(
-                        board, side,
-                        shared_objects->killer_stats.GetKiller2(params.ply)),
-                    &shared_objects->history_move_stats)) {
+    for (const auto move : MovePicker(
+             *board, side, tt_move,
+             CheckMoveOrEmpty(
+                 board, side,
+                 shared_objects->killer_stats.GetKiller1(params.ply)),
+             CheckMoveOrEmpty(
+                 board, side,
+                 shared_objects->killer_stats.GetKiller2(params.ply)),
+             &shared_objects->history_move_stats, false /* captures_only */)) {
       ScopedMoveMaker move_maker(board, move);
       if (board->InCheck(side)) continue;
 
@@ -361,7 +441,7 @@ InternalSearchResult Search(Board* const board, const Side side,
   if (!tt_hit) {
     if (result.affected_by_history) {
       ++shared_objects->stats.affected_by_history;
-    } else {
+    } else if (depth > 0) {
       StoreTT(board, shared_objects->tt, side, depth, alpha, beta,
               result.external_result);
     }
