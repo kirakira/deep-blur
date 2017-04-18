@@ -9,7 +9,7 @@ MovePicker::Iterator::Iterator(const MovePicker& picker)
 MovePicker::Iterator::Iterator(const MovePicker& picker, Stage begin_stage)
     : picker_(&picker), stage_(begin_stage) {
   PrepareMovesForCurrentStage();
-  SkipOldMoves();
+  SkipOldOrEmptyMoves();
 }
 
 /* static */
@@ -17,9 +17,10 @@ MovePicker::Iterator::Stage MovePicker::Iterator::NextStage(Stage stage) {
   return static_cast<Stage>(static_cast<int>(stage) + 1);
 }
 
-void MovePicker::Iterator::SkipOldMoves() {
+void MovePicker::Iterator::SkipOldOrEmptyMoves() {
   while (stage_ != Stage::kDone) {
     for (; current_move_ != moves_buffer_.end(); ++current_move_) {
+      if (!current_move_->IsValid()) continue;
       bool old_move = false;
       for (const auto move : moves_returned_) {
         if (*current_move_ == move) {
@@ -100,7 +101,7 @@ Move MovePicker::Iterator::operator*() const { return *current_move_; }
 MovePicker::Iterator& MovePicker::Iterator::operator++() {
   if (stage_ != Stage::kRegularMoves) moves_returned_.Add(*current_move_);
   ++current_move_;
-  SkipOldMoves();
+  SkipOldOrEmptyMoves();
   return *this;
 }
 

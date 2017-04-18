@@ -18,22 +18,20 @@ namespace blur {
 namespace {
 
 // A scoped move maker.
-class CheckedMoveMaker {
+class ScopedMoveMaker {
  public:
-  CheckedMoveMaker(Board* board, Side side, Move move) : board_(board) {
-    std::tie(move_made_, move_type_) = board->CheckedMake(side, move);
+  ScopedMoveMaker(Board* board, Move move) : board_(board) {
+    move_type_ = board->Make(move);
   }
 
-  ~CheckedMoveMaker() {
-    if (move_made_) board_->Unmake();
+  ~ScopedMoveMaker() {
+    board_->Unmake();
   }
 
-  bool move_made() const { return move_made_; }
   MoveType move_type() const { return move_type_; }
 
  private:
   Board* const board_;
-  bool move_made_;
   MoveType move_type_;
 };
 
@@ -150,16 +148,21 @@ struct InternalSearchResult {
   SearchResult external_result;
   bool affected_by_history = false;
   // Only populated in PV nodes. Stored in reverse order. May be incomplete if
-  // the result was a consequence of a repetition.
+  // a checkmate is detected or if the result was a consequence of a repetition.
   std::vector<Move> pv;
 };
 
+Move CheckMoveOrEmpty(Board* board, Side side, Move move) {
+  return board->IsPseudoLegalMove(side, move) ? move : Move();
+}
+
 // If it returns true, the move in result must be a valid move not causing
 // repetition or perpetual attacks; if it returns false, tt_move could be
-// corropted or invalid.
+// an empty move or a legal move.
 bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
              Score alpha, Score beta, InternalSearchResult* result,
              Move* tt_move) {
+  *tt_move = Move();
   const uint64 hash = board->HashCode(side);
   TTEntry entry;
   if (!tt->LookUp(hash, &entry)) return false;
@@ -169,11 +172,16 @@ bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
        (entry.type == ScoreType::kLowerBound && entry.score >= beta))) {
     // Check if the move is valid.
     if (depth >= 1 && entry.score != -Score::kMateScore) {
-      if (!entry.best_move.IsValid()) return false;
-      CheckedMoveMaker move_maker(board, side, entry.best_move);
-      if (!move_maker.move_made()) return false;
+      if (!entry.best_move.IsValid() ||
+          !board->IsPseudoLegalMove(side, entry.best_move)) {
+        return false;
+      }
+      ScopedMoveMaker move_maker(board, entry.best_move);
       if (move_maker.move_type() == MoveType::kPerpetualAttacker ||
-          move_maker.move_type() == MoveType::kRepetition) {
+          move_maker.move_type() == MoveType::kRepetition ||
+          move_maker.move_type() == MoveType::kPerpetualAttackee) {
+        // We cannot use the score if it will cause a repetition, but the move
+        // can be used to inspire search.
         *tt_move = entry.best_move;
         return false;
       }
@@ -185,7 +193,7 @@ bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
   }
   // If the tt result is unusable, we populate tt_move to inspire move ordering
   // in search.
-  *tt_move = entry.best_move;
+  *tt_move = CheckMoveOrEmpty(board, side, entry.best_move);
   return false;
 }
 
@@ -261,18 +269,25 @@ InternalSearchResult Search(Board* const board, const Side side,
     int num_moves_tried = 0;
     for (const auto move :
          MovePicker(*board, side, tt_move,
-                    shared_objects->killer_stats.GetKiller1(params.ply),
-                    shared_objects->killer_stats.GetKiller2(params.ply),
+                    CheckMoveOrEmpty(
+                        board, side,
+                        shared_objects->killer_stats.GetKiller1(params.ply)),
+                    CheckMoveOrEmpty(
+                        board, side,
+                        shared_objects->killer_stats.GetKiller2(params.ply)),
                     &shared_objects->history_move_stats)) {
-      CheckedMoveMaker move_maker(board, side, move);
-      if (!move_maker.move_made()) continue;
+      ScopedMoveMaker move_maker(board, move);
+      if (board->InCheck(side)) continue;
 
       ++num_moves_tried;
 
       const Score current_alpha = std::max(result.external_result.score, alpha);
 
       InternalSearchResult child_result;
-      if (move_maker.move_type() != MoveType::kRegular) {
+      if (move_maker.move_type() == MoveType::kKingCapture) {
+        child_result.external_result.score = -kMateScore;
+      } else if (move_maker.move_type() != MoveType::kRegular &&
+                 move_maker.move_type() != MoveType::kCapture) {
         child_result.external_result.score =
             ScoreFromRepetitionRule(move_maker.move_type());
         // We won't have a best_move in this case.

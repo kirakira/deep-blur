@@ -106,7 +106,9 @@ bool TestMake() {
   hashes.insert(hash00);
   hashes.insert(hash01);
 
-  board.Make(Move("b2b9"));
+  if (board.Make(Move("b2b9")) != MoveType::kCapture) {
+    return false;
+  }
   if (board.ToString() !=
       "rCeakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEHR") {
     return false;
@@ -116,7 +118,9 @@ bool TestMake() {
   hashes.insert(hash10);
   hashes.insert(hash11);
 
-  board.Make(Move("h7h0"));
+  if (board.Make(Move("h7h0")) != MoveType::kCapture) {
+    return false;
+  }
   if (board.ToString() !=
       "rCeakaehr/9/1c7/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEcR") {
     return false;
@@ -144,6 +148,13 @@ bool TestMake() {
   if (board.HashCode(Side::kRed) != hash00) return false;
   if (board.HashCode(Side::kBlack) != hash01) return false;
 
+  return true;
+}
+
+bool TestKingCapture() {
+  Board board;
+  if (!board.SetBoard("4k4/9/3H5/9/9/9/9/9/9/3K5")) return false;
+  if (board.Make(Move("d7e9")) != MoveType::kKingCapture) return false;
   return true;
 }
 
@@ -233,7 +244,7 @@ bool VerifyRepetitionSequence(const string& board_string,
           return false;
         }
       } else {
-        if (result != MoveType::kRegular) {
+        if (result != MoveType::kRegular && result != MoveType::kCapture) {
           return false;
         }
       }
@@ -368,6 +379,7 @@ int main() {
   success = success && TestGenerateMoves();
   success = success && TestIsAttacked();
   success = success && TestMake();
+  success = success && TestKingCapture();
   success = success && TestInCheck();
   success = success && TestCheckedMake();
   success = success && TestCheckedUnmake();

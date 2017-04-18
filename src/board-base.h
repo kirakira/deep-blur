@@ -205,7 +205,9 @@ enum class MoveType {
   kRegular,
   kRepetition,
   kPerpetualAttacker,
-  kPerpetualAttackee
+  kPerpetualAttackee,
+  kCapture,
+  kKingCapture
 };
 
 enum Score : int {

@@ -400,7 +400,7 @@ std::pair<bool, Position> Board::IsAttacked(Position pos) const {
   return std::make_pair(false, Position());
 }
 
-void Board::MakeWithoutRepetitionDetection(Move move) {
+MoveType Board::MakeWithoutRepetitionDetection(Move move) {
   const Piece from_piece = PieceAt(move.from()), to_piece = PieceAt(move.to());
   DCHECK(from_piece != Piece::EmptyPiece());
   DCHECK(move.from() != move.to());
@@ -429,31 +429,40 @@ void Board::MakeWithoutRepetitionDetection(Move move) {
   }
   // 6. Update board evaluation.
   eval_.OnMake(move, from_piece, to_piece);
+
+  if (to_piece == Piece::EmptyPiece()) {
+    return MoveType::kRegular;
+  } else if (to_piece.type() == PieceType::kKing) {
+    return MoveType::kKingCapture;
+  } else {
+    return MoveType::kCapture;
+  }
 }
 
 MoveType Board::Make(Move move) {
-  MakeWithoutRepetitionDetection(move);
-  // Determine move type.
-  const Side moving_side = PieceAt(move.from()).side();
-  MoveType move_type = MoveType::kRegular;
-  for (int i = static_cast<int>(history_.size()) - 1;
-       i >= std::max(repetition_start_[static_cast<int>(moving_side)],
-                     irreversible_moves_.back() + 1);
-       --i) {
-    if (history_[i].hash_before_move == hash_) {
-      move_type = GetRepetitionType(i);
+  MoveType move_type = MakeWithoutRepetitionDetection(move);
+  // Determine repetition type if this is not a capture move.
+  if (move_type == MoveType::kRegular) {
+    const Side moving_side = PieceAt(move.from()).side();
+    for (int i = static_cast<int>(history_.size()) - 1;
+         i >= std::max(repetition_start_[static_cast<int>(moving_side)],
+                       irreversible_moves_.back() + 1);
+         --i) {
+      if (history_[i].hash_before_move == hash_) {
+        move_type = GetRepetitionType(i);
 #ifndef NDEBUG
-      if (move_type != MoveType::kRepetition) {
-        std::cerr << "Repetition detected: " << static_cast<int>(move_type)
-                  << endl;
-        DebugPrint();
-        for (int j = i; j < static_cast<int>(history_.size()); ++j) {
-          std::cerr << history_[j].move.ToString() << " ";
+        if (move_type != MoveType::kRepetition) {
+          std::cerr << "Repetition detected: " << static_cast<int>(move_type)
+                    << endl;
+          DebugPrint();
+          for (int j = i; j < static_cast<int>(history_.size()); ++j) {
+            std::cerr << history_[j].move.ToString() << " ";
+          }
+          std::cerr << endl;
         }
-        std::cerr << endl;
-      }
 #endif
-      break;
+        break;
+      }
     }
   }
   return move_type;
@@ -619,11 +628,11 @@ void Board::ResetRepetitionHistory(Side side) {
   repetition_start_[static_cast<int>(side)] = static_cast<int>(history_.size());
 }
 
-std::pair<bool, MoveType> Board::CheckedMake(Side side, Move move) {
+bool Board::IsPseudoLegalMove(Side side, Move move) const {
   const auto from = move.from(), to = move.to();
   const Piece from_piece = PieceAt(from);
   if (from_piece == Piece::EmptyPiece() || from_piece.side() != side) {
-    return std::make_pair(false, MoveType::kRegular);
+    return false;
   }
 
   const BitBoard all_pieces = AllPiecesMask();
@@ -664,7 +673,15 @@ std::pair<bool, MoveType> Board::CheckedMake(Side side, Move move) {
   const BitBoard allowed_dests =
       ~BitBoard::EmptyBoard() & ~SidePiecesMask(side);
   dests &= allowed_dests;
-  if (!dests[to]) return std::make_pair(false, MoveType::kRegular);
+  if (!dests[to]) return false;
+
+  return true;
+}
+
+std::pair<bool, MoveType> Board::CheckedMake(Side side, Move move) {
+  if (!IsPseudoLegalMove(side, move)) {
+    return std::make_pair(false, MoveType::kRegular);
+  }
 
   const MoveType mt = Make(move);
   if (InCheck(side)) {

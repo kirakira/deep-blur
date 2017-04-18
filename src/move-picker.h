@@ -74,10 +74,10 @@ class MovePicker {
     // Fill moves_buffer_ for current stage and set current_move_ to its
     // begin().
     void PrepareMovesForCurrentStage();
-    // Skip all moves that have been returned, advancing current stage if
-    // needed.
+    // Skip all moves that have been returned or empty, advancing current stage
+    // if needed.
     // Post condition: current_move_ points to a new move, or stage_ is kDone.
-    void SkipOldMoves();
+    void SkipOldOrEmptyMoves();
     static Stage NextStage(Stage stage);
 
     const MovePicker* picker_ = nullptr;

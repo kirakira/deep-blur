@@ -38,6 +38,9 @@ class Board {
   Piece PieceAt(Position pos) const;
 
   MoveType Make(Move m);
+  // Returns whether the move is valid according to rules. Suicides and king
+  // captures are considered valid.
+  bool IsPseudoLegalMove(Side side, Move m) const;
   // This only accepts legal moves (no suicides). King captures are ok.
   std::pair<bool, MoveType> CheckedMake(Side side, Move m);
   void Unmake();
@@ -66,7 +69,8 @@ class Board {
   };
 
   Piece& MutablePieceAt(Position pos);
-  void MakeWithoutRepetitionDetection(Move m);
+  // Returns one of {kRegular, kCapture, kKingCapture}.
+  MoveType MakeWithoutRepetitionDetection(Move m);
   // TODO: Cache the following?
   BitBoard AllPiecesMask() const;
   BitBoard SidePiecesMask(Side side) const;
