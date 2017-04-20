@@ -289,7 +289,7 @@ InternalSearchResult Search(Board* const board, const Side side,
       } else if (move_maker.move_type() != MoveType::kRegular &&
                  move_maker.move_type() != MoveType::kCapture) {
         child_result.external_result.score =
-            ScoreFromRepetitionRule(move_maker.move_type());
+            -ScoreFromRepetitionRule(move_maker.move_type());
         // We won't have a best_move in this case.
         child_result.affected_by_history = true;
       } else {
