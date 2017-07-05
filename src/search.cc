@@ -322,8 +322,8 @@ QuiescenceResult Quiescence(Board* board, TranspositionTable* tt, Side side,
 // Only scores within (alpha, beta) are exact. Scores <= alpha are upper bounds;
 // scores >= beta are lower bounds.
 template <PVType node_type, RootType root_type, DebugOptions debug_options>
-InternalSearchResult Search(Board* const board, const Side side,
-                            const int depth, const Score alpha,
+InternalSearchResult Search(const SearchOptions& options, Board* const board,
+                            const Side side, const int depth, const Score alpha,
                             const Score beta,
                             const SearchParams<debug_options> params,
                             SearchSharedObjects* shared_objects) {
@@ -340,10 +340,15 @@ InternalSearchResult Search(Board* const board, const Side side,
     ++shared_objects->stats.tt_hit;
     tt_hit = true;
   } else if (depth == 0) {
-    const QuiescenceResult quiescence_result = Quiescence(
-        board, shared_objects->tt, side, alpha, beta, shared_objects);
-    result.external_result.score = quiescence_result.score;
-    result.affected_by_history = quiescence_result.affected_by_history;
+    if (options.enable_quiescence) {
+      const QuiescenceResult quiescence_result = Quiescence(
+          board, shared_objects->tt, side, alpha, beta, shared_objects);
+      result.external_result.score = quiescence_result.score;
+      result.affected_by_history = quiescence_result.affected_by_history;
+    } else {
+      const Score eval = board->Evaluation();
+      result.external_result.score = side == Side::kRed ? eval : -eval;
+    }
   } else {
     result.external_result.score = -kMateScore;
     int num_moves_tried = 0;
@@ -382,7 +387,7 @@ InternalSearchResult Search(Board* const board, const Side side,
           // Use a null-window at non-pv nodes and expected cut moves at pv
           // nodes.
           child_result = Search<PVType::kNonPV, RootType::kNonRoot>(
-              board, OtherSide(side), depth - 1, -(current_alpha + 1),
+              options, board, OtherSide(side), depth - 1, -(current_alpha + 1),
               -current_alpha, child_params, shared_objects);
           // Do a re-search with full window if the score fails high at pv node.
           do_full_window_search = node_type == PVType::kPV &&
@@ -394,7 +399,7 @@ InternalSearchResult Search(Board* const board, const Side side,
 
         if (do_full_window_search) {
           child_result = Search<PVType::kPV, RootType::kNonRoot>(
-              board, OtherSide(side), depth - 1, -beta, -current_alpha,
+              options, board, OtherSide(side), depth - 1, -beta, -current_alpha,
               child_params, shared_objects);
         }
       }
@@ -454,8 +459,13 @@ InternalSearchResult Search(Board* const board, const Side side,
 
 }  // namespace
 
-SearchResult Search(Board* board, TranspositionTable* tt, Side side,
-                    int depth) {
+const SearchOptions& SearchOptions::Defaults() {
+  static auto* defaults = new SearchOptions;
+  return *defaults;
+}
+
+SearchResult Search(Board* board, TranspositionTable* tt, Side side, int depth,
+                    const SearchOptions& options) {
   // We assume the other side can do perpetual attacks in the search.
   board->ResetRepetitionHistory(OtherSide(side));
 #ifdef NDEBUG
@@ -470,7 +480,8 @@ SearchResult Search(Board* board, TranspositionTable* tt, Side side,
   shared_objects.timer = &timer;
 
   const auto result = Search<PVType::kPV, RootType::kRoot>(
-      board, side, depth, -kMateScore, kMateScore, params, &shared_objects);
+      options, board, side, depth, -kMateScore, kMateScore, params,
+      &shared_objects);
   shared_objects.stats.Print(timer);
   return result.external_result;
 }

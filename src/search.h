@@ -13,10 +13,17 @@ struct SearchResult {
   Move best_move;
 };
 
+struct SearchOptions {
+  bool enable_quiescence = true;
+
+  static const SearchOptions& Defaults();
+};
+
 // Return value may not have a valid best_move if
 // * depth is 0, or
 // * score is -kMateScore.
-SearchResult Search(Board* board, TranspositionTable* tt, Side side, int depth);
+SearchResult Search(Board* board, TranspositionTable* tt, Side side, int depth,
+                    const SearchOptions& options = SearchOptions::Defaults());
 
 // This is no-op when macro NDEBUG is defined.
 void DebugPrintLogs();
