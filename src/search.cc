@@ -334,9 +334,9 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
   bool tt_hit = false;
   Move tt_move;
   int best_move_index = -1;
-  if (node_type != PVType::kPV &&
-      ProbeTT(board, shared_objects->tt, side, depth, alpha, beta, &result,
-              &tt_move)) {
+  if (ProbeTT(board, shared_objects->tt, side, depth, alpha, beta, &result,
+              &tt_move) &&
+      node_type != PVType::kPV) {
     ++shared_objects->stats.tt_hit;
     tt_hit = true;
   } else if (depth == 0) {
