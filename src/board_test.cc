@@ -172,11 +172,11 @@ bool TestInCheck() {
   return true;
 }
 
-bool TestCheckedMoveForBoard(Board board) {
+bool TestCheckedMoveForBoard(Board* board) {
   static constexpr std::initializer_list<Side> all_sides{Side::kRed,
                                                          Side::kBlack};
   for (auto s : all_sides) {
-    auto moves = board.GenerateMoves(s);
+    auto moves = board->GenerateMoves(s);
     for (int i = 0; i < kNumPositions; ++i) {
       for (int j = 0; j < kNumPositions; ++j) {
         Move move{Position(i), Position(j)};
@@ -185,13 +185,13 @@ bool TestCheckedMoveForBoard(Board board) {
                        return move.from() == m.from() && move.to() == m.to();
                      });
         if (valid) {
-          board.Make(move);
-          if (board.InCheck(s)) valid = false;
-          board.Unmake();
+          board->Make(move);
+          if (board->InCheck(s)) valid = false;
+          board->Unmake();
         }
-        if (board.CheckedMake(s, move).first) {
+        if (board->CheckedMake(s, move).first) {
           if (!valid) return false;
-          board.Unmake();
+          board->Unmake();
         } else {
           if (valid) return false;
         }
@@ -203,14 +203,14 @@ bool TestCheckedMoveForBoard(Board board) {
 
 bool TestCheckedMake() {
   Board board;
-  if (!TestCheckedMoveForBoard(board)) return false;
+  if (!TestCheckedMoveForBoard(&board)) return false;
   if (!board.SetBoard("2eakae2/3P5/9/9/9/9/9/9/9/4K4")) return false;
-  if (!TestCheckedMoveForBoard(board)) return false;
+  if (!TestCheckedMoveForBoard(&board)) return false;
   if (!board.SetBoard(
           "rCeakaehr/9/1c7/p1p1p1p1p/9/9/P1P1P1P1P/7C1/9/RHEAKAEcR")) {
     return false;
   }
-  if (!TestCheckedMoveForBoard(board)) return false;
+  if (!TestCheckedMoveForBoard(&board)) return false;
   return true;
 }
 

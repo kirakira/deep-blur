@@ -160,6 +160,9 @@ class Timer {
 
 // TODO: implement these.
 #define DCHECK(x) ((void)(x))
-#define CHECK(x) ((void)(x))
+#define CHECK(x)       \
+  {                    \
+    if (!(x)) blur::Die("Check failed."); \
+  }
 
 #endif  // BLUR_COMMON_H

@@ -30,7 +30,7 @@ constexpr std::initializer_list<PieceType> all_piece_types{
 
 }  // namespace
 
-Board::Board() {
+Board::Board() : eval_(Evaluator::Make()) {
   DCHECK(
       SetBoard("rheakaehr/9/1c5c1/p1p1p1p1p/9/9/P1P1P1P1P/1C5C1/9/RHEAKAEHR"));
 }
@@ -122,7 +122,7 @@ bool Board::SetBoard(const string& fen) {
     }
   }
 
-  eval_.SetBoard(board_);
+  eval_->SetBoard(board_);
 
   return true;
 }
@@ -171,7 +171,7 @@ void Board::DebugPrint() const {
   }
   cout << endl << "   a b c d e f g h i" << endl << endl;
   cout << "hash: " << hash_ << ", "
-       << "eval: " << eval_.CurrentScore() << endl;
+       << "eval: " << eval_->CurrentScore() << endl;
 }
 
 namespace {
@@ -428,7 +428,7 @@ MoveType Board::MakeWithoutRepetitionDetection(Move move) {
         BoardHash::piece_position_hash[to_piece.value()][move.to().value()];
   }
   // 6. Update board evaluation.
-  eval_.OnMake(move, from_piece, to_piece);
+  eval_->OnMake(move, from_piece, to_piece);
 
   if (to_piece == Piece::EmptyPiece()) {
     return MoveType::kRegular;
@@ -599,7 +599,7 @@ void Board::Unmake() {
   const auto move = history_move.move;
   const auto from_piece = PieceAt(move.to()), to_piece = history_move.capture;
   // 1. Update board evaluation.
-  eval_.OnUnmake(move, from_piece, to_piece);
+  eval_->OnUnmake(move, from_piece, to_piece);
   // 2. Restore hash_.
   hash_ = history_move.hash_before_move;
   // 3. Restore board_.

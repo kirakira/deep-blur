@@ -14,7 +14,7 @@ namespace blur {
 
 class Board {
  public:
-  // Initialize the board to the start position.
+  // Initialize the board to the start position and with a default evaluator.
   Board();
 
   // Generate all pseudo-legal moves for the specified side. This includes
@@ -58,7 +58,7 @@ class Board {
   // Print the current board.
   void DebugPrint() const;
 
-  Score Evaluation() const { return eval_.CurrentScore(); }
+  Score Evaluation() const { return eval_->CurrentScore(); }
 
  private:
   struct HistoryMove {
@@ -95,7 +95,7 @@ class Board {
   // Indexed by side.
   int repetition_start_[2] = {0};
   uint64 hash_;
-  Evaluator eval_;
+  const std::unique_ptr<Evaluator> eval_;
 };
 
 }  // namespace blur
