@@ -26,9 +26,9 @@ namespace blur {
 // 0  | 0| 1| 2| 3| 4| 5| 6| 7| 8|
 //    ----------------------------
 
-const int kNumPositions = 90;
-const int kNumRows = 10;
-const int kNumColumns = 9;
+constexpr int kNumPositions = 90;
+constexpr int kNumRows = 10;
+constexpr int kNumColumns = 9;
 
 // Value semantics.
 class Position {
@@ -225,6 +225,10 @@ static constexpr int kMaxDepth = 1024;
 
 inline Score& operator+=(Score& x, Score y) {
   return x = static_cast<Score>(x + y);
+}
+
+inline Score& operator-=(Score& x, Score y) {
+  return x = static_cast<Score>(x - y);
 }
 
 inline Score& operator*=(Score& x, int y) {

@@ -10,8 +10,11 @@ namespace blur {
 
 class Evaluator {
  public:
+  // Possible evaluator names:
+  //   "piece-position" (default)
+  //   "piece-value".
   static std::unique_ptr<Evaluator> Make(
-      const std::string& evaluator_name = "piece-value");
+      const std::string& evaluator_name = "piece-position");
 
   // Update the evaluation in response to a move.
   virtual void OnMake(Move move, Piece moving_piee, Piece captured_piece) = 0;

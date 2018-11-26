@@ -20,8 +20,11 @@ $(OUT)/board-base.o: src/common.h src/board-base.h src/board-base.cc
 $(OUT)/board-hash.o: src/common.h src/board-base.h src/board-hash.h src/board-hash.cc
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/board-hash.cc
 
-$(OUT)/eval.o: src/board-base.h src/eval.h src/piece-value-eval.h src/common.h src/eval.cc
+$(OUT)/eval.o: src/board-base.h src/eval.h src/piece-value-eval.h src/piece-position-eval.h src/common.h src/eval.cc
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/eval.cc
+
+$(OUT)/piece-position-eval.o: src/board-base.h src/eval.h src/piece-position-eval.h src/piece-position-eval.cc
+	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/piece-position-eval.cc
 
 $(OUT)/piece-value-eval.o: src/board-base.h src/eval.h src/piece-value-eval.h src/piece-value-eval.cc
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/piece-value-eval.cc
@@ -44,8 +47,8 @@ $(OUT)/see.o: src/see.h src/see.cc src/board.h src/board-base.h
 $(OUT)/search.o: src/search.h src/search.cc src/board.h src/common.h src/eval.h src/piece-value-eval.h src/bittables.h src/bitboard.h src/board-base.h src/board-hash.h src/logger.h src/transposition.h src/move-picker.h
 	$(COMPILER) $(COMPILER_FLAGS) -c -o $@ src/search.cc
 
-$(OUT)/xboard: $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/search.o $(OUT)/transposition.o $(OUT)/move-picker.o $(OUT)/see.o src/xboard.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ src/xboard.cc $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/transposition.o $(OUT)/move-picker.o $(OUT)/see.o
+$(OUT)/xboard: $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/search.o $(OUT)/transposition.o $(OUT)/move-picker.o $(OUT)/see.o src/xboard.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ src/xboard.cc $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/transposition.o $(OUT)/move-picker.o $(OUT)/see.o
 
 $(OUT)/common_test: $(OUT)/common.o src/common_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o src/common_test.cc
