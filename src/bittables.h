@@ -388,6 +388,8 @@ class BitTables {
       GenerateArray<std::array<BitBoard, 1024>, kNumRows>(impl::RookColMovesAt);
 };
 
+static_assert(sizeof(BitTables) == 552896, "");
+
 }  // namespace blur
 
 #endif  // BLUR_BITTABLES_H
