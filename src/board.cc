@@ -18,8 +18,8 @@ namespace {
 
 constexpr BitTables kBitTables{};
 // Use static_assert to make sure the tables are generated in compile-time.
-static_assert(kBitTables.rook_col_moves[89][1023] ==
-                  BitBoard::Fill(Position(80)),
+static_assert(kBitTables.rook_col_moves[9][1023] ==
+                  BitBoard::Fill(Position(72)),
               "Bad bittables");
 
 constexpr std::initializer_list<Side> all_sides{Side::kRed, Side::kBlack};
@@ -176,12 +176,23 @@ void Board::DebugPrint() const {
 
 namespace {
 
+BitBoard ShiftRow(BitBoard x, int row) {
+  return x << (row * kNumColumns);
+}
+
+BitBoard ShiftColumn(BitBoard x, int column) {
+  return x << column;
+}
+
 BitBoard RookDestinations(BitBoard board, Position from) {
-  auto to =
+  auto to = ShiftRow(
       kBitTables
-          .rook_row_moves[from.value()][board.GetRowOccupancy(from.Row())];
-  to |= kBitTables
-            .rook_col_moves[from.value()][board.GetColOccupancy(from.Column())];
+          .rook_row_moves[from.Column()][board.GetRowOccupancy(from.Row())],
+      from.Row());
+  to |= ShiftColumn(
+      kBitTables
+          .rook_col_moves[from.Row()][board.GetColOccupancy(from.Column())],
+      from.Column());
   return to;
 }
 
@@ -195,12 +206,14 @@ BitBoard HorseReverseDestinations(BitBoard board, Position from) {
 }
 
 BitBoard CannonDestinations(BitBoard board, Position from) {
-  auto to =
+  auto to = ShiftRow(
       kBitTables
-          .cannon_row_moves[from.value()][board.GetRowOccupancy(from.Row())];
-  to |=
+          .cannon_row_moves[from.Column()][board.GetRowOccupancy(from.Row())],
+      from.Row());
+  to |= ShiftColumn(
       kBitTables
-          .cannon_col_moves[from.value()][board.GetColOccupancy(from.Column())];
+          .cannon_col_moves[from.Row()][board.GetColOccupancy(from.Column())],
+      from.Column());
   return to;
 }
 
@@ -235,9 +248,10 @@ BitBoard KingNormalDestinations(Position from) {
 
 BitBoard KingSlidingDestinations(BitBoard board, BitBoard other_king,
                                  Position from) {
-  auto to =
+  auto to = ShiftColumn(
       kBitTables
-          .rook_col_moves[from.value()][board.GetColOccupancy(from.Column())];
+          .rook_col_moves[from.Row()][board.GetColOccupancy(from.Column())],
+      from.Column());
   to &= other_king;
   return to;
 }

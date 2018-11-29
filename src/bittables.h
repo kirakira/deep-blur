@@ -237,10 +237,10 @@ constexpr auto HorseReverseMovesAt(size_t index) {
       CurryFront(HorseReverseMovesWithOccupancy, index));
 }
 
-constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, uint64 occupancy) {
+constexpr BitBoard CannonRowMovesWithOccupancy(size_t column,
+                                               uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
-  Position pos(static_cast<int>(index));
-  const int i = pos.Row(), j = pos.Column();
+  const int i = 0, j = static_cast<int>(column);
   for (int dir = -1; dir <= 1; dir += 2) {
     int pieces_met = 0;
     for (int ni = i, nj = j + dir; InBoard(ni, nj) && pieces_met < 2;
@@ -261,15 +261,14 @@ constexpr BitBoard CannonRowMovesWithOccupancy(size_t index, uint64 occupancy) {
   return moves;
 }
 
-constexpr auto CannonRowMovesAt(size_t index) {
+constexpr auto CannonRowMovesAt(size_t column) {
   return GenerateArray<BitBoard, 512>(
-      CurryFront(CannonRowMovesWithOccupancy, index));
+      CurryFront(CannonRowMovesWithOccupancy, column));
 }
 
-constexpr BitBoard CannonColMovesWithOccupancy(size_t index, uint64 occupancy) {
+constexpr BitBoard CannonColMovesWithOccupancy(size_t row, uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
-  Position pos(static_cast<int>(index));
-  const int i = pos.Row(), j = pos.Column();
+  const int i = static_cast<int>(row), j = 0;
   for (int dir = -1; dir <= 1; dir += 2) {
     int pieces_met = 0;
     for (int ni = i + dir, nj = j; InBoard(ni, nj) && pieces_met < 2;
@@ -290,15 +289,14 @@ constexpr BitBoard CannonColMovesWithOccupancy(size_t index, uint64 occupancy) {
   return moves;
 }
 
-constexpr auto CannonColMovesAt(size_t index) {
+constexpr auto CannonColMovesAt(size_t row) {
   return GenerateArray<BitBoard, 1024>(
-      CurryFront(CannonColMovesWithOccupancy, index));
+      CurryFront(CannonColMovesWithOccupancy, row));
 }
 
-constexpr auto RookRowMovesWithOccupancy(size_t index, uint64 occupancy) {
+constexpr auto RookRowMovesWithOccupancy(size_t column, uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
-  Position pos(static_cast<int>(index));
-  const int i = pos.Row(), j = pos.Column();
+  const int i = 0, j = static_cast<int>(column);
   for (int dir = -1; dir <= 1; dir += 2) {
     for (int ni = i, nj = j + dir; InBoard(ni, nj); nj += dir) {
       moves |= BitBoard::Fill(Position(ni, nj));
@@ -308,15 +306,14 @@ constexpr auto RookRowMovesWithOccupancy(size_t index, uint64 occupancy) {
   return moves;
 }
 
-constexpr auto RookRowMovesAt(size_t index) {
+constexpr auto RookRowMovesAt(size_t column) {
   return GenerateArray<BitBoard, 512>(
-      CurryFront(RookRowMovesWithOccupancy, index));
+      CurryFront(RookRowMovesWithOccupancy, column));
 }
 
-constexpr auto RookColMovesWithOccupancy(size_t index, uint64 occupancy) {
+constexpr auto RookColMovesWithOccupancy(size_t row, uint64 occupancy) {
   BitBoard moves = BitBoard::EmptyBoard();
-  Position pos(static_cast<int>(index));
-  const int i = pos.Row(), j = pos.Column();
+  const int i = static_cast<int>(row), j = 0;
   for (int dir = -1; dir <= 1; dir += 2) {
     for (int ni = i + dir, nj = j; InBoard(ni, nj); ni += dir) {
       moves |= BitBoard::Fill(Position(ni, nj));
@@ -326,9 +323,9 @@ constexpr auto RookColMovesWithOccupancy(size_t index, uint64 occupancy) {
   return moves;
 }
 
-constexpr auto RookColMovesAt(size_t index) {
+constexpr auto RookColMovesAt(size_t row) {
   return GenerateArray<BitBoard, 1024>(
-      CurryFront(RookColMovesWithOccupancy, index));
+      CurryFront(RookColMovesWithOccupancy, row));
 }
 
 }  // namespace impl
@@ -366,28 +363,29 @@ class BitTables {
       horse_reverse_moves =
           GenerateArray<std::array<BitBoard, 16>, kNumPositions>(
               impl::HorseReverseMovesAt);
-  // cannon_row_moves[pos][row]. Row ranges from [0, 2^9) encoding 1 bit for
-  // each position in the row (1 for occupied, 0 for unoccupied) from left to
-  // right.
-  const std::array<std::array<BitBoard, 512>, kNumPositions> cannon_row_moves =
-      GenerateArray<std::array<BitBoard, 512>, kNumPositions>(
+  // cannon_row_moves[col][row_occ]. Row occupancy ranges from [0, 2^9) encoding
+  // 1 bit for each position in the row (1 for occupied, 0 for unoccupied) from
+  // left to right.
+  const std::array<std::array<BitBoard, 512>, kNumColumns> cannon_row_moves =
+      GenerateArray<std::array<BitBoard, 512>, kNumColumns>(
           impl::CannonRowMovesAt);
-  // cannon_col_moves[pos][col]. Col ranges from [0, 2^10) encoding 1 bit for
-  // each position in the column (1 for occupied, 0 for unoccupied) from down to
-  // top.
-  const std::array<std::array<BitBoard, 1024>, kNumPositions> cannon_col_moves =
-      GenerateArray<std::array<BitBoard, 1024>, kNumPositions>(
+  // cannon_col_moves[row][col_occ]. Col occupancy ranges from [0, 2^10)
+  // encoding 1 bit for each position in the column (1 for occupied, 0 for
+  // unoccupied) from down to top.
+  const std::array<std::array<BitBoard, 1024>, kNumRows> cannon_col_moves =
+      GenerateArray<std::array<BitBoard, 1024>, kNumRows>(
           impl::CannonColMovesAt);
-  // rook_row_moves[pos][row]. Row ranges from [0, 2^9) encoding 1 bit for each
-  // position in the row (1 for occupied, 0 for unoccupied) from left to right.
-  const std::array<std::array<BitBoard, 512>, kNumPositions> rook_row_moves =
-      GenerateArray<std::array<BitBoard, 512>, kNumPositions>(
+  // rook_row_moves[col][row_occ]. Row occupancy ranges from [0, 2^9) encoding 1
+  // bit for each position in the row (1 for occupied, 0 for unoccupied) from
+  // left to right.
+  const std::array<std::array<BitBoard, 512>, kNumColumns> rook_row_moves =
+      GenerateArray<std::array<BitBoard, 512>, kNumColumns>(
           impl::RookRowMovesAt);
-  // rook_col_moves[pos][col]. Col ranges from [0, 2^10) encoding 1 bit for each
-  // position in the column (1 for occupied, 0 for unoccupied) from down to top.
-  const std::array<std::array<BitBoard, 1024>, kNumPositions> rook_col_moves =
-      GenerateArray<std::array<BitBoard, 1024>, kNumPositions>(
-          impl::RookColMovesAt);
+  // rook_col_moves[row][col_occ]. Col occupancy ranges from [0, 2^10) encoding
+  // 1 bit for each position in the column (1 for occupied, 0 for unoccupied)
+  // from down to top.
+  const std::array<std::array<BitBoard, 1024>, kNumRows> rook_col_moves =
+      GenerateArray<std::array<BitBoard, 1024>, kNumRows>(impl::RookColMovesAt);
 };
 
 }  // namespace blur
