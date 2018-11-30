@@ -60,6 +60,10 @@ class Board {
 
   Score Evaluation() const { return eval_->CurrentScore(); }
 
+  // Copyable.
+  Board(const Board&);
+  Board& operator=(const Board&);
+
  private:
   struct HistoryMove {
     // Unsided hash.
@@ -95,7 +99,7 @@ class Board {
   // Indexed by side.
   int repetition_start_[2] = {0};
   uint64 hash_;
-  const std::unique_ptr<Evaluator> eval_;
+  std::unique_ptr<Evaluator> eval_;
 };
 
 }  // namespace blur

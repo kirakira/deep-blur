@@ -1,5 +1,5 @@
 COMPILER=g++
-COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -Wconversion -Wno-sign-conversion -fconstexpr-steps=100000000
+COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -Wconversion -Wno-sign-conversion -fconstexpr-steps=10000000
 OUT=bin
 ifeq ($(build),dbg)
 	COMPILER_FLAGS+=-g
@@ -59,20 +59,20 @@ $(OUT)/bitboard_test: $(OUT)/common.o $(OUT)/board-base.o src/bitboard.h src/bit
 $(OUT)/bittables_test: $(OUT)/common.o src/bittables.h $(OUT)/board-base.o src/bittables_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o $(OUT)/board-base.o src/bittables_test.cc
 
-$(OUT)/board_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/board-base.o src/board_test.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/common.o $(OUT)/board-base.o src/board_test.cc
+$(OUT)/board_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/board-base.o src/board_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/piece-position-eval.o $(OUT)/board-hash.o $(OUT)/common.o $(OUT)/board-base.o src/board_test.cc
 
-$(OUT)/genmove_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/board-base.o src/genmove_test.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/common.o $(OUT)/board-base.o src/genmove_test.cc
+$(OUT)/genmove_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/piece-position-eval.o $(OUT)/board-hash.o $(OUT)/board-base.o src/genmove_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/piece-position-eval.o $(OUT)/board-hash.o $(OUT)/common.o $(OUT)/board-base.o src/genmove_test.cc
 
 $(OUT)/transposition_test: $(OUT)/common.o $(OUT)/board-base.o $(OUT)/transposition.o src/transposition_test.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o $(OUT)/board-base.o $(OUT)/transposition.o src/transposition_test.cc
 
-$(OUT)/see_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/board-base.o $(OUT)/board-hash.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/see.o src/see_test.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o $(OUT)/board.o $(OUT)/board-base.o $(OUT)/board-hash.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/see.o src/see_test.cc
+$(OUT)/see_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/board-base.o $(OUT)/board-hash.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/see.o src/see_test.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/common.o $(OUT)/board.o $(OUT)/board-base.o $(OUT)/board-hash.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/see.o src/see_test.cc
 
-$(OUT)/board_benchmark: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/board-base.o src/board_benchmark.cc
-	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/common.o $(OUT)/board-base.o src/board_benchmark.cc
+$(OUT)/board_benchmark: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/board-base.o src/board_benchmark.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/common.o $(OUT)/board-base.o src/board_benchmark.cc
 
 .PHONY: clean
 clean:

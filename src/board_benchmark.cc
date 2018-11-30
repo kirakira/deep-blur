@@ -1,3 +1,11 @@
+// Sample output:
+//
+//   GenerateMoves: 11.0235s
+//   Total moves: 2200000000
+//   GenerateCaptures: 6.91216s
+//   Total captures: 100000000
+//
+
 #include "board.h"
 
 #include <chrono>
@@ -9,16 +17,16 @@ const int kGenerateCapturesCycles = 50000000;
 
 using std::string;
 
-class Timer {
+class LoggedTimer {
  public:
-  explicit Timer(const string& message)
+  explicit LoggedTimer(const string& message)
       : message_(message), start_(std::chrono::system_clock::now()) {}
 
   std::chrono::duration<double> ElapsedSeconds() {
     return std::chrono::system_clock::now() - start_;
   }
 
-  ~Timer() {
+  ~LoggedTimer() {
     const auto duration = ElapsedSeconds();
     std::cout << message_ << ": " << duration.count() << "s" << std::endl;
   }
@@ -33,7 +41,7 @@ namespace blur {
 void RunGenerateMoves(Board board) {
   uint64 ans = 0;
   {
-    Timer timer("GenerateMoves");
+    LoggedTimer timer("GenerateMoves");
     for (int i = 0; i < kGenerateMovesCycles; ++i) {
       ans += board.GenerateMoves(Side::kRed).size();
     }
@@ -44,7 +52,7 @@ void RunGenerateMoves(Board board) {
 void RunGenerateCaptures(Board board) {
   uint64 ans = 0;
   {
-    Timer timer("GenerateCaptures");
+    LoggedTimer timer("GenerateCaptures");
     for (int i = 0; i < kGenerateCapturesCycles; ++i) {
       ans += board.GenerateCaptures(Side::kRed).size();
     }

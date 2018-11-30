@@ -26,8 +26,6 @@ std::array<Score, 16> kPieceValues = []() {
   return values;
 }();
 
-}  // namespace
-
 template <bool make>
 Score UpdateScore(Piece captured_piece, Score score) {
   Score delta = kDrawScore;
@@ -36,6 +34,12 @@ Score UpdateScore(Piece captured_piece, Score score) {
     if (!make) delta *= -1;
   }
   return score - delta;
+}
+
+}  // namespace
+
+std::unique_ptr<Evaluator> PieceValueEvaluator::Clone() const {
+  return std::make_unique<PieceValueEvaluator>(*this);
 }
 
 void PieceValueEvaluator::OnMake(Move, Piece, Piece captured_piece) {

@@ -104,6 +104,10 @@ Score ScoreDelta(Move m, Piece p, Piece captured_piece) {
 
 }  // namespace
 
+std::unique_ptr<Evaluator> PiecePositionEvaluator::Clone() const {
+  return std::make_unique<PiecePositionEvaluator>(*this);
+}
+
 void PiecePositionEvaluator::OnMake(Move m, Piece p, Piece captured_piece) {
   score_ += ScoreDelta(m, p, captured_piece);
 }

@@ -716,4 +716,22 @@ uint64 Board::HashCode(Side side) const {
   return side == Side::kRed ? hash_ : hash_ ^ BoardHash::side_hash;
 }
 
-}  // namespace blur
+Board::Board(const Board &other) { *this = other; }
+
+Board &Board::operator=(const Board &other) {
+  for (int i = 0; i < kNumPositions; ++i) {
+    board_[i] = other.board_[i];
+  }
+  for (int i = 0; i < 16; ++i) {
+    piece_bitboards_[i] = other.piece_bitboards_[i];
+  }
+  history_ = other.history_;
+  irreversible_moves_ = other.irreversible_moves_;
+  std::memcpy(repetition_start_, other.repetition_start_,
+              sizeof(repetition_start_));
+  hash_ = other.hash_;
+  eval_ = other.eval_->Clone();
+  return *this;
+}
+
+} // namespace blur

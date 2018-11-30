@@ -6,11 +6,16 @@
 namespace blur {
 
 class PieceValueEvaluator : public Evaluator {
- public:
+public:
+  PieceValueEvaluator() = default;
+  PieceValueEvaluator(const PieceValueEvaluator &) = default;
+
+  // Return a copy of this evaluator that has the identical internal state.
+  std::unique_ptr<Evaluator> Clone() const override;
+
   void OnMake(Move move, Piece moving_piee, Piece captured_piece) override;
   // Update the evaluation in response to the undo of a move.
-  void OnUnmake(Move move, Piece moving_piece,
-                        Piece captured_piece) override;
+  void OnUnmake(Move move, Piece moving_piece, Piece captured_piece) override;
   // Recalculate the evalution based on current the board position. board is
   // an array of 90 elements, indexed by the positions of each piece.
   void SetBoard(const Piece board[]) override;
@@ -19,10 +24,10 @@ class PieceValueEvaluator : public Evaluator {
   // favorable to red.
   Score CurrentScore() const override;
 
- private:
+private:
   Score score_ = kDrawScore;
 };
 
-}  // namespace blur
+} // namespace blur
 
-#endif  // BLUR_PIECE_VALUE_EVAL_H
+#endif // BLUR_PIECE_VALUE_EVAL_H

@@ -16,6 +16,9 @@ class Evaluator {
   static std::unique_ptr<Evaluator> Make(
       const std::string& evaluator_name = "piece-position");
 
+  // Return a copy of this evaluator that has the identical internal state.
+  virtual std::unique_ptr<Evaluator> Clone() const = 0;
+
   // Update the evaluation in response to a move.
   virtual void OnMake(Move move, Piece moving_piee, Piece captured_piece) = 0;
   // Update the evaluation in response to the undo of a move.
