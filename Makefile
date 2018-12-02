@@ -1,4 +1,4 @@
-COMPILER=g++
+COMPILER=clang++
 COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -Wconversion -Wno-sign-conversion -fconstexpr-steps=10000000
 OUT=bin
 ifeq ($(build),dbg)

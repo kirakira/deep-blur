@@ -9,12 +9,14 @@
 namespace blur {
 
 class Evaluator {
- public:
+public:
+  virtual ~Evaluator() {}
+
   // Possible evaluator names:
   //   "piece-position" (default)
   //   "piece-value".
-  static std::unique_ptr<Evaluator> Make(
-      const std::string& evaluator_name = "piece-position");
+  static std::unique_ptr<Evaluator>
+  Make(const std::string &evaluator_name = "piece-position");
 
   // Return a copy of this evaluator that has the identical internal state.
   virtual std::unique_ptr<Evaluator> Clone() const = 0;
@@ -33,6 +35,6 @@ class Evaluator {
   virtual Score CurrentScore() const = 0;
 };
 
-}  // namespace blur
+} // namespace blur
 
-#endif  // BLUR_EVAL_H
+#endif // BLUR_EVAL_H
