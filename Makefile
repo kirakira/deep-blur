@@ -3,6 +3,8 @@ COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -Wconversion -Wno-sign-
 OUT=bin
 ifeq ($(build),dbg)
 	COMPILER_FLAGS+=-g
+else ifeq ($(build),profile)
+	COMPILER_FLAGS+=-O3 -march=native -flto -DNDEBUG -g -fno-omit-frame-pointer
 else
 	COMPILER_FLAGS+=-O3 -march=native -flto -DNDEBUG
 endif
@@ -74,6 +76,9 @@ $(OUT)/see_test: $(OUT)/common.o $(OUT)/board.o $(OUT)/board-base.o $(OUT)/board
 $(OUT)/board_benchmark: $(OUT)/common.o $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/board-base.o src/board_benchmark.cc
 	$(COMPILER) $(COMPILER_FLAGS) -o $@ $(OUT)/board.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/board-hash.o $(OUT)/common.o $(OUT)/board-base.o src/board_benchmark.cc
 
+$(OUT)/benchmark: $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/search.o $(OUT)/transposition.o $(OUT)/move-picker.o $(OUT)/see.o src/benchmark.cc
+	$(COMPILER) $(COMPILER_FLAGS) -o $@ src/benchmark.cc $(OUT)/common.o $(OUT)/search.o $(OUT)/logger.o $(OUT)/board.o $(OUT)/board-hash.o $(OUT)/board-base.o $(OUT)/eval.o $(OUT)/piece-position-eval.o $(OUT)/piece-value-eval.o $(OUT)/transposition.o $(OUT)/move-picker.o $(OUT)/see.o
+
 .PHONY: clean
 clean:
-	rm -f $(OUT)/*.o $(OUT)/*_test $(OUT)/xboard $(OUT)/board_benchmark
+	rm -f $(OUT)/*.o $(OUT)/*_test $(OUT)/xboard $(OUT)/board_benchmark $(OUT)/benchmark
