@@ -14,7 +14,9 @@ struct SearchResult {
 };
 
 struct SearchOptions {
+  bool use_tt = true;
   bool enable_quiescence = true;
+  bool use_tt_in_quiescence = false;
 
   static const SearchOptions& Defaults();
 };

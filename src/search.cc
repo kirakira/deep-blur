@@ -33,6 +33,18 @@ class ScopedMoveMaker {
   MoveType move_type_;
 };
 
+std::string ToHumanReadableScale(double x) {
+  if (x >= 1000000000) {
+    return std::to_string(x / 1000000000) + "G";
+  } else if (x >= 1000000) {
+    return std::to_string(x / 1000000) + "M";
+  } else if (x >= 1000) {
+    return std::to_string(x / 1000) + "K";
+  } else {
+    return std::to_string(x);
+  }
+}
+
 struct Stats {
   int64 nodes_visited = 0;
   int64 tt_hit = 0;
@@ -46,10 +58,13 @@ struct Stats {
     if (rank < kBestMoveRankSize) ++best_move_index[rank];
   }
 
-  void Print(const Timer& timer) {
-    std::cout << "# " << nodes_visited << " nodes in "
-              << std::chrono::duration<double>(timer.GetReading()).count()
-              << "s, tt hit: "
+  void Print(const Timer &timer) {
+    double elapsed_seconds =
+        std::chrono::duration<double>(timer.GetReading()).count();
+    std::cout << "# " << nodes_visited << " nodes in " << elapsed_seconds
+              << "s, " << ToHumanReadableScale(nodes_visited / elapsed_seconds)
+              << " NPS" << std::endl;
+    std::cout << "tt hit: "
               << static_cast<double>(tt_hit) * 100 /
                      static_cast<double>(nodes_visited)
               << "%, affected by history: "
@@ -259,11 +274,13 @@ QuiescenceResult QuiescenceInternal(Board* board, TranspositionTable* tt,
   QuiescenceResult result;
 
   Move tt_move;
-  InternalSearchResult search_result;
-  if (ProbeTT(board, tt, side, 0 /* depth */, alpha, beta, &search_result,
-              &tt_move)) {
-    result.score = search_result.external_result.score;
-    return result;
+  if (tt) {
+    InternalSearchResult search_result;
+    if (ProbeTT(board, tt, side, 0 /* depth */, alpha, beta, &search_result,
+                &tt_move)) {
+      result.score = search_result.external_result.score;
+      return result;
+    }
   }
 
   if (in_check) {
@@ -309,7 +326,7 @@ QuiescenceResult QuiescenceInternal(Board* board, TranspositionTable* tt,
     }
   }
 
-  if (!result.affected_by_history) {
+  if (tt && !result.affected_by_history) {
     SearchResult result_for_tt;
     result_for_tt.score = result.score;
     StoreTT(board, tt, side, 0 /* depth */, alpha, beta, result_for_tt);
@@ -340,15 +357,21 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
   bool tt_hit = false;
   Move tt_move;
   int best_move_index = -1;
-  if (ProbeTT(board, shared_objects->tt, side, depth, alpha, beta, &result,
+  const bool use_tt = options.use_tt && depth >= 1;
+  if (use_tt &&
+      ProbeTT(board, shared_objects->tt, side, depth, alpha, beta, &result,
               &tt_move) &&
       node_type != PVType::kPV) {
     ++shared_objects->stats.tt_hit;
     tt_hit = true;
   } else if (depth == 0) {
     if (options.enable_quiescence) {
-      const QuiescenceResult quiescence_result = Quiescence(
-          board, shared_objects->tt, side, alpha, beta, shared_objects);
+      TranspositionTable *tt_quiescence = nullptr;
+      if (options.use_tt_in_quiescence) {
+        tt_quiescence = shared_objects->tt;
+      }
+      const QuiescenceResult quiescence_result =
+          Quiescence(board, tt_quiescence, side, alpha, beta, shared_objects);
       result.external_result.score = quiescence_result.score;
       result.affected_by_history = quiescence_result.affected_by_history;
     } else {
@@ -450,10 +473,12 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
   }
 
   // Store TT.
-  if (!tt_hit) {
+  if (use_tt && !tt_hit) {
     // If there are no more than 4 moves made, the result cannot be affected by
     // history.
-    if (params.ply < 4) result.affected_by_history = false;
+    if (params.ply < 4) {
+      result.affected_by_history = false;
+    }
     if (result.affected_by_history) {
       ++shared_objects->stats.affected_by_history;
     } else if (depth > 0) {
