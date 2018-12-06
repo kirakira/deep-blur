@@ -73,8 +73,8 @@ bool TestElephantOccupancy() {
           board |= BitBoard::Fill(ip);
         }
       }
-      uint64 occ = board.GetElephantOccupancy(p);
-      uint64 expected = 0;
+      Occupancy occ = board.GetElephantOccupancy(p);
+      Occupancy expected = 0;
       if (GetBit(x, 0) && row != 0 && row != 5 && col != 0) expected |= 1;
       if (GetBit(x, 1) && row != 4 && row != 9 && col != 0) expected |= 2;
       if (GetBit(x, 2) && row != 0 && row != 5 && col != 8) expected |= 4;
@@ -135,8 +135,8 @@ bool TestHorseOccupancy() {
           board |= BitBoard::Fill(ip);
         }
       }
-      uint64 occ = board.GetHorseOccupancy(p);
-      uint64 expected = 0;
+      Occupancy occ = board.GetHorseOccupancy(p);
+      Occupancy expected = 0;
       if (GetBit(x, 0) && col > 0) expected |= 1;
       if (GetBit(x, 1) && row > 0) expected |= 2;
       if (GetBit(x, 2) && col < 8) expected |= 4;
@@ -154,14 +154,14 @@ bool TestHorseOccupancy() {
 
 bool CheckHorseTables() {
   auto board = BitBoard::Fill(Position(49 + 9));
-  uint64 occ = board.GetHorseOccupancy(Position(49));
-  uint64 expected = 1 << 3;
+  Occupancy occ = board.GetHorseOccupancy(Position(49));
+  Occupancy expected = 1 << 3;
   return expected == occ;
 }
 
 bool CheckHorseReverseTables() {
   auto board = BitBoard::Fill(Position(46 + 10));
-  uint64 occ = board.GetElephantOccupancy(Position(46));
+  Occupancy occ = board.GetElephantOccupancy(Position(46));
   return kBitTables.horse_reverse_moves[46][occ] ==
          (BitBoard::Fill(Position(27)) | BitBoard::Fill(Position(29)) |
           BitBoard::Fill(Position(39)) | BitBoard::Fill(Position(63)));
