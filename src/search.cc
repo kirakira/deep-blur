@@ -49,6 +49,7 @@ std::string ToHumanReadableScale(double x) {
 
 struct Stats {
   int64 nodes_visited = 0;
+  int64 nodes_expanded = 0;
   int64 tt_hit = 0;
   int64 affected_by_history = 0;
   static constexpr int kBestMoveRankSize = 10;
@@ -63,12 +64,15 @@ struct Stats {
   void Print(const Timer &timer) {
     double elapsed_seconds =
         std::chrono::duration<double>(timer.GetReading()).count();
-    std::cout << "# " << nodes_visited << " nodes in " << elapsed_seconds
-              << "s, "
+    std::cout << "# time " << elapsed_seconds << "s, visited " << nodes_visited
+              << " ("
               << ToHumanReadableScale(static_cast<double>(nodes_visited) /
                                       elapsed_seconds)
-              << " NPS" << std::endl;
-    std::cout << "tt hit: "
+              << " NPS), expanded " << nodes_expanded << " ("
+              << ToHumanReadableScale(static_cast<double>(nodes_expanded) /
+                                      elapsed_seconds)
+              << " NPS)" << std::endl;
+    std::cout << "# tt hit: "
               << static_cast<double>(tt_hit) * 100 /
                      static_cast<double>(nodes_visited)
               << "%, affected by history: "
@@ -390,6 +394,7 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
       result.external_result.score = side == Side::kRed ? eval : -eval;
     }
   } else {
+    ++shared_objects->stats.nodes_expanded;
     result.external_result.score = -kMateScore;
     int num_moves_tried = 0;
     for (const auto move : MovePicker(
