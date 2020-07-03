@@ -124,6 +124,17 @@ void DebugModifyChildParams<kDebugOn>(int64 node_id, Move move,
 }
 #endif
 
+template <DebugOptions debug_options>
+SearchParams<debug_options>
+BuildSearchParamsForChild(const SearchParams<debug_options> &parent_params,
+                          int64 node_id, Move from_move,
+                          int ply_increment = 1) {
+  SearchParams<debug_options> child_params = parent_params;
+  child_params.ply += ply_increment;
+  DebugModifyChildParams(node_id, from_move, &child_params);
+  return child_params;
+}
+
 // TODO: rename this to PerThreadSearchHelpers.
 struct SearchSharedObjects {
   TranspositionTable* tt;
@@ -141,6 +152,11 @@ enum class PVType : int {
 enum class RootType : int {
   kRoot,
   kNonRoot,
+};
+
+enum class NullMoveType : int {
+  kNullable,
+  kNonNullable,
 };
 
 template <DebugOptions debug_options>
@@ -181,9 +197,10 @@ Move CheckMoveOrEmpty(Board* board, Side side, Move move) {
 // If it returns true, the move in result must be a valid move not causing
 // repetition or perpetual attacks; if it returns false, tt_move could be
 // an empty move or a legal move.
-bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
-             Score alpha, Score beta, InternalSearchResult* result,
-             Move* tt_move) {
+template <NullMoveType null_move_type>
+bool ProbeTT(Board *board, TranspositionTable *tt, Side side, int depth,
+             Score alpha, Score beta, InternalSearchResult *result,
+             Move *tt_move) {
   *tt_move = Move();
   const uint64 hash = board->HashCode(side);
   TTEntry entry;
@@ -193,7 +210,12 @@ bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
        (entry.type == ScoreType::kUpperBound && entry.score <= alpha) ||
        (entry.type == ScoreType::kLowerBound && entry.score >= beta))) {
     // Check if the move is valid.
-    if (depth >= 1 && entry.score != -Score::kMateScore) {
+    if (entry.best_move == kNullMove &&
+        null_move_type == NullMoveType::kNonNullable) {
+      return false;
+    }
+    if (depth >= 1 && entry.score != -Score::kMateScore &&
+        entry.best_move != kNullMove) {
       if (!entry.best_move.IsValid() ||
           !board->IsPseudoLegalMove(side, entry.best_move)) {
         return false;
@@ -213,8 +235,8 @@ bool ProbeTT(Board* board, TranspositionTable* tt, Side side, int depth,
     result->affected_by_history = false;
     return true;
   }
-  // If the tt result is unusable, we populate tt_move to inspire move ordering
-  // in search.
+  // If the tt result is unusable, we still populate tt_move to inspire move
+  // ordering in search.
   *tt_move = CheckMoveOrEmpty(board, side, entry.best_move);
   return false;
 }
@@ -285,8 +307,8 @@ QuiescenceResult QuiescenceInternal(Board* board, TranspositionTable* tt,
   Move tt_move;
   if (tt) {
     InternalSearchResult search_result;
-    if (ProbeTT(board, tt, side, 0 /* depth */, alpha, beta, &search_result,
-                &tt_move)) {
+    if (ProbeTT<NullMoveType::kNullable>(board, tt, side, /*depth=*/0, alpha,
+                                         beta, &search_result, &tt_move)) {
       result.score = search_result.external_result.score;
       return result;
     }
@@ -351,14 +373,137 @@ QuiescenceResult Quiescence(Board* board, TranspositionTable* tt, Side side,
                             shared_objects);
 }
 
-// Only scores within (alpha, beta) are exact. Scores <= alpha are upper bounds;
-// scores >= beta are lower bounds.
-template <PVType node_type, RootType root_type, DebugOptions debug_options>
-InternalSearchResult Search(const SearchOptions& options, Board* const board,
+template <PVType node_type, RootType root_type, NullMoveType null_move_type,
+          DebugOptions debug_options>
+InternalSearchResult Search(const SearchOptions &options, Board *const board,
                             const Side side, const int depth, const Score alpha,
                             const Score beta,
                             const SearchParams<debug_options> params,
-                            SearchSharedObjects* shared_objects) {
+                            SearchSharedObjects *shared_objects);
+
+template <PVType node_type, RootType root_type, DebugOptions debug_options>
+InternalSearchResult
+ExpandNode(const SearchOptions &options, Board *const board, const Side side,
+           const int depth, const Score alpha, const Score beta, int64 node_id,
+           Move tt_move, const SearchParams<debug_options> params,
+           SearchSharedObjects *shared_objects) {
+  ++shared_objects->stats.nodes_expanded;
+
+  InternalSearchResult result;
+
+  int best_move_index = -1;
+  int num_moves_tried = 0;
+  for (const auto move : MovePicker(
+           *board, side, tt_move,
+           CheckMoveOrEmpty(
+               board, side,
+               shared_objects->killer_stats.GetKiller1(params.ply)),
+           CheckMoveOrEmpty(
+               board, side,
+               shared_objects->killer_stats.GetKiller2(params.ply)),
+           &shared_objects->history_move_stats, false /* captures_only */)) {
+    ScopedMoveMaker move_maker(board, move);
+    if (board->InCheck(side)) continue;
+
+    ++num_moves_tried;
+
+    const Score current_alpha = std::max(result.external_result.score, alpha);
+
+    InternalSearchResult child_result;
+    if (move_maker.move_type() == MoveType::kKingCapture) {
+      child_result.external_result.score = -kMateScore;
+    } else if (move_maker.move_type() != MoveType::kRegular &&
+               move_maker.move_type() != MoveType::kCapture) {
+      child_result.external_result.score =
+          -ScoreFromRepetitionRule(move_maker.move_type());
+      // We won't have a best_move in this case.
+      child_result.affected_by_history = true;
+    } else {
+      const SearchParams<debug_options> child_params =
+          BuildSearchParamsForChild(params, node_id, move);
+
+      bool do_full_window_search = false;
+      if (node_type == PVType::kNonPV || num_moves_tried > 1) {
+        // Use a null-window at non-pv nodes and expected cut moves at pv
+        // nodes.
+        child_result =
+            Search<PVType::kNonPV, RootType::kNonRoot, NullMoveType::kNullable>(
+                options, board, OtherSide(side), depth - 1,
+                -(current_alpha + 1), -current_alpha, child_params,
+                shared_objects);
+        // Do a re-search with full window if the score fails high at pv node.
+        do_full_window_search =
+            !child_result.aborted && node_type == PVType::kPV &&
+            -child_result.external_result.score > result.external_result.score;
+      } else {
+        do_full_window_search = true;
+      }
+
+      if (do_full_window_search) {
+        child_result =
+            Search<PVType::kPV, RootType::kNonRoot, NullMoveType::kNullable>(
+                options, board, OtherSide(side), depth - 1, -beta,
+                -current_alpha, child_params, shared_objects);
+      }
+    }
+
+    // Abort if we reach the time limit.
+    if (child_result.aborted) {
+      result.aborted = true;
+      break;
+    }
+
+    const Score current_score = -child_result.external_result.score;
+
+    if (current_score > result.external_result.score) {
+      result.external_result.score = current_score;
+      result.external_result.best_move = move;
+      best_move_index = num_moves_tried - 1;
+      if (node_type == PVType::kPV) {
+        child_result.pv.reserve(120);
+        child_result.pv.push_back(move);
+        result.pv = std::move(child_result.pv);
+
+        if (root_type == RootType::kRoot) {
+          OutputThinking(depth, ThinkingType::kNewPV, current_score,
+                         *shared_objects->timer,
+                         shared_objects->stats.nodes_visited, result.pv);
+        }
+      }
+    }
+    // Set affected_by_history as long as there's one child affected by
+    // history.
+    if (child_result.affected_by_history) {
+      result.affected_by_history = true;
+    }
+
+    if (result.external_result.score >= beta) {
+      shared_objects->killer_stats.RecordBetaCut(params.ply, move);
+      // Reset affected_by_history if a beta-cutoff happens.
+      result.affected_by_history = child_result.affected_by_history;
+      break;
+    }
+  }
+
+  // Update history move table and stats.
+  if (!result.aborted && result.external_result.best_move.IsValid()) {
+    shared_objects->history_move_stats.RecordBestMove(
+        side, result.external_result.best_move, depth);
+    shared_objects->stats.IncrementBestMoveRank(best_move_index);
+  }
+
+  return result;
+}
+
+// Only scores within (alpha, beta) are exact. Scores <= alpha are upper bounds;
+// scores >= beta are lower bounds.
+template <PVType node_type, RootType root_type, NullMoveType null_move_type,
+          DebugOptions debug_options>
+InternalSearchResult Search(const SearchOptions &options, Board *const board,
+                            const Side side, const int depth, const Score alpha,
+                            const Score beta,
+                            const SearchParams<debug_options> params,
+                            SearchSharedObjects *shared_objects) {
   const int64 node_id = shared_objects->stats.nodes_visited++;
   InternalSearchResult result;
 
@@ -371,12 +516,15 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
   // Probe tt.
   bool tt_hit = false;
   Move tt_move;
-  int best_move_index = -1;
   const bool use_tt = options.use_tt && depth >= 1;
-  if (use_tt &&
-      ProbeTT(board, shared_objects->tt, side, depth, alpha, beta, &result,
-              &tt_move) &&
-      node_type != PVType::kPV) {
+  constexpr bool effective_nullable =
+      node_type == PVType::kNonPV && null_move_type == NullMoveType::kNullable;
+  if (use_tt && ProbeTT < effective_nullable
+          ? NullMoveType::kNullable
+          : NullMoveType::kNonNullable > (board, shared_objects->tt, side,
+                                          depth, alpha, beta, &result,
+                                          &tt_move) &&
+                node_type != PVType::kPV) {
     ++shared_objects->stats.tt_hit;
     tt_hit = true;
   } else if (depth == 0) {
@@ -394,111 +542,35 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
       result.external_result.score = side == Side::kRed ? eval : -eval;
     }
   } else {
-    ++shared_objects->stats.nodes_expanded;
-    result.external_result.score = -kMateScore;
-    int num_moves_tried = 0;
-    for (const auto move : MovePicker(
-             *board, side, tt_move,
-             CheckMoveOrEmpty(
-                 board, side,
-                 shared_objects->killer_stats.GetKiller1(params.ply)),
-             CheckMoveOrEmpty(
-                 board, side,
-                 shared_objects->killer_stats.GetKiller2(params.ply)),
-             &shared_objects->history_move_stats, false /* captures_only */)) {
-      ScopedMoveMaker move_maker(board, move);
-      if (board->InCheck(side)) continue;
-
-      ++num_moves_tried;
-
-      const Score current_alpha = std::max(result.external_result.score, alpha);
-
-      InternalSearchResult child_result;
-      if (move_maker.move_type() == MoveType::kKingCapture) {
-        child_result.external_result.score = -kMateScore;
-      } else if (move_maker.move_type() != MoveType::kRegular &&
-                 move_maker.move_type() != MoveType::kCapture) {
-        child_result.external_result.score =
-            -ScoreFromRepetitionRule(move_maker.move_type());
-        // We won't have a best_move in this case.
-        child_result.affected_by_history = true;
-      } else {
-        SearchParams<debug_options> child_params = params;
-        ++child_params.ply;
-        DebugModifyChildParams(node_id, move, &child_params);
-
-        bool do_full_window_search = false;
-        if (node_type == PVType::kNonPV || num_moves_tried > 1) {
-          // Use a null-window at non-pv nodes and expected cut moves at pv
-          // nodes.
-          child_result = Search<PVType::kNonPV, RootType::kNonRoot>(
-              options, board, OtherSide(side), depth - 1, -(current_alpha + 1),
-              -current_alpha, child_params, shared_objects);
-          // Do a re-search with full window if the score fails high at pv node.
-          do_full_window_search = node_type == PVType::kPV &&
-                                  !child_result.aborted &&
-                                  -child_result.external_result.score >
-                                      result.external_result.score;
-        } else {
-          do_full_window_search = true;
-        }
-
-        if (do_full_window_search) {
-          child_result = Search<PVType::kPV, RootType::kNonRoot>(
-              options, board, OtherSide(side), depth - 1, -beta, -current_alpha,
-              child_params, shared_objects);
-        }
-      }
-
-      // Abort if we reach the time limit.
-      if (child_result.aborted) {
+    // Try null move.
+    if (options.null_move_depth_reduction > 0 && effective_nullable) {
+      const auto null_move_result = Search<PVType::kNonPV, RootType::kNonRoot,
+                                           NullMoveType::kNonNullable>(
+          options, board, OtherSide(side),
+          std::max(0, depth - options.null_move_depth_reduction), -beta,
+          -beta + 1, BuildSearchParamsForChild(params, node_id, kNullMove, 0),
+          shared_objects);
+      if (null_move_result.aborted) {
         result.aborted = true;
-        break;
-      }
-
-      const Score current_score = -child_result.external_result.score;
-
-      if (current_score > result.external_result.score) {
-        result.external_result.score = current_score;
-        result.external_result.best_move = move;
-        best_move_index = num_moves_tried - 1;
-        if (node_type == PVType::kPV) {
-          child_result.pv.reserve(120);
-          child_result.pv.push_back(move);
-          result.pv = std::move(child_result.pv);
-
-          if (root_type == RootType::kRoot) {
-            OutputThinking(depth, ThinkingType::kNewPV, current_score,
-                           *shared_objects->timer,
-                           shared_objects->stats.nodes_visited, result.pv);
-          }
-        }
-      }
-      // Set affected_by_history as long as there's one child affected by
-      // history.
-      if (child_result.affected_by_history) {
-        result.affected_by_history = true;
-      }
-
-      if (result.external_result.score >= beta) {
-        shared_objects->killer_stats.RecordBetaCut(params.ply, move);
-        // Reset affected_by_history if a beta-cutoff happens.
-        result.affected_by_history = child_result.affected_by_history;
-        break;
+      } else if (-null_move_result.external_result.score >= beta) {
+        result.external_result.score = -null_move_result.external_result.score;
+        result.external_result.best_move = kNullMove;
+        result.affected_by_history = null_move_result.affected_by_history;
       }
     }
 
-    // Update history move table and stats.
-    if (result.external_result.best_move.IsValid()) {
-      shared_objects->history_move_stats.RecordBestMove(
-          side, result.external_result.best_move, depth);
-      shared_objects->stats.IncrementBestMoveRank(best_move_index);
+    // Expand the node fully if the null move doesn't result in a cut.
+    if (!result.aborted && result.external_result.score < beta) {
+      result = ExpandNode<node_type, root_type>(options, board, side, depth,
+                                                alpha, beta, node_id, tt_move,
+                                                params, shared_objects);
     }
   }
 
   if (!result.aborted) {
     // Store TT.
-    if (use_tt && !tt_hit) {
+    if (use_tt && !tt_hit &&
+        result.external_result.best_move.IsValidOrNullMove()) {
       // If there are no more than 4 moves made, the result cannot be affected
       // by history.
       if (params.ply < 4) {
@@ -534,9 +606,10 @@ SearchResult IterativeDeepening(Board* board, TranspositionTable* tt, Side side,
   InternalSearchResult result;
   for (int d = 1; d <= depth; ++d) {
     SearchParams<debug> params;
-    auto this_result = Search<PVType::kPV, RootType::kRoot>(
-        options, board, side, d, -kMateScore, kMateScore, params,
-        &shared_objects);
+    auto this_result =
+        Search<PVType::kPV, RootType::kRoot, NullMoveType::kNonNullable>(
+            options, board, side, d, -kMateScore, kMateScore, params,
+            &shared_objects);
     // Override the previous result if this result is better, or this result is
     // not aborted.
     if (!this_result.aborted ||

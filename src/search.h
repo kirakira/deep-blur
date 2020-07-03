@@ -10,7 +10,7 @@ namespace blur {
 
 struct SearchResult {
   // Score is relative to side.
-  Score score;
+  Score score = -kMateScore;
   // Will not be populated if score == -kMateSocre.
   Move best_move;
 };
@@ -20,6 +20,7 @@ struct SearchOptions {
   bool enable_quiescence = true;
   bool use_tt_in_quiescence = false;
   std::chrono::milliseconds time_limit = std::chrono::seconds(5);
+  int null_move_depth_reduction = 3;
 
   static const SearchOptions& Defaults();
 };

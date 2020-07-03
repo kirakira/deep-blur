@@ -73,7 +73,7 @@ class Move {
  public:
   // Initialize to an invalid move.
   Move() = default;
-  Move(Position from, Position to) : from_(from), to_(to) {}
+  constexpr explicit Move(Position from, Position to) : from_(from), to_(to) {}
   // Requires: str be a valid move string.
   explicit Move(const std::string& str);
   // value must be the return value of value().
@@ -84,6 +84,7 @@ class Move {
   bool IsValid() const {
     return from_.IsValid() && to_.IsValid() && from_ != to_;
   }
+  inline bool IsValidOrNullMove() const;
 
   Position from() const { return from_; }
   Position to() const { return to_; }
@@ -102,6 +103,9 @@ class Move {
   Position from_;
   Position to_;
 };
+
+constexpr Move kNullMove =
+    Move(Position(kNumPositions), Position(kNumPositions));
 
 enum class PieceType {
   kKing = 1,
@@ -257,6 +261,10 @@ inline Score operator-(Score x, int y) {
 
 inline Score operator-(Score x) {
   return static_cast<Score>(-static_cast<int>(x));
+}
+
+inline bool Move::IsValidOrNullMove() const {
+  return IsValid() || *this == kNullMove;
 }
 
 }  // namespace blur

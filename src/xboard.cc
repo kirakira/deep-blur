@@ -58,6 +58,7 @@ int main() {
   Side side = Side::kRed;
 
   string line;
+  int depth = 30;
   while (std::getline(std::cin, line)) {
     std::istringstream iss(line);
     string command;
@@ -75,8 +76,8 @@ int main() {
       break;
     } else if (command == "go") {
       force = false;
-      int depth;
-      if (!(iss >> depth)) depth = 30;
+      int new_depth;
+      if (iss >> new_depth) depth = new_depth;
       go(&board, &tt, &side, depth);
     } else if (command == "xboard" || command == "new" || command == "random" ||
                command == "accepted" || command == "rejected" ||
@@ -119,7 +120,7 @@ int main() {
 
         side = blur::OtherSide(side);
         if (!force) {
-          go(&board, &tt, &side, 10);
+          go(&board, &tt, &side, depth);
         }
       } else {
         cout << "Illegal move: " << command << endl;
