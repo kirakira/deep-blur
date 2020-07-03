@@ -62,7 +62,9 @@ struct Stats {
     double elapsed_seconds =
         std::chrono::duration<double>(timer.GetReading()).count();
     std::cout << "# " << nodes_visited << " nodes in " << elapsed_seconds
-              << "s, " << ToHumanReadableScale(nodes_visited / elapsed_seconds)
+              << "s, "
+              << ToHumanReadableScale(static_cast<double>(nodes_visited) /
+                                      elapsed_seconds)
               << " NPS" << std::endl;
     std::cout << "tt hit: "
               << static_cast<double>(tt_hit) * 100 /
