@@ -76,7 +76,7 @@ int main() {
     } else if (command == "go") {
       force = false;
       int depth;
-      if (!(iss >> depth)) depth = 10;
+      if (!(iss >> depth)) depth = 30;
       go(&board, &tt, &side, depth);
     } else if (command == "xboard" || command == "new" || command == "random" ||
                command == "accepted" || command == "rejected" ||

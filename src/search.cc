@@ -17,6 +17,8 @@ namespace blur {
 
 namespace {
 
+constexpr int64 kCheckTimeNodes = 1LL << 17;
+
 // A scoped move maker.
 class ScopedMoveMaker {
  public:
@@ -161,6 +163,7 @@ void DebugLogCurrentNode<kDebugOn>(int64 node_id,
 
 struct InternalSearchResult {
   SearchResult external_result;
+  bool aborted = false;
   bool affected_by_history = false;
   // Only populated in PV nodes. Stored in reverse order. May be incomplete if
   // a checkmate is detected or if the result was a consequence of a repetition.
@@ -355,6 +358,12 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
   const int64 node_id = shared_objects->stats.nodes_visited++;
   InternalSearchResult result;
 
+  if (node_id % kCheckTimeNodes == 0 &&
+      shared_objects->timer->GetReading() > options.time_limit) {
+    result.aborted = true;
+    return result;
+  }
+
   // Probe tt.
   bool tt_hit = false;
   Move tt_move;
@@ -422,6 +431,7 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
               -current_alpha, child_params, shared_objects);
           // Do a re-search with full window if the score fails high at pv node.
           do_full_window_search = node_type == PVType::kPV &&
+                                  !child_result.aborted &&
                                   -child_result.external_result.score >
                                       result.external_result.score;
         } else {
@@ -434,6 +444,13 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
               child_params, shared_objects);
         }
       }
+
+      // Abort if we reach the time limit.
+      if (child_result.aborted) {
+        result.aborted = true;
+        break;
+      }
+
       const Score current_score = -child_result.external_result.score;
 
       if (current_score > result.external_result.score) {
@@ -474,23 +491,25 @@ InternalSearchResult Search(const SearchOptions& options, Board* const board,
     }
   }
 
-  // Store TT.
-  if (use_tt && !tt_hit) {
-    // If there are no more than 4 moves made, the result cannot be affected by
-    // history.
-    if (params.ply < 4) {
-      result.affected_by_history = false;
+  if (!result.aborted) {
+    // Store TT.
+    if (use_tt && !tt_hit) {
+      // If there are no more than 4 moves made, the result cannot be affected
+      // by history.
+      if (params.ply < 4) {
+        result.affected_by_history = false;
+      }
+      if (result.affected_by_history) {
+        ++shared_objects->stats.affected_by_history;
+      } else if (depth > 0) {
+        StoreTT(board, shared_objects->tt, side, depth, alpha, beta,
+                result.external_result);
+      }
     }
-    if (result.affected_by_history) {
-      ++shared_objects->stats.affected_by_history;
-    } else if (depth > 0) {
-      StoreTT(board, shared_objects->tt, side, depth, alpha, beta,
-              result.external_result);
-    }
-  }
 
-  DebugLogCurrentNode(node_id, params, side, depth, alpha, beta, tt_hit,
-                      result.external_result);
+    DebugLogCurrentNode(node_id, params, side, depth, alpha, beta, tt_hit,
+                        result.external_result);
+  }
   return result;
 }
 
@@ -510,9 +529,17 @@ SearchResult IterativeDeepening(Board* board, TranspositionTable* tt, Side side,
   InternalSearchResult result;
   for (int d = 1; d <= depth; ++d) {
     SearchParams<debug> params;
-    result = Search<PVType::kPV, RootType::kRoot>(options, board, side, d,
-                                                  -kMateScore, kMateScore,
-                                                  params, &shared_objects);
+    auto this_result = Search<PVType::kPV, RootType::kRoot>(
+        options, board, side, d, -kMateScore, kMateScore, params,
+        &shared_objects);
+    // Override the previous result if this result is better, or this result is
+    // not aborted.
+    if (!this_result.aborted ||
+        this_result.external_result.score >= result.external_result.score) {
+      result = this_result;
+    }
+
+    if (this_result.aborted) break;
     OutputThinking(d, ThinkingType::kEndOfIteration,
                    result.external_result.score, timer,
                    shared_objects.stats.nodes_visited, result.pv);

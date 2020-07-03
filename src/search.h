@@ -1,6 +1,8 @@
 #ifndef BLUR_SEARCH_H
 #define BLUR_SEARCH_H
 
+#include <chrono>
+
 #include "board.h"
 #include "transposition.h"
 
@@ -17,6 +19,7 @@ struct SearchOptions {
   bool use_tt = true;
   bool enable_quiescence = true;
   bool use_tt_in_quiescence = false;
+  std::chrono::milliseconds time_limit = std::chrono::seconds(5);
 
   static const SearchOptions& Defaults();
 };
