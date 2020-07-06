@@ -1,5 +1,5 @@
 COMPILER=g++
-COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -Wconversion -Wno-sign-conversion
+COMPILER_FLAGS=-std=c++14 -Wall -Wextra -Wshadow -Werror -Wconversion -Wno-sign-conversion -fconstexpr-ops-limit=100000000
 OUT=bin
 ifeq ($(build),dbg)
 	COMPILER_FLAGS+=-g
