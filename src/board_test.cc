@@ -359,6 +359,13 @@ bool TestRepetition() {
                                 MoveType::kRepetition)) {
     return false;
   }
+
+  if (!VerifyRepetitionSequence(
+          "9/1R7/5k3/p8/4p3P/6P2/5r3/9/9/4K1E2",
+          {"b8e8", "xr", "f3f0", "e0e1", "xr", "f0f1", "e1e0", "f1f0"},
+          MoveType::kPerpetualAttacker)) {
+    return false;
+  }
   return true;
 }
 

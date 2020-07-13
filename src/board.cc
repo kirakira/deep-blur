@@ -457,7 +457,9 @@ MoveType Board::Make(Move move) {
   MoveType move_type = MakeWithoutRepetitionDetection(move);
   // Determine repetition type if this is not a capture move.
   if (move_type == MoveType::kRegular) {
-    const Side moving_side = PieceAt(move.from()).side();
+    // Since the move has already been made, we need to look at the 'to' cell of
+    // the board.
+    const Side moving_side = PieceAt(move.to()).side();
     for (int i = static_cast<int>(history_.size()) - 1;
          i >= std::max(repetition_start_[static_cast<int>(moving_side)],
                        irreversible_moves_.back() + 1);

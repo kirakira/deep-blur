@@ -35,9 +35,13 @@ void go(Board* board, TranspositionTable* tt, Side* side, int depth) {
   blur::DebugPrintLogs();
 
   if (result.score != -blur::kMateScore) {
-    CHECK(board->CheckedMake(*side, result.best_move).first);
+    auto move_result = board->CheckedMake(*side, result.best_move);
+    CHECK(move_result.first);
     cout << "move " << result.best_move.ToString() << endl;
     *side = blur::OtherSide(*side);
+    if (move_result.second == blur::MoveType::kPerpetualAttacker) {
+      cout << "# Error: engine made a perpectual attack." << endl;
+    }
   } else {
     if (*side == Side::kRed) {
       cout << "0-1 {White resigns}" << endl;
