@@ -62,7 +62,7 @@ int main() {
   Side side = Side::kRed;
 
   string line;
-  int depth = 30;
+  int depth = 100;
   while (std::getline(std::cin, line)) {
     std::istringstream iss(line);
     string command;
