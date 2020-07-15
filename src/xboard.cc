@@ -30,8 +30,16 @@ bool IsMoveString(const string& str) {
   return IsPositionString(str.substr(0, 2)) && IsPositionString(str.substr(2));
 }
 
-void go(Board* board, TranspositionTable* tt, Side* side, int depth) {
-  auto result = blur::Search(board, tt, *side, depth);
+void go(Board *board, TranspositionTable *tt, Side *side, int depth,
+        std::chrono::milliseconds *time_limit) {
+  blur::SearchOptions options;
+  options.time_limit = *time_limit;
+
+  auto start = std::chrono::steady_clock::now();
+  auto result = blur::Search(board, tt, *side, depth, options);
+  auto time_spent = std::chrono::steady_clock::now() - start;
+  *time_limit -= std::chrono::duration_cast<std::chrono::milliseconds>(time_spent);
+
   blur::DebugPrintLogs();
 
   if (result.score != -blur::kMateScore) {
@@ -63,6 +71,7 @@ int main() {
 
   string line;
   int depth = 100;
+  std::chrono::milliseconds time_limit = std::chrono::seconds(5);
   while (std::getline(std::cin, line)) {
     std::istringstream iss(line);
     string command;
@@ -82,7 +91,7 @@ int main() {
       force = false;
       int new_depth;
       if (iss >> new_depth) depth = new_depth;
-      go(&board, &tt, &side, depth);
+      go(&board, &tt, &side, depth, &time_limit);
     } else if (command == "xboard" || command == "new" || command == "random" ||
                command == "accepted" || command == "rejected" ||
                command == "variant" || command == "post" || command == "hard" ||
@@ -114,6 +123,10 @@ int main() {
         cout << "Error (command not legal now): remove. Treated as undo."
              << endl;
       }
+    } else if (command == "time") {
+      int remaining_time_centiseconds;
+      iss >> remaining_time_centiseconds;
+      time_limit = std::chrono::milliseconds(10 * remaining_time_centiseconds);
     } else if (IsMoveString(command)) {
       Move move(command);
       auto move_result = board.CheckedMake(side, move);
@@ -124,7 +137,7 @@ int main() {
 
         side = blur::OtherSide(side);
         if (!force) {
-          go(&board, &tt, &side, depth);
+          go(&board, &tt, &side, depth, &time_limit);
         }
       } else {
         cout << "Illegal move: " << command << endl;
